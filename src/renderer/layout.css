@@ -1,0 +1,28 @@
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 5vh;
+  background-color: #282c34;
+  color: white;
+}
+
+.container {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+}
+
+.editor {
+  flex: 6;
+  background-color: #f0f0f0;
+  min-width: 0;
+}
+
+.preview {
+  flex: 4;
+  flex-grow: 1;
+  background-color: #e0e0e0;
+  min-width: 0;
+}
