@@ -1,28 +1,34 @@
+
 import React from "react";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
-import remarkRehype from "remark-rehype";
 import remarkGfm from "remark-gfm";
+import remarkRehype from "remark-rehype";
 import rehypeReact from "rehype-react";
 import rehypeHighlight from "rehype-highlight";
-import 'highlight.js/styles/github-dark.css'
-import './preview.css'
-import 'github-markdown-css'
+import 'highlight.js/styles/github-dark.css';
+import './preview.css';
+import 'github-markdown-css';
 
 interface Props {
-  doc: string
+  doc: string;
 }
 
-const Preview = (props: Props) => {
+const Preview: React.FC<Props> = ({ doc }) => {
   const md = unified()
     .use(remarkParse)
     .use(remarkGfm)
     .use(remarkRehype)
-    .use(rehypeReact as any, { createElement: React.createElement })
-    .use(rehypeHighlight)
-    .processSync(props.doc).result as React.ReactElement
+    .use(rehypeHighlight, { detect: true })
+    //@ts-expect-error
+    .use(rehypeReact, {
+      createElement: React.createElement,
+      Fragment: React.Fragment,
+    })
+    .processSync(doc).result as React.ReactNode;
 
-  return <div className="preview markdown-body">{md}</div>
-}
+  return <div className="preview markdown-body">{md}</div>;
+};
 
-export default Preview
+export default Preview;
+

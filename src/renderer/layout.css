@@ -4,7 +4,6 @@
   justify-content: space-between;
   align-items: center;
   height: 5vh;
-  background-color: #282c34;
   color: white;
 }
 
@@ -16,8 +15,8 @@
 
 .editor {
   flex: 6;
-  background-color: #f0f0f0;
   min-width: 0;
+  height: 100%;
 }
 
 .preview {
@@ -25,4 +24,5 @@
   flex-grow: 1;
   background-color: #e0e0e0;
   min-width: 0;
+  height: 100%;
 }

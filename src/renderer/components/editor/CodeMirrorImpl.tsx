@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react"
 import { EditorState } from "@codemirror/state"
-import { EditorView, highlightActiveLine, lineNumbers, highlightActiveLineGutter } from "@codemirror/view"
-import { history } from "@codemirror/commands"
+import { EditorView, keymap, highlightActiveLine, lineNumbers, highlightActiveLineGutter } from "@codemirror/view"
+import { defaultKeymap, history, historyKeymap } from "@codemirror/commands"
 import { indentOnInput, bracketMatching, syntaxHighlighting, HighlightStyle } from "@codemirror/language"
 import { tags } from "@lezer/highlight"
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown"
@@ -34,7 +34,73 @@ const customHighlighting = HighlightStyle.define([
   }
 ])
 
-import type React from "react"
+
+const customKeymap = keymap.of([
+  {
+    key: "Mod-b",
+    run: (view) => {
+      const { state } = view;
+      const selection = state.selection.main;
+      if (!selection.empty) {
+        const text = state.doc.sliceString(selection.from, selection.to);
+        view.dispatch({
+          changes: {
+            from: selection.from,
+            to: selection.to,
+            insert: `**${text}**`,
+          },
+        });
+      }
+      return true;
+    },
+  },
+
+  {
+    key: "Mod-i",
+    run: (view) => {
+      const { state } = view;
+      const selection = state.selection.main;
+      if (!selection.empty) {
+        const text = state.doc.sliceString(selection.from, selection.to);
+        
+        // Check if text is already italic
+        const isItalic = text.startsWith('_') && text.endsWith('_');
+        const newText = isItalic 
+          ? text.slice(1, -1) // Remove _ from start and end
+          : `_${text}_`;      // Add _ to start and end
+
+        view.dispatch({
+          changes: {
+            from: selection.from,
+            to: selection.to,
+            insert: newText,
+          },
+        });
+      }
+      return true;
+    },
+  },
+
+  {
+    key: "Mod-k",
+    run: (view) => {
+      const { state } = view;
+      const selection = state.selection.main;
+      if (!selection.empty) {
+        const text = state.doc.sliceString(selection.from, selection.to);
+        
+        view.dispatch({
+          changes: {
+            from: selection.from,
+            to: selection.to,
+            insert: `[${text}]()`,
+          },
+        });
+      }
+      return true;
+    },
+  },
+]);
 
 interface Props {
   initialDoc: string,
@@ -53,6 +119,8 @@ const codeMirrorImpl = <T extends Element>(
     const startState = EditorState.create({
       doc: props.initialDoc,
       extensions: [
+        keymap.of([...defaultKeymap, ...historyKeymap]),
+        customKeymap,
         lineNumbers(),
         highlightActiveLineGutter(),
         history(),
@@ -63,7 +131,7 @@ const codeMirrorImpl = <T extends Element>(
         markdown({
           base: markdownLanguage,
           codeLanguages: languages,
-          addKeymap: true
+          addKeymap: true,
         }),
         oneDark,
         transparentTheme,

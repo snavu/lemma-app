@@ -1,6 +1,7 @@
 
 import { Editor } from './components/editor/page';
 import Preview from './components/preview/page';
+import { Header } from './components/header/page';
 import ResizableBox from 'react-resizable-box';
 import './layout.css';
 import { useState, useEffect, useCallback } from 'react';
@@ -28,7 +29,7 @@ export const App = () => {
   return (
     <div className='app'>
       <div className='header'>
-        <h3>Markdown Editor</h3>
+        <Header />
       </div>
       <div className='container'>
         <ResizableBox
