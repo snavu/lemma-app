@@ -1,0 +1,116 @@
+.tab-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 4px 8px;
+  background-color: var(--background-tertiary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.view-controls {
+  display: flex;
+  align-items: center;
+  background-color: var(--background-secondary);
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.view-controls button {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  margin: 0 2px;
+  cursor: pointer;
+}
+
+.view-controls button:hover {
+  background-color: var(--interactive-hover);
+  color: var(--text-normal);
+}
+
+.view-controls button.active {
+  background-color: var(--interactive-normal);
+  color: var(--text-accent);
+}
+
+/* Container for editor and preview */
+.container {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  background-color: #1e2127;
+}
+
+/* Editor styling */
+.editor-container {
+  height: 100%;
+  overflow: hidden;
+  transition: width 0.2s ease;
+  background-color: #282c34;
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Preview styling */
+.preview {
+  height: 100%;
+  overflow: auto;
+  padding: 20px;
+  transition: width 0.2s ease;
+  background-color: #282c34;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+/* Resize handle */
+.resize-handle {
+  width: 6px;
+  height: 100%;
+  background-color: #1e2127;
+  cursor: ew-resize;
+  z-index: 10;
+  transition: background-color 0.2s;
+  position: relative;
+  flex: 0 0 6px;
+}
+
+.resize-handle:hover,
+.resize-handle:active {
+  background-color: #528bff;
+}
+
+.resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 30px;
+  width: 2px;
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.editor-wrapper {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* CodeMirror overrides for better appearance */
+.cm-editor {
+  height: 100%;
+  background-color: #282c34 !important;
+}
+
+.cm-scroller {
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  padding: 10px;
+} 

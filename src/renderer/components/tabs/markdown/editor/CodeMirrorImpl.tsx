@@ -34,71 +34,59 @@ const customHighlighting = HighlightStyle.define([
   }
 ])
 
+// Helper function to format text
+const formatText = (view: EditorView, formatType: string) => {
+  const { state } = view;
+  const selection = state.selection.main;
+  
+  if (!selection.empty) {
+    const text = state.doc.sliceString(selection.from, selection.to);
+    let formattedText = '';
+    
+    switch (formatType) {
+      case 'bold':
+        formattedText = `**${text}**`;
+        break;
+      case 'italic': {
+        const isItalic = text.startsWith('_') && text.endsWith('_');
+        formattedText = isItalic ? text.slice(1, -1) : `_${text}_`;
+        break;
+      }
+      case 'link':
+        formattedText = `[${text}]()`;
+        break;
+      default:
+        return false;
+    }
+    
+    view.dispatch({
+      changes: {
+        from: selection.from,
+        to: selection.to,
+        insert: formattedText,
+      },
+    });
+    
+    return true;
+  }
+  
+  return false;
+};
 
 const customKeymap = keymap.of([
   {
     key: "Mod-b",
-    run: (view) => {
-      const { state } = view;
-      const selection = state.selection.main;
-      if (!selection.empty) {
-        const text = state.doc.sliceString(selection.from, selection.to);
-        view.dispatch({
-          changes: {
-            from: selection.from,
-            to: selection.to,
-            insert: `**${text}**`,
-          },
-        });
-      }
-      return true;
-    },
+    run: (view) => formatText(view, 'bold'),
   },
 
   {
     key: "Mod-i",
-    run: (view) => {
-      const { state } = view;
-      const selection = state.selection.main;
-      if (!selection.empty) {
-        const text = state.doc.sliceString(selection.from, selection.to);
-        
-        // Check if text is already italic
-        const isItalic = text.startsWith('_') && text.endsWith('_');
-        const newText = isItalic 
-          ? text.slice(1, -1) // Remove _ from start and end
-          : `_${text}_`;      // Add _ to start and end
-
-        view.dispatch({
-          changes: {
-            from: selection.from,
-            to: selection.to,
-            insert: newText,
-          },
-        });
-      }
-      return true;
-    },
+    run: (view) => formatText(view, 'italic'),
   },
 
   {
     key: "Mod-k",
-    run: (view) => {
-      const { state } = view;
-      const selection = state.selection.main;
-      if (!selection.empty) {
-        const text = state.doc.sliceString(selection.from, selection.to);
-        
-        view.dispatch({
-          changes: {
-            from: selection.from,
-            to: selection.to,
-            insert: `[${text}]()`,
-          },
-        });
-      }
-      return true;
-    },
+    run: (view) => formatText(view, 'link'),
   },
 ]);
 
@@ -151,6 +139,30 @@ const codeMirrorImpl = <T extends Element>(
 
     setEditorView(view)
   }, [refContainer])
+
+  // Listen for context menu formatting events from Electron
+  useEffect(() => {
+    if (!editorView) return;
+
+    // Setup the event listener for context menu formatting
+    const handleFormat = (formatType: string) => {
+      if (editorView) {
+        formatText(editorView, formatType);
+      }
+    };
+
+    // Add the event listener
+    if (window.electron?.editorFormat) {
+      window.electron.editorFormat.onFormat(handleFormat);
+    }
+
+    // Clean up the event listener when component unmounts
+    return () => {
+      if (window.electron?.editorFormat) {
+        window.electron.editorFormat.removeListeners();
+      }
+    };
+  }, [editorView]);
 
   return [refContainer, editorView]
 }

@@ -1,28 +1,185 @@
+/* App layout */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
 
+/* Header styling */
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 5vh;
-  color: white;
+  height: 32px;
+  background-color: var(--background-tertiary);
+  color: var(--text-normal);
+  padding: 0 8px;
+  -webkit-app-region: drag;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.container {
+.header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.window-controls {
   display: flex;
-  flex-direction: row;
-  height: 100vh;
+  -webkit-app-region: no-drag;
+}
+
+.window-controls button {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  margin-left: 8px;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.window-controls button:hover {
+  background-color: var(--interactive-hover);
+  color: var(--text-normal);
+}
+
+/* Main content area */
+.content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 220px;
+  background-color: var(--background-secondary);
+  overflow-y: auto;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.sidebar-nav {
+  padding: 8px;
+}
+
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  color: var(--text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 2px;
+}
+
+.sidebar-nav-item:hover {
+  background-color: var(--interactive-hover);
+  color: var(--text-normal);
+}
+
+.sidebar-nav-item.active {
+  background-color: var(--interactive-normal);
+  color: var(--text-accent);
+}
+
+.sidebar-nav-item-icon {
+  margin-right: 8px;
+  width: 16px;
+  height: 16px;
+}
+
+/* Markdown content */
+.markdown-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Editor area */
+.editor-container {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--background-primary);
 }
 
 .editor {
-  flex: 6;
-  min-width: 0;
+  flex: 1;
+  overflow: auto;
+  padding: 20px;
+}
+
+/* Preview area */
+.preview {
+  flex: 1;
+  background-color: var(--background-primary);
+  overflow: auto;
+  padding: 20px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Resizable container */
+.container {
+  display: flex;
+  flex-direction: row;
   height: 100%;
 }
 
-.preview {
-  flex: 4;
-  flex-grow: 1;
-  background-color: #e0e0e0;
-  min-width: 0;
+.resizable-box {
   height: 100%;
+}
+
+/* Resize handle */
+.resizable-box .resize-handle {
+  background-color: rgba(255, 255, 255, 0.1);
+  width: 4px !important;
+}
+
+.resizable-box .resize-handle:hover,
+.resizable-box .resize-handle:active {
+  background-color: var(--interactive-accent);
+}
+
+/* When resizing is active */
+html.resizing {
+  cursor: ew-resize !important;
+}
+
+html.resizing * {
+  user-select: none !important;
+}
+
+/* Ensure consistent styling */
+:root {
+  /* Colors */
+  --background-primary: #282c34;
+  --background-secondary: #21252b;
+  --background-tertiary: #1e2127;
+  --text-normal: #abb2bf;
+  --text-muted: #5c6370;
+  --text-accent: #61afef;
+  --interactive-normal: #2c313a;
+  --interactive-hover: #2c313c;
+  --interactive-accent: #528bff;
+}
+
+/* Ensure all transitions are consistent */
+* {
+  transition-property: background-color, color, border-color, width;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
+}
+
+/* Override transition for resize operations */
+.editor-container, .preview {
+  transition: width 0.05s ease;
 }

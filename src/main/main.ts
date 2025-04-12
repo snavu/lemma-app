@@ -1,4 +1,4 @@
-import { app, BrowserWindow, session } from 'electron';
+import { app, BrowserWindow, session, Menu, ipcMain } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 
@@ -7,17 +7,42 @@ if (started) {
   app.quit();
 }
 
+let mainWindow: BrowserWindow | null = null;
+
 const createWindow = () => {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+  mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
     },
+    frame: false, // Remove default frame for custom header
+    backgroundColor: '#202020', // Match Obsidian background
+  });
+
+  // Handle window control messages
+  ipcMain.on('window-control', (_, command) => {
+    if (!mainWindow) return;
+    
+    switch (command) {
+      case 'minimize':
+        mainWindow.minimize();
+        break;
+      case 'maximize':
+        if (mainWindow.isMaximized()) {
+          mainWindow.unmaximize();
+        } else {
+          mainWindow.maximize();
+        }
+        break;
+      case 'close':
+        mainWindow.close();
+        break;
+    }
   });
 
   // Set up CSP in the session
@@ -30,6 +55,38 @@ const createWindow = () => {
         ]
       }
     });
+  });
+
+  // Create a context menu
+  const contextMenu = Menu.buildFromTemplate([
+    { role: 'cut' },
+    { role: 'copy' },
+    { role: 'paste' },
+    { type: 'separator' },
+    { 
+      label: 'Bold',
+      click: () => {
+        mainWindow?.webContents.send('editor-format', 'bold');
+      }
+    },
+    { 
+      label: 'Italic',
+      click: () => {
+        mainWindow?.webContents.send('editor-format', 'italic');
+      }
+    },
+    { 
+      label: 'Link',
+      click: () => {
+        mainWindow?.webContents.send('editor-format', 'link');
+      }
+    }
+  ]);
+
+  // Attach the context menu to the window
+  mainWindow.webContents.on('context-menu', (event) => {
+    event.preventDefault();
+    contextMenu.popup();
   });
 
   // and load the index.html of the app.
