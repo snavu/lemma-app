@@ -1,25 +1,32 @@
 import React, { useState } from 'react';
 import './sidebar.css';
 
-interface SidebarProps {
-  activeFile: string;
-  onFileSelect: (file: string) => void;
-  onViewModeChange?: (mode: 'split' | 'editor' | 'preview') => void;
+interface FileInfo {
+  name: string;
+  path: string;
+  stats?: any;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeFile, onFileSelect, onViewModeChange }) => {
-  // Mock files for the sidebar
-  const files = [
-    { id: 'file1', name: 'Welcome.md', icon: 'document' },
-    { id: 'file2', name: 'Getting Started.md', icon: 'document' },
-    { id: 'file3', name: 'Features.md', icon: 'document' },
-    { id: 'file4', name: 'Todo List.md', icon: 'document' },
-  ];
-  
-  const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
-  
+interface SidebarProps {
+  files: FileInfo[];
+  onFileSelect: (filePath: string) => void;
+  onNewNote: () => void;
+  onSelectDirectory: () => void;
+  onViewModeChange?: (mode: 'split' | 'editor' | 'preview') => void;
+  viewMode: 'split' | 'editor' | 'preview';
+  notesDirectory: string | null;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ 
+  files, 
+  onFileSelect, 
+  onNewNote,
+  onSelectDirectory,
+  onViewModeChange,
+  viewMode,
+  notesDirectory
+}) => {
   const handleViewModeChange = (mode: 'split' | 'editor' | 'preview') => {
-    setViewMode(mode);
     if (onViewModeChange) {
       onViewModeChange(mode);
     }
@@ -40,6 +47,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeFile, onFileSelect, onVi
             <path fill="currentColor" d="M13,9H18.5L13,3.5V9M6,2H14L20,8V20A2,2 0 0,1 18,22H6C4.89,22 4,21.1 4,20V4C4,2.89 4.89,2 6,2M15,18V16H6V18H15M18,14V12H6V14H18Z" />
           </svg>
           Notes
+          <button 
+            className="folder-button"
+            onClick={onSelectDirectory}
+            title="Select folder"
+            style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16">
+              <path fill="currentColor" d="M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z" />
+            </svg>
+          </button>
         </div>
         
         <div className="sidebar-nav-item">
@@ -49,12 +66,59 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeFile, onFileSelect, onVi
           Chat
         </div>
         
-        <div style={{ marginTop: '20px' }}>
+        {notesDirectory && (
+          <div className="directory-info" style={{ padding: '8px', fontSize: '12px', color: '#777' }}>
+            {notesDirectory}
+          </div>
+        )}
+        
+        {/* Files section header with new note button */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          padding: '8px 12px',
+          marginTop: '10px'
+        }}>
+          <span style={{ fontSize: '13px', fontWeight: 'bold' }}>Files</span>
+          <button 
+            onClick={onNewNote}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            title="New note"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16">
+              <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+            </svg>
+          </button>
+        </div>
+        
+        {/* Files list */}
+        <div style={{ marginTop: '10px' }}>
+          {files.length === 0 && notesDirectory && (
+            <div style={{ padding: '10px', textAlign: 'center', fontSize: '13px', color: '#888' }}>
+              No markdown files found
+            </div>
+          )}
+          
+          {!notesDirectory && (
+            <div style={{ padding: '10px', textAlign: 'center', fontSize: '13px', color: '#888' }}>
+              Select a folder to view files
+            </div>
+          )}
+          
           {files.map((file) => (
             <div 
-              key={file.id}
-              className={`sidebar-nav-item ${activeFile === file.id ? 'active' : ''}`}
-              onClick={() => onFileSelect(file.id)}
+              key={file.path}
+              className="sidebar-nav-item"
+              onClick={() => onFileSelect(file.path)}
             >
               <svg className="sidebar-nav-item-icon" viewBox="0 0 24 24">
                 <path fill="currentColor" d="M13,9V3.5L18.5,9M6,2C4.89,2 4,2.89 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6Z" />
@@ -98,4 +162,4 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeFile, onFileSelect, onVi
       </div>
     </div>
   );
-}; 
+};
