@@ -56,13 +56,6 @@ const createAppMenu = () => {
           accelerator: 'CmdOrCtrl+O',
           click: selectNotesDirectory,
         },
-        {
-          label: 'Save',
-          accelerator: 'CmdOrCtrl+S',
-          click: () => {
-            if (mainWindow) mainWindow.webContents.send('save-note');
-          }
-        },
         { type: 'separator' },
         {
           label: 'Quit',

@@ -16,18 +16,17 @@ interface TabInfo {
   filePath: string;
   fileName: string;
   content: string;
-  unsaved: boolean;
 }
 
 export const App = () => {
   // State for files and directories
   const [notesDirectory, setNotesDirectory] = useState<string | null>(null);
   const [files, setFiles] = useState<FileInfo[]>([]);
-  
+
   // State for tabs system
   const [tabs, setTabs] = useState<TabInfo[]>([]);
   const [activeTab, setActiveTab] = useState<string | null>(null);
-  
+
   // View mode
   const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
 
@@ -73,19 +72,6 @@ export const App = () => {
     }
   }, []);
 
-  // Set up save note listener from menu
-  useEffect(() => {
-    if (window.electron?.on) {
-      const removeListener = window.electron.on.saveNote(() => {
-        handleSaveCurrentNote();
-      });
-
-      return () => {
-        removeListener();
-      };
-    }
-  }, [tabs, activeTab]);
-
   // Handle selecting notes directory
   const handleSelectDirectory = useCallback(async () => {
     if (window.electron?.fs) {
@@ -96,7 +82,7 @@ export const App = () => {
   // Handle file selection from sidebar
   const handleFileSelect = useCallback(async (filePath: string) => {
     if (!window.electron?.fs) return;
-    
+
     // Check if file is already open in a tab
     const existingTab = tabs.find(tab => tab.filePath === filePath);
     if (existingTab) {
@@ -107,15 +93,14 @@ export const App = () => {
     try {
       const content = await window.electron.fs.readFile(filePath);
       const fileName = filePath.split(/[\\/]/).pop() || 'Untitled';
-      
+
       const newTab: TabInfo = {
         id: `tab-${Date.now()}`,
         filePath,
         fileName,
         content,
-        unsaved: false
       };
-      
+
       setTabs(prevTabs => [...prevTabs, newTab]);
       setActiveTab(newTab.id);
     } catch (error) {
@@ -126,7 +111,7 @@ export const App = () => {
   // Handle creating a new note
   const handleNewNote = useCallback(async () => {
     if (!window.electron?.fs) return;
-    
+
     if (!notesDirectory) {
       const directory = await window.electron.fs.selectDirectory();
       if (!directory) return;
@@ -135,14 +120,14 @@ export const App = () => {
     // Create a unique filename
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const fileName = `Note ${timestamp}.md`;
-    
+
     try {
       const result = await window.electron.fs.createFile(fileName);
-      
+
       // Add new file to files list
       const newFiles = await window.electron.fs.getFiles();
       setFiles(newFiles);
-      
+
       // Open the new file
       await handleFileSelect(result.filePath);
     } catch (error) {
@@ -152,68 +137,56 @@ export const App = () => {
 
   // Handle markdown content change
   const handleNoteChange = useCallback((tabId: string, newContent: string) => {
-    setTabs(prevTabs => prevTabs.map(tab => 
-      tab.id === tabId 
-        ? { ...tab, content: newContent, unsaved: true } 
-        : tab
+    // Find the tab that changed
+    const tabToUpdate = tabs.find(tab => tab.id === tabId);
+
+    if (!tabToUpdate) return;
+
+    // Update the tab's content in state
+    setTabs(prevTabs => prevTabs.map(tab =>
+      tab.id === tabId ? { ...tab, content: newContent } : tab
     ));
-  }, []);
 
-  // Handle saving the current note
-  const handleSaveCurrentNote = useCallback(async () => {
-    if (!window.electron?.fs || !activeTab) return;
-    
-    const currentTab = tabs.find(tab => tab.id === activeTab);
-    if (!currentTab) return;
-    
-    try {
-      await window.electron.fs.saveFile(currentTab.filePath, currentTab.content);
-      
-      // Mark tab as saved
-      setTabs(prevTabs => prevTabs.map(tab => 
-        tab.id === activeTab 
-          ? { ...tab, unsaved: false } 
-          : tab
-      ));
-      
-      // Refresh file list to update last modified times
-      const newFiles = await window.electron.fs.getFiles();
-      setFiles(newFiles);
-    } catch (error) {
-      console.error('Failed to save note:', error);
+    // Auto-save the content to the file
+    if (window.electron && tabToUpdate.filePath) {
+      // Add debouncing here to avoid too many saves
+      autoSaveDebounced(tabToUpdate.filePath, newContent);
     }
-  }, [activeTab, tabs]);
+  }, [tabs]);
 
-  // Handle closing a tab
+  // Add a debounce utility to avoid saving on every keystroke
+  // This will wait until the user pauses typing before saving
+  const debounce = (fn: Function, ms = 1000) => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    return function (...args: any[]) {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => fn.apply(this, args), ms);
+    };
+  };
+
+  // Create a debounced version of the save function
+  const autoSaveDebounced = useCallback(
+    debounce((filePath: string, content: string) => {
+      window.electron?.fs.saveFile(filePath, content )
+        .then(() => {
+          console.log('Auto-saved file:', filePath);
+
+          // // Optionally refresh file list to update last modified times
+          // window.electron?.fs.getFiles().then(newFiles => {
+          //   setFiles(newFiles);
+          // });
+        })
+        .catch(error => {
+          console.error('Failed to auto-save file:', error);
+        });
+    }, 200), // 200ms debounce time
+    []
+  );
+
+  // Handle closeing a tab
   const handleCloseTab = useCallback((tabId: string) => {
-    const tabToClose = tabs.find(tab => tab.id === tabId);
-    
-    if (tabToClose?.unsaved) {
-      // Prompt the user to save changes
-      const shouldSave = window.confirm('Save changes before closing?');
-      if (shouldSave && window.electron?.fs) {
-        // Save the file before closing
-        window.electron.fs.saveFile(tabToClose.filePath, tabToClose.content)
-          .then(() => {
-            // Remove the tab after saving
-            setTabs(prevTabs => prevTabs.filter(tab => tab.id !== tabId));
-            
-            // If closing the active tab, activate another tab if available
-            if (activeTab === tabId) {
-              const remainingTabs = tabs.filter(tab => tab.id !== tabId);
-              setActiveTab(remainingTabs.length > 0 ? remainingTabs[0].id : null);
-            }
-          })
-          .catch(error => {
-            console.error('Failed to save before closing:', error);
-          });
-        return;
-      }
-    }
-    
-    // Remove the tab without saving
     setTabs(prevTabs => prevTabs.filter(tab => tab.id !== tabId));
-    
+
     // If closing the active tab, activate another tab if available
     if (activeTab === tabId) {
       const remainingTabs = tabs.filter(tab => tab.id !== tabId);
@@ -234,8 +207,8 @@ export const App = () => {
         <Header />
       </div>
       <div className="content">
-        <Sidebar 
-          files={files} 
+        <Sidebar
+          files={files}
           onFileSelect={handleFileSelect}
           onNewNote={handleNewNote}
           onSelectDirectory={handleSelectDirectory}
@@ -244,15 +217,16 @@ export const App = () => {
           notesDirectory={notesDirectory}
         />
         <div className="main-content">
-          <TabBar 
-            tabs={tabs} 
-            activeTab={activeTab} 
-            onTabSelect={setActiveTab} 
+          <TabBar
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabSelect={setActiveTab}
             onTabClose={handleCloseTab}
           />
           {activeTab && (
-            <MarkdownTab 
-              initialDoc={getCurrentTabContent()} 
+            <MarkdownTab
+              key={activeTab}
+              initialDoc={getCurrentTabContent()}
               viewMode={viewMode}
               onChange={(content) => handleNoteChange(activeTab, content)}
             />

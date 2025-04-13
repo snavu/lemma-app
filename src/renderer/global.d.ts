@@ -19,7 +19,6 @@ interface Window {
     on: {
       notesDirectorySelected: (callback: (directory: string) => void) => () => void;
       newNote: (callback: () => void) => () => void;
-      saveNote: (callback: () => void) => () => void;
     };
   };
 }

@@ -5,7 +5,6 @@ interface TabProps {
   id: string;
   title: string;
   active: boolean;
-  unsaved: boolean;
   onSelect: () => void;
   onClose: () => void;
 }
@@ -14,7 +13,6 @@ export const Tab: React.FC<TabProps> = ({
   id,
   title,
   active,
-  unsaved,
   onSelect,
   onClose
 }) => {
@@ -31,7 +29,6 @@ export const Tab: React.FC<TabProps> = ({
     >
       <span className="tab-title">
         {title}
-        {unsaved && <span className="unsaved-indicator">*</span>}
       </span>
       <button className="close-button" onClick={handleClose}>
         <svg viewBox="0 0 12 12" width="12" height="12">

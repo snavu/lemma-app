@@ -43,12 +43,6 @@ contextBridge.exposeInMainWorld('electron', {
       return () => {
         ipcRenderer.removeAllListeners('new-note');
       };
-    },
-    saveNote: (callback: () => void) => {
-      ipcRenderer.on('save-note', () => callback());
-      return () => {
-        ipcRenderer.removeAllListeners('save-note');
-      };
-    },
+    }
   },
 });

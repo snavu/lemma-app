@@ -5,7 +5,6 @@ import './tab-bar.css';
 interface TabInfo {
   id: string;
   fileName: string;
-  unsaved: boolean;
 }
 
 interface TabBarProps {
@@ -50,7 +49,6 @@ export const TabBar: React.FC<TabBarProps> = ({
           id={tab.id}
           title={tab.fileName}
           active={activeTab === tab.id}
-          unsaved={tab.unsaved}
           onSelect={() => handleTabSelect(tab.id)}
           onClose={() => onTabClose(tab.id)}
         />
