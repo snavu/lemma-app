@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { MarkdownTab } from './components/tabs/markdown/MarkdownTab';
 import { Header } from './components/header/page';
 import { Sidebar } from './components/sidebar/Sidebar';
-import { TabBar } from './components/tabs/tabbar/TabBar';
-import { MarkdownTab } from './components/tabs/markdown/MarkdownTab';
+import { useCallback, useEffect, useState } from 'react';
 import './layout.css';
 import EmptyState from './components/emptystate/EmptyState';
+import { TabBar } from './components/tabs/tabbar/TabBar';
 
 interface FileInfo {
   name: string;
@@ -198,8 +198,8 @@ export const App = () => {
   }, [activeTab, tabs]);
 
   return (
-    <div className="app">
-      <div className="header">
+    <div className='app'>
+      <div className='header'>
         <Header />
       </div>
       <div className="content">
