@@ -1,4 +1,4 @@
-import { MarkdownTab } from './components/tabs/markdown/MarkdownTab';
+import { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/header/page';
 import { Sidebar } from './components/sidebar/Sidebar';
 import { useCallback, useEffect, useState } from 'react';
@@ -198,8 +198,8 @@ export const App = () => {
   }, [activeTab, tabs]);
 
   return (
-    <div className='app'>
-      <div className='header'>
+    <div className="app">
+      <div className="header">
         <Header />
       </div>
       <div className="content">
