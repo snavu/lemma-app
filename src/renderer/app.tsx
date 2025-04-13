@@ -5,6 +5,7 @@ import './layout.css';
 import EmptyState from './components/emptystate/EmptyState';
 import { TabBar } from './components/tabs/tabbar/TabBar';
 import { MarkdownTab } from './components/tabs/markdown/MarkdownTab';
+import React from 'react';
 
 interface FileInfo {
   name: string;
