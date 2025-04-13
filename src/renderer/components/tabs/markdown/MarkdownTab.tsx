@@ -2,6 +2,7 @@ import { Editor } from './editor/page';
 import Preview from './preview/page';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import './markdown-tab.css';
+import React from 'react';
 
 interface MarkdownTabProps {
   initialDoc: string;
