@@ -34,8 +34,38 @@ const createWindow = (): void => {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
-  // Load last used notes directory if available
+  // Set up default notes directory and load settings
+  setupDefaultNotesDirectory();
   loadConfigSettings();
+};
+
+// Create a default notes directory if none exists
+const setupDefaultNotesDirectory = (): void => {
+  if (notesDirectory === null) {
+    // Create a 'Notes' folder in the user's documents directory
+    const documentsPath = app.getPath('documents');
+    const defaultNotesPath = path.join(documentsPath, 'LEMMA Notes');
+    
+    // Create the directory if it doesn't exist
+    if (!fs.existsSync(defaultNotesPath)) {
+      try {
+        fs.mkdirSync(defaultNotesPath, { recursive: true });
+        console.log(`Created default notes directory: ${defaultNotesPath}`);
+      } catch (error) {
+        console.error('Error creating default notes directory:', error);
+        return;
+      }
+    }
+    
+    // Set the notes directory
+    notesDirectory = defaultNotesPath;
+    saveConfigSettings();
+    
+    // Notify renderer about the default directory if window is ready
+    if (mainWindow) {
+      mainWindow.webContents.send('notes-directory-selected', notesDirectory);
+    }
+  }
 };
 
 // Create app menu
@@ -110,8 +140,15 @@ const loadConfigSettings = (): void => {
         mainWindow.webContents.send('notes-directory-selected', notesDirectory);
       }
     }
+    
+    // If no directory is set after loading config, set up the default one
+    if (notesDirectory === null) {
+      setupDefaultNotesDirectory();
+    }
   } catch (error) {
     console.error('Error loading config:', error);
+    // Set up default directory if there was an error loading config
+    setupDefaultNotesDirectory();
   }
 };
 
@@ -159,8 +196,13 @@ const setupIpcHandlers = (): void => {
 
   // Create new file
   ipcMain.handle('create-file', async (_, fileName) => {
+    // Ensure we have a notes directory
     if (!notesDirectory) {
-      throw new Error('No notes directory selected');
+      setupDefaultNotesDirectory();
+      
+      if (!notesDirectory) {
+        throw new Error('Failed to create or find a notes directory');
+      }
     }
 
     const filePath = path.join(notesDirectory, fileName);
@@ -178,6 +220,11 @@ const setupIpcHandlers = (): void => {
       console.error('Error creating file:', error);
       throw error;
     }
+  });
+  
+  // Get current notes directory
+  ipcMain.handle('get-notes-directory', () => {
+    return notesDirectory;
   });
 
   // Handle window control messages
@@ -200,7 +247,6 @@ const setupIpcHandlers = (): void => {
         break;
     }
   });
-
 };
 
 // Select notes directory
@@ -228,7 +274,10 @@ const selectNotesDirectory = async (): Promise<string | null> => {
 // Get markdown files from directory
 const getFilesFromDirectory = async (): Promise<{ name: string; path: string; stats: any }[]> => {
   if (!notesDirectory) {
-    return [];
+    setupDefaultNotesDirectory();
+    if (!notesDirectory) {
+      return [];
+    }
   }
 
   try {

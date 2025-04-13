@@ -32,6 +32,24 @@ export const App = () => {
   // View mode
   const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
 
+  // Check for default directory on initial load
+  useEffect(() => {
+    const checkForDefaultDirectory = async () => {
+      if (window.electron?.fs) {
+        try {
+          const directory = await window.electron.fs.getNotesDirectory();
+          if (directory) {
+            setNotesDirectory(directory);
+          }
+        } catch (error) {
+          console.error('Failed to get default notes directory:', error);
+        }
+      }
+    };
+
+    checkForDefaultDirectory();
+  }, []);
+
   // Load files when directory is selected
   useEffect(() => {
     const loadFiles = async () => {
@@ -45,7 +63,9 @@ export const App = () => {
       }
     };
 
-    loadFiles();
+    if (notesDirectory) {
+      loadFiles();
+    }
   }, [notesDirectory]);
 
   // Set up directory selection listener
@@ -114,21 +134,23 @@ export const App = () => {
   const handleNewNote = useCallback(async () => {
     if (!window.electron?.fs) return;
 
-    if (!notesDirectory) {
-      const directory = await window.electron.fs.selectDirectory();
-      if (!directory) return;
-    }
-
-    // Create a unique filename
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const fileName = `Note ${timestamp}.md`;
-
+    // The app will now use the default directory if one isn't already set
     try {
+      // Create a unique filename
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const fileName = `Note ${timestamp}.md`;
+
       const result = await window.electron.fs.createFile(fileName);
 
-      // Add new file to files list
+      // Refresh files list
       const newFiles = await window.electron.fs.getFiles();
       setFiles(newFiles);
+
+      // Get the notes directory if it's not already set
+      if (!notesDirectory) {
+        const directory = await window.electron.fs.getNotesDirectory();
+        setNotesDirectory(directory);
+      }
 
       // Open the new file
       await handleFileSelect(result.filePath);
