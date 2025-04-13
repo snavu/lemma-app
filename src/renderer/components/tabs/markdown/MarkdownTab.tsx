@@ -6,10 +6,9 @@ import './markdown-tab.css';
 interface MarkdownTabProps {
   initialDoc: string;
   viewMode?: 'split' | 'editor' | 'preview';
-  onChange?: (content: string) => void;  // Add this prop
 }
 
-export const MarkdownTab = ({ initialDoc, viewMode = 'split', onChange }: MarkdownTabProps) => {
+export const MarkdownTab = ({ initialDoc, viewMode = 'split' }: MarkdownTabProps) => {
   const [doc, setDoc] = useState(initialDoc);
   const [editorWidth, setEditorWidth] = useState(50); // percentage
   const containerRef = useRef<HTMLDivElement>(null);
@@ -18,11 +17,7 @@ export const MarkdownTab = ({ initialDoc, viewMode = 'split', onChange }: Markdo
 
   const handleDocChange = useCallback((newDoc: string) => {
     setDoc(newDoc);
-    // Call the onChange prop if it exists
-    if (onChange) {
-      onChange(newDoc);
-    }
-  }, [onChange]);
+  }, []);
   
   // Update document when initialDoc changes (file changes)
   useEffect(() => {
