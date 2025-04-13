@@ -20,7 +20,7 @@ const Preview: React.FC<Props> = ({ doc }) => {
     .use(remarkGfm)
     .use(remarkRehype)
     .use(rehypeHighlight, { detect: true })
-    //@ts-expect-error
+    // @ts-expect-error rehypeReact is not typed
     .use(rehypeReact, {
       createElement: React.createElement,
       Fragment: React.Fragment,

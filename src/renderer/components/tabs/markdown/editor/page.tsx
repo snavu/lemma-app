@@ -27,6 +27,22 @@ export const Editor = (props: Props) => {
     }
   }, [editorView]);
 
+  // Update editor content when initialData changes (when a different file is opened)
+  useEffect(() => {
+    if (editorView) {
+      const currentText = editorView.state.doc.toString();
+      if (currentText !== initialData) {
+        editorView.dispatch({
+          changes: {
+            from: 0,
+            to: currentText.length,
+            insert: initialData
+          }
+        });
+      }
+    }
+  }, [initialData, editorView]);
+
   return (
     <div className='editor-wrapper' ref={refContainer}></div>
   )

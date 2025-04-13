@@ -1,56 +1,72 @@
-
-import { Editor } from './components/editor/page';
-import Preview from './components/preview/page';
+import { MarkdownTab } from './components/tabs/markdown/MarkdownTab';
 import { Header } from './components/header/page';
-import ResizableBox from 'react-resizable-box';
+import { Sidebar } from './components/sidebar/Sidebar';
+import { useState } from 'react';
 import './layout.css';
-import { useState, useEffect, useCallback } from 'react';
 
 export const App = () => {
-  const [containerWidth, setContainerWidth] = useState(window.innerWidth);
-  const [editorPercent, setEditorPercent] = useState(60); // Start at 60%
-  const [doc, setDoc] = useState('## Hello World'); // Initialize doc state
+  const [activeFile, setActiveFile] = useState('file1');
+  const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
+  
+  // Sample content for demonstration files
+  const fileContents = {
+    file1: `# Welcome to Lemma Markdown
+This is a simple yet powerful markdown editor built with Electron.
 
-  const handleDocChange = useCallback((newDoc: string) => {
-    setDoc(newDoc);
-  }, []);
+## Features
+- Side-by-side editing and preview
+- Syntax highlighting
+- Context menu formatting
+`,
+    file2: `# Getting Started
+1. Create a new file
+2. Write in markdown
+3. See real-time preview
 
-  useEffect(() => {
-    const handleResize = () => {
-      setContainerWidth(window.innerWidth);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+\`\`\`js
+// Example code block
+console.log('Hello Lemma!');
+\`\`\`
+`,
+    file3: `# Features
+- **Bold text** with Ctrl+B or context menu
+- *Italic text* with Ctrl+I or context menu
+- [Links](https://example.com) with Ctrl+K or context menu
+- And much more!
+`,
+    file4: `# Todo List
+- [x] Create Obsidian-like interface
+- [x] Add context menu
+- [ ] Implement file system
+- [ ] Add plugin system
+- [ ] Create settings panel
+`
+  };
 
-  const editorWidth = (editorPercent / 100) * containerWidth;
-  const minWidth = containerWidth * 0.3;
+  const handleFileSelect = (fileId: string) => {
+    setActiveFile(fileId);
+  };
+
+  const handleViewModeChange = (mode: 'split' | 'editor' | 'preview') => {
+    setViewMode(mode);
+  };
 
   return (
     <div className='app'>
       <div className='header'>
         <Header />
       </div>
-      <div className='container'>
-        <ResizableBox
-          width={editorWidth}
-          height={'100%'}
-          minWidth={minWidth}
-          maxWidth={containerWidth}
-          isResizable={{ top: false, right: true, bottom: false, left: false }}
-          onResizeStop={(direction, styleSize, clientSize) => {
-            const newPx = clientSize.width;
-            const newPercent = (newPx / containerWidth) * 100;
-            setEditorPercent(Math.min(100, Math.max(30, newPercent)));
-          }}
-          className='resizable-box'
-        >
-          <div className='editor'>
-            <Editor onChange={handleDocChange} initialData={doc} />
-          </div>
-        </ResizableBox>
-        <div className='preview'>
-          <Preview doc={doc} />
+      <div className='content'>
+        <Sidebar 
+          activeFile={activeFile} 
+          onFileSelect={handleFileSelect} 
+          onViewModeChange={handleViewModeChange} 
+        />
+        <div className='markdown-content'>
+          <MarkdownTab 
+            initialDoc={fileContents[activeFile as keyof typeof fileContents]} 
+            viewMode={viewMode}
+          />
         </div>
       </div>
     </div>
