@@ -1,23 +1,22 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
-import * as path from 'path';
-import * as fs from 'fs';
+import { app, BrowserWindow, session, Menu, ipcMain } from 'electron';
+import path from 'node:path';
+import started from 'electron-squirrel-startup';
 
-// Handle creating/removing shortcuts on Windows when installing/uninstalling
-if (require('electron-squirrel-startup')) {
+// Handle creating/removing shortcuts on Windows when installing/uninstalling.
+if (started) {
   app.quit();
 }
 
 let mainWindow: BrowserWindow | null = null;
-let notesDirectory: string | null = null;
 
-const createWindow = (): void => {
-  // Create the browser window
+const createWindow = () => {
+  // Create the browser window.
   mainWindow = new BrowserWindow({
     width: 1200,
-    height: 900,
-    frame: false,
+    height: 800,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -183,7 +182,7 @@ const setupIpcHandlers = (): void => {
   // Handle window control messages
   ipcMain.on('window-control', (_, command) => {
     if (!mainWindow) return;
-
+    
     switch (command) {
       case 'minimize':
         mainWindow.minimize();
@@ -201,66 +200,69 @@ const setupIpcHandlers = (): void => {
     }
   });
 
-};
-
-// Select notes directory
-const selectNotesDirectory = async (): Promise<string | null> => {
-  if (!mainWindow) return null;
-
-  const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ['openDirectory'],
-    title: 'Select Notes Directory'
+  // Set up CSP in the session
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
+        ]
+      }
+    });
   });
 
-  if (!result.canceled && result.filePaths.length > 0) {
-    notesDirectory = result.filePaths[0];
-    saveConfigSettings();
+  // Create a context menu
+  const contextMenu = Menu.buildFromTemplate([
+    { role: 'cut' },
+    { role: 'copy' },
+    { role: 'paste' },
+    { type: 'separator' },
+    { 
+      label: 'Bold',
+      click: () => {
+        mainWindow?.webContents.send('editor-format', 'bold');
+      }
+    },
+    { 
+      label: 'Italic',
+      click: () => {
+        mainWindow?.webContents.send('editor-format', 'italic');
+      }
+    },
+    { 
+      label: 'Link',
+      click: () => {
+        mainWindow?.webContents.send('editor-format', 'link');
+      }
+    }
+  ]);
 
-    // Notify renderer about the selected directory
-    mainWindow.webContents.send('notes-directory-selected', notesDirectory);
+  // Attach the context menu to the window
+  mainWindow.webContents.on('context-menu', (event) => {
+    event.preventDefault();
+    contextMenu.popup();
+  });
 
-    return notesDirectory;
+  // and load the index.html of the app.
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+  } else {
+    mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
   }
 
-  return null;
+  // Open the DevTools.
+  mainWindow.webContents.openDevTools();
 };
 
-// Get markdown files from directory
-const getFilesFromDirectory = async (): Promise<{ name: string; path: string; stats: any }[]> => {
-  if (!notesDirectory) {
-    return [];
-  }
+// This method will be called when Electron has finished
+// initialization and is ready to create browser windows.
+// Some APIs can only be used after this event occurs.
+app.on('ready', createWindow);
 
-  try {
-    const fileNames = fs.readdirSync(notesDirectory);
-
-    const files = fileNames
-      .filter(fileName => fileName.toLowerCase().endsWith('.md'))
-      .map(fileName => {
-        const filePath = path.join(notesDirectory!, fileName);
-        const stats = fs.statSync(filePath);
-        return {
-          name: fileName,
-          path: filePath,
-          stats
-        };
-      })
-      .sort((a, b) => b.stats.mtime.getTime() - a.stats.mtime.getTime()); // Sort by last modified time
-
-    return files;
-  } catch (error) {
-    console.error('Error reading directory:', error);
-    return [];
-  }
-};
-
-// Initialize app
-app.on('ready', () => {
-  createWindow();
-  createAppMenu();
-  setupIpcHandlers();
-});
-
+// Quit when all windows are closed, except on macOS. There, it's common
+// for applications and their menu bar to stay active until the user quits
+// explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
@@ -268,7 +270,12 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
+  // On OS X it's common to re-create a window in the app when the
+  // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
 });
+
+// In this file you can include the rest of your app's specific main process
+// code. You can also put them in separate files and import them here.
