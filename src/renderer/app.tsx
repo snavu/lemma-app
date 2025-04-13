@@ -1,9 +1,10 @@
 import { MarkdownTab } from './components/tabs/markdown/MarkdownTab';
 import { Header } from './components/header/page';
 import { Sidebar } from './components/sidebar/Sidebar';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import './layout.css';
 import EmptyState from './components/emptystate/EmptyState';
+import { TabBar } from './components/tabs/tabbar/TabBar';
 
 interface FileInfo {
   name: string;
