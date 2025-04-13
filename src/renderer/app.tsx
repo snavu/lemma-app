@@ -4,6 +4,7 @@ import { Sidebar } from './components/sidebar/Sidebar';
 import { TabBar } from './components/tabs/tabbar/TabBar';
 import { MarkdownTab } from './components/tabs/markdown/MarkdownTab';
 import './layout.css';
+import EmptyState from './components/emptystate/EmptyState';
 
 interface FileInfo {
   name: string;
@@ -154,8 +155,7 @@ export const App = () => {
     }
   }, [tabs]);
 
-  // Add a debounce utility to avoid saving on every keystroke
-  // This will wait until the user pauses typing before saving
+  // Debounce function to limit the rate of auto-saving
   const debounce = (fn: Function, ms = 1000) => {
     let timeoutId: ReturnType<typeof setTimeout>;
     return function (...args: any[]) {
@@ -171,10 +171,6 @@ export const App = () => {
         .then(() => {
           console.log('Auto-saved file:', filePath);
 
-          // // Optionally refresh file list to update last modified times
-          // window.electron?.fs.getFiles().then(newFiles => {
-          //   setFiles(newFiles);
-          // });
         })
         .catch(error => {
           console.error('Failed to auto-save file:', error);
@@ -183,7 +179,7 @@ export const App = () => {
     []
   );
 
-  // Handle closeing a tab
+  // Handle closing a tab
   const handleCloseTab = useCallback((tabId: string) => {
     setTabs(prevTabs => prevTabs.filter(tab => tab.id !== tabId));
 
@@ -231,13 +227,7 @@ export const App = () => {
               onChange={(content) => handleNoteChange(activeTab, content)}
             />
           )}
-          {!activeTab && (
-            <div className="empty-state">
-              <h2>No Notes Open</h2>
-              <p>Open a note from the sidebar or create a new one to get started.</p>
-              <button onClick={handleNewNote}>Create New Note</button>
-            </div>
-          )}
+          {!activeTab && <EmptyState onCreateNote={handleNewNote}/>}
         </div>
       </div>
     </div>
