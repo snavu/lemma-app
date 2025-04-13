@@ -20,5 +20,20 @@ contextBridge.exposeInMainWorld('electron', {
     minimize: () => ipcRenderer.send('window-control', 'minimize'),
     maximize: () => ipcRenderer.send('window-control', 'maximize'),
     close: () => ipcRenderer.send('window-control', 'close')
-  }
+  },
+  // IPC listeners
+  on: {
+    notesDirectorySelected: (callback: (directory: string) => void) => {
+      ipcRenderer.on('notes-directory-selected', (_, directory) => callback(directory));
+      return () => {
+        ipcRenderer.removeAllListeners('notes-directory-selected');
+      };
+    },
+    newNote: (callback: () => void) => {
+      ipcRenderer.on('new-note', () => callback());
+      return () => {
+        ipcRenderer.removeAllListeners('new-note');
+      };
+    }
+  },
 });

@@ -1,0 +1,22 @@
+.tab-bar {
+  display: flex;
+  background-color: var(--background-tertiary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  overflow-x: auto;
+  height: 32px;
+  width: 100%;
+}
+
+.tab-bar::-webkit-scrollbar {
+  height: 0;
+  width: 0;
+  background: transparent;}
+
+.tab-bar::-webkit-scrollbar-thumb {
+  background-color: var(--interactive-normal);
+  border-radius: 3px;
+}
+
+.tab-bar::-webkit-scrollbar-track {
+  background-color: var(--background-secondary);
+}

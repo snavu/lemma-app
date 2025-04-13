@@ -3,70 +3,230 @@ import { Header } from './components/header/page';
 import { Sidebar } from './components/sidebar/Sidebar';
 import { useState } from 'react';
 import './layout.css';
+import EmptyState from './components/emptystate/EmptyState';
+
+interface FileInfo {
+  name: string;
+  path: string;
+  stats?: any;
+}
+
+interface TabInfo {
+  id: string;
+  filePath: string;
+  fileName: string;
+  content: string;
+}
 
 export const App = () => {
-  const [activeFile, setActiveFile] = useState('file1');
+  // State for files and directories
+  const [notesDirectory, setNotesDirectory] = useState<string | null>(null);
+  const [files, setFiles] = useState<FileInfo[]>([]);
+
+  // State for tabs system
+  const [tabs, setTabs] = useState<TabInfo[]>([]);
+  const [activeTab, setActiveTab] = useState<string | null>(null);
+
+  // View mode
   const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
-  
-  // Sample content for demonstration files
-  const fileContents = {
-    file1: `# Welcome to Lemma Markdown
-This is a simple yet powerful markdown editor built with Electron.
 
-## Features
-- Side-by-side editing and preview
-- Syntax highlighting
-- Context menu formatting
-`,
-    file2: `# Getting Started
-1. Create a new file
-2. Write in markdown
-3. See real-time preview
+  // Load files when directory is selected
+  useEffect(() => {
+    const loadFiles = async () => {
+      if (notesDirectory && window.electron?.fs) {
+        try {
+          const files = await window.electron.fs.getFiles();
+          setFiles(files);
+        } catch (error) {
+          console.error('Failed to load files:', error);
+        }
+      }
+    };
 
-\`\`\`js
-// Example code block
-console.log('Hello Lemma!');
-\`\`\`
-`,
-    file3: `# Features
-- **Bold text** with Ctrl+B or context menu
-- *Italic text* with Ctrl+I or context menu
-- [Links](https://example.com) with Ctrl+K or context menu
-- And much more!
-`,
-    file4: `# Todo List
-- [x] Create Obsidian-like interface
-- [x] Add context menu
-- [ ] Implement file system
-- [ ] Add plugin system
-- [ ] Create settings panel
-`
+    loadFiles();
+  }, [notesDirectory]);
+
+  // Set up directory selection listener
+  useEffect(() => {
+    if (window.electron?.on) {
+      const removeListener = window.electron.on.notesDirectorySelected((directory) => {
+        setNotesDirectory(directory);
+      });
+
+      return () => {
+        removeListener();
+      };
+    }
+  }, []);
+
+  // Set up new note listener from menu
+  useEffect(() => {
+    if (window.electron?.on) {
+      const removeListener = window.electron.on.newNote(() => {
+        handleNewNote();
+      });
+
+      return () => {
+        removeListener();
+      };
+    }
+  }, []);
+
+  // Handle selecting notes directory
+  const handleSelectDirectory = useCallback(async () => {
+    if (window.electron?.fs) {
+      await window.electron.fs.selectDirectory();
+    }
+  }, []);
+
+  // Handle file selection from sidebar
+  const handleFileSelect = useCallback(async (filePath: string) => {
+    if (!window.electron?.fs) return;
+
+    // Check if file is already open in a tab
+    const existingTab = tabs.find(tab => tab.filePath === filePath);
+    if (existingTab) {
+      setActiveTab(existingTab.id);
+      return;
+    }
+
+    try {
+      const content = await window.electron.fs.readFile(filePath);
+      const fileName = filePath.split(/[\\/]/).pop() || 'Untitled';
+
+      const newTab: TabInfo = {
+        id: `tab-${Date.now()}`,
+        filePath,
+        fileName,
+        content,
+      };
+
+      setTabs(prevTabs => [...prevTabs, newTab]);
+      setActiveTab(newTab.id);
+    } catch (error) {
+      console.error('Failed to open file:', error);
+    }
+  }, [tabs]);
+
+  // Handle creating a new note
+  const handleNewNote = useCallback(async () => {
+    if (!window.electron?.fs) return;
+
+    if (!notesDirectory) {
+      const directory = await window.electron.fs.selectDirectory();
+      if (!directory) return;
+    }
+
+    // Create a unique filename
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const fileName = `Note ${timestamp}.md`;
+
+    try {
+      const result = await window.electron.fs.createFile(fileName);
+
+      // Add new file to files list
+      const newFiles = await window.electron.fs.getFiles();
+      setFiles(newFiles);
+
+      // Open the new file
+      await handleFileSelect(result.filePath);
+    } catch (error) {
+      console.error('Failed to create new note:', error);
+    }
+  }, [notesDirectory, handleFileSelect]);
+
+  // Handle markdown content change
+  const handleNoteChange = useCallback((tabId: string, newContent: string) => {
+    // Find the tab that changed
+    const tabToUpdate = tabs.find(tab => tab.id === tabId);
+
+    if (!tabToUpdate) return;
+
+    // Update the tab's content in state
+    setTabs(prevTabs => prevTabs.map(tab =>
+      tab.id === tabId ? { ...tab, content: newContent } : tab
+    ));
+
+    // Auto-save the content to the file
+    if (window.electron && tabToUpdate.filePath) {
+      // Add debouncing here to avoid too many saves
+      autoSaveDebounced(tabToUpdate.filePath, newContent);
+    }
+  }, [tabs]);
+
+  // Debounce function to limit the rate of auto-saving
+  const debounce = (fn: Function, ms = 1000) => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    return function (...args: any[]) {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => fn.apply(this, args), ms);
+    };
   };
 
-  const handleFileSelect = (fileId: string) => {
-    setActiveFile(fileId);
-  };
+  // Create a debounced version of the save function
+  const autoSaveDebounced = useCallback(
+    debounce((filePath: string, content: string) => {
+      window.electron?.fs.saveFile(filePath, content )
+        .then(() => {
+          console.log('Auto-saved file:', filePath);
 
-  const handleViewModeChange = (mode: 'split' | 'editor' | 'preview') => {
-    setViewMode(mode);
-  };
+        })
+        .catch(error => {
+          console.error('Failed to auto-save file:', error);
+        });
+    }, 200), // 200ms debounce time
+    []
+  );
+
+  // Handle closing a tab
+  const handleCloseTab = useCallback((tabId: string) => {
+    setTabs(prevTabs => prevTabs.filter(tab => tab.id !== tabId));
+
+    // If closing the active tab, activate another tab if available
+    if (activeTab === tabId) {
+      const remainingTabs = tabs.filter(tab => tab.id !== tabId);
+      setActiveTab(remainingTabs.length > 0 ? remainingTabs[0].id : null);
+    }
+  }, [tabs, activeTab]);
+
+  // Get current tab content
+  const getCurrentTabContent = useCallback(() => {
+    if (!activeTab) return '';
+    const currentTab = tabs.find(tab => tab.id === activeTab);
+    return currentTab?.content || '';
+  }, [activeTab, tabs]);
 
   return (
     <div className='app'>
       <div className='header'>
         <Header />
       </div>
-      <div className='content'>
-        <Sidebar 
-          activeFile={activeFile} 
-          onFileSelect={handleFileSelect} 
-          onViewModeChange={handleViewModeChange} 
+      <div className="content">
+        <Sidebar
+          files={files}
+          onFileSelect={handleFileSelect}
+          onNewNote={handleNewNote}
+          onSelectDirectory={handleSelectDirectory}
+          onViewModeChange={setViewMode}
+          viewMode={viewMode}
+          notesDirectory={notesDirectory}
         />
-        <div className='markdown-content'>
-          <MarkdownTab 
-            initialDoc={fileContents[activeFile as keyof typeof fileContents]} 
-            viewMode={viewMode}
+        <div className="main-content">
+          <TabBar
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabSelect={setActiveTab}
+            onTabClose={handleCloseTab}
           />
+          {activeTab && (
+            <MarkdownTab
+              key={activeTab}
+              initialDoc={getCurrentTabContent()}
+              viewMode={viewMode}
+              onChange={(content) => handleNoteChange(activeTab, content)}
+            />
+          )}
+          {!activeTab && <EmptyState onCreateNote={handleNewNote}/>}
         </div>
       </div>
     </div>
