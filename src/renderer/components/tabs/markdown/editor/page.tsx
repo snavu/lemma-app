@@ -1,15 +1,16 @@
-import { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import codeMirrorImpl from "./CodeMirrorImpl"
 import './editor.css'
-import React from 'react';
+import { EditorView } from '@codemirror/view';
 
 interface Props {
   initialData: string
   onChange: (data: string) => void
+  onMount?: (view: EditorView) => void
 }
 
 export const Editor = (props: Props) => {
-  const { initialData, onChange } = props;
+  const { initialData, onChange, onMount } = props;
 
   const handlechange = useCallback((state: any) => {
     // Get the current document content from the editor state
@@ -23,10 +24,10 @@ export const Editor = (props: Props) => {
   });
 
   useEffect(() => {
-    if (editorView) {
-        //Nothing to do here
+    if (editorView && onMount) {
+      onMount(editorView);
     }
-  }, [editorView]);
+  }, [editorView, onMount]);
 
   // Update editor content when initialData changes (when a different file is opened)
   useEffect(() => {
