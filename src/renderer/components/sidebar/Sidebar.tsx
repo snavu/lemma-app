@@ -26,9 +26,54 @@ export const Sidebar: React.FC<SidebarProps> = ({
   viewMode,
   notesDirectory
 }) => {
-  const handleViewModeChange = (mode: 'split' | 'editor' | 'preview') => {
-    if (onViewModeChange) {
-      onViewModeChange(mode);
+  // State for context menu
+  const [contextMenu, setContextMenu] = useState<{
+    show: boolean;
+    x: number;
+    y: number;
+    filePath: string;
+  }>({
+    show: false,
+    x: 0,
+    y: 0,
+    filePath: '',
+  });
+
+  // Handler for right-click on a file
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent, filePath: string) => {
+      e.preventDefault();
+      setContextMenu({
+        show: true,
+        x: e.clientX,
+        y: e.clientY,
+        filePath,
+      });
+    },
+    []
+  );
+
+  // Close context menu
+  const closeContextMenu = useCallback(() => {
+    setContextMenu((prev) => ({ ...prev, show: false }));
+  }, []);
+
+  // Delete file handler
+  const handleDeleteFile = useCallback(async () => {
+    const { filePath } = contextMenu;
+    if (!filePath) return;
+
+    try {
+
+      // Call the parent component's delete handler
+      const success = await onDeleteFile(filePath);
+      
+      if (!success) {
+        alert('Failed to delete file. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to delete file:', error);
+      alert('Failed to delete file. Please try again.');
     }
   };
   
