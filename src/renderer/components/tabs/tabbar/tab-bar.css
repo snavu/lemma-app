@@ -3,13 +3,13 @@
   background-color: var(--background-tertiary);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   overflow-x: auto;
-  height: 32px;
+  height: 40px;
   width: 100%;
 }
 
 .tab-bar::-webkit-scrollbar {
-  height: 0;
-  width: 0;
+  height: 1;
+  width: 1;
   background: transparent;}
 
 .tab-bar::-webkit-scrollbar-thumb {
@@ -19,4 +19,8 @@
 
 .tab-bar::-webkit-scrollbar-track {
   background-color: var(--background-secondary);
+}
+
+.tab-bar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
