@@ -39,6 +39,7 @@ _This is italic text_
 export const MarkdownTab = ({ initialDoc, viewMode: initialViewMode = 'split', onChange }: MarkdownTabProps) => {
   const [content, setContent] = useState(initialDoc);
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
+  //const [tempContent, setTempContent] = useState(tempText);
 
   const handleContentChange = (newContent: string) => {
     setContent(newContent);
@@ -46,6 +47,10 @@ export const MarkdownTab = ({ initialDoc, viewMode: initialViewMode = 'split', o
       onChange(newContent);
     }
   };
+
+  /*const handleTempContentChange = (newContent: string) => {
+    setTempContent(newContent);
+  };*/
 
   const handleViewModeChange = (mode: ViewMode) => {
     setViewMode(mode);
@@ -59,7 +64,7 @@ export const MarkdownTab = ({ initialDoc, viewMode: initialViewMode = 'split', o
       case 'preview':
         return (
           <div className="preview-only">
-            <Renderer text={tempText} onChange={handleContentChange} />
+            <Renderer text={tempText} />
           </div>
         );
       case 'inline':
