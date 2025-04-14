@@ -24,7 +24,6 @@ contextBridge.exposeInMainWorld('electron', {
     saveFile: (filePath: string, content: string) =>
       ipcRenderer.invoke('save-file', { filePath, content }),
     createFile: (fileName: string) => ipcRenderer.invoke('create-file', fileName),
-    deleteFile: (filePath: string) => ipcRenderer.invoke('delete-file', filePath),
     getNotesDirectory: () => ipcRenderer.invoke('get-notes-directory'),
   },
   windowControls: {
