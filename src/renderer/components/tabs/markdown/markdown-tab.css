@@ -61,13 +61,10 @@
 }
 
 /* Preview styling */
-.preview {
+.preview-container {
   height: 100%;
   overflow: auto;
-  padding: 20px;
   transition: width 0.2s ease;
-  background-color: #282c34;
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
 }
 

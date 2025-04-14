@@ -1,5 +1,7 @@
 .preview {
     flex: 0 0 50%;
+    height: 100%;
+    width: 100%;
     box-sizing: border-box;
     overflow: auto;
     color: #abb2bf
