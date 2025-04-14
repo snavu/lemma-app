@@ -13,6 +13,7 @@ import React, { useState, useCallback } from 'react';
 interface RendererProps {
     /** The markdown text to be rendered */
     text: string;
+    onChange: (newText: string) => void;
 }
 
 /**
@@ -52,10 +53,10 @@ interface AstDocument {
 /**
  * Tokenizes the input markdown text into a sequence of tokens
  * 
- * @param props - The component props containing the text to tokenize
+ * @param text - The text to tokenize
  * @returns An array of tokens representing the markdown structure
  */
-const Tokenizer = ({ text }: RendererProps): Token[] => {
+const Tokenizer = (text: string): Token[] => {
     //console.log("Input text:", text);
     const tokens: Token[] = [];
     let remaining = text;
@@ -336,6 +337,8 @@ const renderAst = (
                 // Check if the content matches a markdown format
                 let newType = currentNode.type;
                 let newLevel = currentNode.level;
+                let newUrl = currentNode.url;
+                let newAlt = currentNode.alt;
                 
                 // Check for headings
                 const headingMatch = newContent.match(/^(#{1,6})\s+(.*)/);
@@ -366,20 +369,7 @@ const renderAst = (
                     const linkContent = linkMatch[1];
                     const linkUrl = linkMatch[2];
                     newContent = linkContent;
-                    
-                    // Update the node with the new type and URL
-                    currentNode.type = newType;
-                    currentNode.content = newContent;
-                    currentNode.url = linkUrl;
-                    
-                    // Create a deep copy of the AST to ensure React detects the change
-                    const newAst = JSON.parse(JSON.stringify(fullAst));
-                    
-                    // Update the AST state to force a re-render
-                    if (updateAst) {
-                        updateAst(newAst);
-                    }
-                    return;
+                    newUrl = linkUrl;
                 }
                 
                 // Check for images
@@ -388,20 +378,8 @@ const renderAst = (
                     newType = 'Image';
                     const imageAlt = imageMatch[1];
                     const imageUrl = imageMatch[2];
-                    
-                    // Update the node with the new type and URL
-                    currentNode.type = newType;
-                    currentNode.alt = imageAlt;
-                    currentNode.url = imageUrl;
-                    
-                    // Create a deep copy of the AST to ensure React detects the change
-                    const newAst = JSON.parse(JSON.stringify(fullAst));
-                    
-                    // Update the AST state to force a re-render
-                    if (updateAst) {
-                        updateAst(newAst);
-                    }
-                    return;
+                    newAlt = imageAlt;
+                    newUrl = imageUrl;
                 }
                 
                 // Check for list items
@@ -415,11 +393,25 @@ const renderAst = (
                     newContent = listItemMatch[2].trim();
                 }
                 
+                // If none of the above patterns match, check if it's a paragraph
+                if (!headingMatch && !boldMatch && !italicMatch && !linkMatch && !imageMatch && !listItemMatch) {
+                    // Only convert to paragraph if it's not already a paragraph and has content
+                    if (newType !== 'Paragraph' && newContent.trim()) {
+                        newType = 'Paragraph';
+                    }
+                }
+                
                 // Update the node with the new type and content
                 currentNode.type = newType;
                 currentNode.content = newContent;
                 if (newLevel !== undefined) {
                     currentNode.level = newLevel;
+                }
+                if (newUrl !== undefined) {
+                    currentNode.url = newUrl;
+                }
+                if (newAlt !== undefined) {
+                    currentNode.alt = newAlt;
                 }
                 
                 // Create a deep copy of the AST to ensure React detects the change
@@ -439,33 +431,10 @@ const renderAst = (
             
             // Get the node id from the element's dataset
             const currentNodeId = currentElement.dataset.nodeid;
-            console.log("Current node id:", currentNodeId);
-            
-            // Find a node by its ID
-            const findNodeById = (nodes: AstNode[]): AstNode | null => {
-                for (const node of nodes) {
-                    if (node.id === currentNodeId) return node;
-                    if (node.children) {
-                        const found = findNodeById(node.children);
-                        if (found) return found;
-                    }
-                }
-                return null;
-            };
-            
-            // Find the current node in the AST
-            let currentNode = null;
-            if (fullAst.type === 'Document' && fullAst.children) {
-                currentNode = findNodeById(fullAst.children);
-                if (currentNode) {
-                    console.log(`Found node of type ${currentNode.type} at line ${currentNode.lineNumber}`);
-                }
-            }
             
             // --- ENTER KEY ---
             if (e.key === 'Enter') {
                 e.preventDefault()
-                console.log("Enter key pressed");
                 
                 // Get the actual cursor position using selection
                 const selection = window.getSelection();
@@ -481,18 +450,15 @@ const renderAst = (
                         cursorPosition = range.startOffset;
                     }
                 }
-                console.log("Cursor position:", cursorPosition);
                 
                 // Check if we're at the end of the content
                 const isAtEnd = cursorPosition >= currentContent.length;
-                console.log("Is at end:", isAtEnd);
                 
                 // Check if ast is a Document type with children
                 if (fullAst.type === 'Document' && fullAst.children) {
                     // Find current node index in the AST using the node ID
                     const currentNodeIndex = fullAst.children.findIndex(child => child.id === currentNodeId);
                     if (currentNodeIndex === -1) {
-                        console.error("Node not found in AST:", currentNodeId);
                         return; // safeguard
                     }
                     
@@ -502,13 +468,12 @@ const renderAst = (
                     // Split text if needed and prepare content for new node
                     let rightText = '';
                     if (isAtEnd) {
-                        fullAst.children[currentNodeIndex].content = currentContent;
+                        // If at the end, keep the current content and create an empty new node
+                        rightText = '';
                     } else {
                         // Otherwise split at cursor position
                         const leftText = currentContent.substring(0, cursorPosition);
                         rightText = currentContent.substring(cursorPosition);
-                        console.log("Left text:", leftText);
-                        console.log("Right text:", rightText);
                         fullAst.children[currentNodeIndex].content = leftText;
                     }
                     
@@ -521,7 +486,7 @@ const renderAst = (
                             newNode = {
                                 id: `paragraph-${Date.now()}`,
                                 type: 'Paragraph',
-                                content: isAtEnd ? '' : rightText,
+                                content: rightText,
                                 lineNumber: currentLine + 1,
                                 editing: true,
                             };
@@ -532,7 +497,7 @@ const renderAst = (
                             newNode = {
                                 id: `list-item-${Date.now()}`,
                                 type: 'ListItem',
-                                content: isAtEnd ? '' : rightText,
+                                content: rightText,
                                 lineNumber: currentLine + 1,
                                 level: currentNode.level || 0,
                                 editing: true,
@@ -545,7 +510,7 @@ const renderAst = (
                             newNode = {
                                 id: `paragraph-${Date.now()}`,
                                 type: 'Paragraph',
-                                content: isAtEnd ? '' : rightText,
+                                content: rightText,
                                 lineNumber: currentLine + 1,
                                 editing: true,
                             };
@@ -566,7 +531,6 @@ const renderAst = (
                     // Update the AST state to force a re-render
                     if (updateAst) {
                         updateAst(newAst);
-                        console.log("AST updated, forcing re-render");
                         
                         // After the re-render, position the cursor correctly in the new node
                         setTimeout(() => {
@@ -601,22 +565,16 @@ const renderAst = (
                                     range.setEnd(textNode, 0);
                                     sel?.removeAllRanges();
                                     sel?.addRange(range);
-                                    console.log("Cursor positioned at beginning of new node");
-                                } else {
-                                    console.log("No text nodes found in the new element");
                                 }
-                            } else {
-                                console.log("New element not found after re-render");
                             }
                         }, 0);
-                    } else {
-                        console.log("No updateAst function provided, cannot force re-render");
                     }
                 }
             }
             // --- ARROW UP & ARROW DOWN ---
             else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                 e.preventDefault();
+                
                 // Get all editable elements on screen
                 const allEditableElements = Array.from(
                     document.querySelectorAll('[contenteditable="true"]')
@@ -643,9 +601,6 @@ const renderAst = (
                     sel?.removeAllRanges();
                     sel?.addRange(range);
                 }
-                
-                // Get the node id from the element's dataset
-                console.log("Target node id:", targetIndex);
             }
             // --- BACKSPACE KEY AT THE BEGINNING ---
             else if (e.key === 'Backspace') {
@@ -656,20 +611,13 @@ const renderAst = (
                     const isAtStart = range.startOffset === 0;
                     
                     if (isAtStart) {
-                        console.log("Backspace at the beginning of the line");
-                        
                         // Get the node id from the element's dataset
                         const currentNodeId = currentElement.dataset.nodeid;
-                        console.log("Current node id:", currentNodeId);
-                        
                         
                         // Check if fullAst is a Document type with children
                         if (fullAst.type === 'Document' && fullAst.children) {
-                            console.log("Number of children:", fullAst.children.length);
-                            
                             // Find current node index in the AST using the node ID
                             const currentNodeIndex = fullAst.children.findIndex(child => child.id === currentNodeId);
-                            console.log("Current node index:", currentNodeIndex);
                             
                             // Get the current node
                             const currentNode = fullAst.children[currentNodeIndex];
@@ -680,7 +628,6 @@ const renderAst = (
                                 
                                 if (currentNode.level && currentNode.level > 0) {
                                     // Unindent by decreasing the level
-                                    console.log("Unindenting list item from level", currentNode.level);
                                     currentNode.level--;
                                     
                                     // Create a deep copy of the AST to ensure React detects the change
@@ -689,11 +636,9 @@ const renderAst = (
                                     // Update the AST state to force a re-render
                                     if (updateAst) {
                                         updateAst(newAst);
-                                        console.log("AST updated after unindent");
                                     }
                                     return;
                                 } else if (currentNode.level === 0) {
-                                    
                                     // Store the content from the element instead of the node
                                     const content = currentElement.textContent || '';
                                     
@@ -715,7 +660,6 @@ const renderAst = (
                                     // Update the AST state to force a re-render
                                     if (updateAst) {
                                         updateAst(newAst);
-                                        console.log("AST updated after conversion to paragraph");
                                         
                                         // After the re-render, set focus to the new paragraph
                                         setTimeout(() => {
@@ -749,13 +693,10 @@ const renderAst = (
                                                     range.setEnd(textNode, 0);
                                                     sel?.removeAllRanges();
                                                     sel?.addRange(range);
-                                                    console.log("Cursor positioned in new paragraph");
                                                 } else {
                                                     // If no text nodes, just focus the element
                                                     newElement.focus();
                                                 }
-                                            } else {
-                                                console.log("New paragraph element not found after conversion");
                                             }
                                         }, 0);
                                     }
@@ -771,15 +712,11 @@ const renderAst = (
                                 const currentNode = fullAst.children[currentNodeIndex];
                                 const previousNode = fullAst.children[currentNodeIndex - 1];
                                 
-                                console.log("Current node:", currentNode);
-                                console.log("Previous node:", previousNode);
-                                
                                 // Store the original content lengths before merging
                                 const originalPreviousLength = previousNode.content ? previousNode.content.length : 0;
                                 
                                 // Merge the content of the previous node and the characters after the cursor.
                                 const mergedContent = (previousNode.content || '') + currentContent.substring(cursorPosition);
-                                console.log("Merged content:", mergedContent);
                                 
                                 // Update the previous node with the merged content
                                 previousNode.content = mergedContent;
@@ -798,7 +735,6 @@ const renderAst = (
                                 // Update the AST state to force a re-render
                                 if (updateAst) {
                                     updateAst(newAst);
-                                    console.log("AST updated, forcing re-render");
                                     
                                     // After the re-render, position the cursor correctly
                                     setTimeout(() => {
@@ -833,24 +769,11 @@ const renderAst = (
                                                 range.setEnd(textNode, originalPreviousLength);
                                                 sel?.removeAllRanges();
                                                 sel?.addRange(range);
-                                                console.log("Cursor positioned at merge point:", originalPreviousLength);
-                                            } else {
-                                                console.log("No text nodes found in the element");
                                             }
-                                        } else {
-                                            console.log("Previous element not found after re-render");
                                         }
                                     }, 0);
-                                } else {
-                                    console.log("No updateAst function provided, cannot force re-render");
                                 }
-                                
-                                // Focus will be handled by React after re-render
-                            } else {
-                                console.log("No previous node in AST");
                             }
-                        } else {
-                            console.log("Document node has no children");
                         }
                     }
                 }
@@ -926,8 +849,17 @@ const renderAst = (
                             // Set editing to false when the user moves away from the node
                             currentNode.editing = false;
                             
-                            // Update the content
-                            handleChange(e.currentTarget.textContent || '');
+                            // Get the current content
+                            const currentContent = e.currentTarget.textContent || '';
+                            
+                            // Get the original markdown representation
+                            const originalMarkdown = nodeToMarkdown(currentNode);
+                            
+                            // Only call handleChange if the content has actually changed
+                            if (currentContent !== originalMarkdown) {
+                                // Update the content
+                                handleChange(currentContent);
+                            }
                             
                             // Create a deep copy of the AST to ensure React detects the change
                             const newAst = JSON.parse(JSON.stringify(fullAst));
@@ -1031,8 +963,7 @@ const renderAst = (
     }
     
     return null; // Fallback for unknown node types
-}
-
+};
 
 /**
  * Main Markdown renderer component
@@ -1040,17 +971,64 @@ const renderAst = (
  * @param props - The component props containing the text to render
  * @returns A React component rendering the markdown content
  */
-const Renderer = ({ text }: RendererProps) => {
+const Renderer = ({ text, onChange }: RendererProps) => {
     // Create a state to hold the AST
     const [astState, setAstState] = useState<AstDocument>(() => {
-        const tokens = Tokenizer({ text });
+        const tokens = Tokenizer(text);
         return parseTokens(tokens);
     });
+    
+    // Function to convert AST back to plain text
+    const astToPlainText = useCallback((ast: AstDocument): string => {
+        let result = '';
+        
+        for (let i = 0; i < ast.children.length; i++) {
+            const node = ast.children[i];
+            
+            switch (node.type) {
+                case 'Heading':
+                    result += `${'#'.repeat(node.level || 1)} ${node.content || ''}\n\n`;
+                    break;
+                    
+                case 'Paragraph':
+                    result += `${node.content || ''}\n\n`;
+                    break;
+                    
+                case 'Bold':
+                    result += `*${node.content || ''}*\n\n`;
+                    break;
+                    
+                case 'Italic':
+                    result += `_${node.content || '_'}\n\n`;
+                    break;
+                    
+                case 'Link':
+                    result += `[${node.content || ''}](${node.url || ''})\n\n`;
+                    break;
+                    
+                case 'Image':
+                    result += `![${node.alt || ''}](${node.url || ''})\n\n`;
+                    break;
+                    
+                case 'ListItem':
+                    result += `${'  '.repeat(node.level || 0)}- ${node.content || ''}\n\n`;
+                    break;
+                    
+                default:
+                    break;
+            }
+        }
+        
+        return result;
+    }, []);
     
     // Function to update the AST and force a re-render
     const updateAst = useCallback((newAst: AstDocument) => {
         setAstState(newAst);
-    }, []);
+        // Convert the updated AST back to plain text and call onChange
+        const updatedText = astToPlainText(newAst);
+        onChange(updatedText);
+    }, [onChange, astToPlainText]);
     
     // Pass the updateAst function to renderAst
     return renderAst(astState, 0, astState, updateAst);
