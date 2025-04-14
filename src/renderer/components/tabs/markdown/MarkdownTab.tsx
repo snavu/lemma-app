@@ -14,7 +14,6 @@ export const MarkdownTab = ({ initialDoc, viewMode = 'split', onChange }: Markdo
   const [doc, setDoc] = useState(initialDoc);
   const [editorWidth, setEditorWidth] = useState(50); // percentage
   const containerRef = useRef<HTMLDivElement>(null);
-  const resizeHandleRef = useRef<HTMLDivElement>(null);
   const isResizing = useRef(false);
 
   const handleDocChange = useCallback((newDoc: string) => {
@@ -24,7 +23,7 @@ export const MarkdownTab = ({ initialDoc, viewMode = 'split', onChange }: Markdo
       onChange(newDoc);
     }
   }, [onChange]);
-  
+
   // Update document when initialDoc changes (file changes)
   useEffect(() => {
     setDoc(initialDoc);
@@ -34,45 +33,36 @@ export const MarkdownTab = ({ initialDoc, viewMode = 'split', onChange }: Markdo
   useEffect(() => {
     const handleResize = (e: MouseEvent) => {
       if (!isResizing.current || !containerRef.current) return;
-      
+
       e.preventDefault();
-      
+
       const containerRect = containerRef.current.getBoundingClientRect();
       const newWidthPx = e.clientX - containerRect.left;
       const newWidthPercent = (newWidthPx / containerRect.width) * 100;
-      
+
       // Limit to 20-80% range for better usability
       const clampedWidth = Math.max(20, Math.min(80, newWidthPercent));
       setEditorWidth(clampedWidth);
     };
-    
+
     const handleMouseUp = () => {
       isResizing.current = false;
       document.body.style.cursor = 'default';
       document.body.style.userSelect = 'auto';
-      
+
       // Remove class from document
       document.documentElement.classList.remove('resizing');
     };
-    
+
     document.addEventListener('mousemove', handleResize);
     document.addEventListener('mouseup', handleMouseUp);
-    
+
     return () => {
       document.removeEventListener('mousemove', handleResize);
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, []);
-  
-  const startResize = (e: React.MouseEvent) => {
-    e.preventDefault();
-    isResizing.current = true;
-    document.body.style.cursor = 'ew-resize';
-    document.body.style.userSelect = 'none';
-    
-    // Add class to document for styling during resize
-    document.documentElement.classList.add('resizing');
-  };
+
 
   // Calculate actual editor width based on view mode
   const calcEditorStyle = () => {
@@ -80,7 +70,7 @@ export const MarkdownTab = ({ initialDoc, viewMode = 'split', onChange }: Markdo
     if (viewMode === 'preview') return { width: '0%', display: 'none' };
     return { width: `${editorWidth}%` };
   };
-  
+
   // Calculate preview width based on view mode
   const calcPreviewStyle = () => {
     if (viewMode === 'preview') return { width: '100%' };
@@ -93,16 +83,8 @@ export const MarkdownTab = ({ initialDoc, viewMode = 'split', onChange }: Markdo
       <div className='editor-container' style={calcEditorStyle()}>
         <Editor onChange={handleDocChange} initialData={doc} />
       </div>
-      
-      {viewMode === 'split' && (
-        <div 
-          className="resize-handle" 
-          ref={resizeHandleRef}
-          onMouseDown={startResize}
-        />
-      )}
-      
-      <div className='preview' style={calcPreviewStyle()}>
+
+      <div className='preview-container' style={calcPreviewStyle()}>
         <Preview doc={doc} />
       </div>
     </div>
