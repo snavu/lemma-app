@@ -3,7 +3,7 @@ import { Header } from './components/header/page';
 import { Sidebar } from './components/sidebar/Sidebar';
 import './layout.css';
 import EmptyState from './components/emptystate/EmptyState';
-import { TabBar } from './components/tabs/tabbar/TabBar';
+import { TabBar } from './components/tabs/tab-bar/TabBar';
 import { MarkdownTab } from './components/tabs/markdown/MarkdownTab';
 import React from 'react';
 
