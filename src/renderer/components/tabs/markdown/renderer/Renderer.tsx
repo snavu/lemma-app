@@ -331,18 +331,25 @@ const renderAst = (
                 e.preventDefault()
                 console.log("Enter key pressed");
                 
-                // Get the node id from the element's dataset
-                const currentNodeId = currentElement.dataset.nodeid;
-                console.log("Current node id:", currentNodeId);
-                
                 // Get the actual cursor position using selection
                 const selection = window.getSelection();
                 let cursorPosition = 0;
                 if (selection && selection.rangeCount > 0) {
                     const range = selection.getRangeAt(0);
-                    cursorPosition = range.startOffset;
+                    const textNode = range.startContainer as Text;
+                    
+                    // If we're in a text node, use its length as the position when at the end
+                    if (textNode.nodeType === Node.TEXT_NODE && range.startOffset === textNode.length) {
+                        cursorPosition = currentContent.length;
+                    } else {
+                        cursorPosition = range.startOffset;
+                    }
                 }
                 console.log("Cursor position:", cursorPosition);
+                
+                // Check if we're at the end of the content
+                const isAtEnd = cursorPosition >= currentContent.length;
+                console.log("Is at end:", isAtEnd);
                 
                 // Check if ast is a Document type with children
                 if (fullAst.type === 'Document' && fullAst.children) {
@@ -356,17 +363,18 @@ const renderAst = (
                     // Get the current node
                     const currentNode = fullAst.children[currentNodeIndex];
                     
-                    // Split current content into "left" (before cursor) and "right" (after cursor)
-                    const leftText = currentContent.substring(0, cursorPosition);
-                    console.log("Left text:", leftText);
-                    const rightText = currentContent.substring(cursorPosition);
-                    console.log("Right text:", rightText);
-                    
-                    // Keep the original text in the current node and empty text in new node if cursor at end
-                    const isAtEnd = cursorPosition >= currentContent.length;
-                    
-                    // Update current node content
-                    fullAst.children[currentNodeIndex].content = leftText;
+                    // Split text if needed and prepare content for new node
+                    let rightText = '';
+                    if (isAtEnd) {
+                        fullAst.children[currentNodeIndex].content = currentContent;
+                    } else {
+                        // Otherwise split at cursor position
+                        const leftText = currentContent.substring(0, cursorPosition);
+                        rightText = currentContent.substring(cursorPosition);
+                        console.log("Left text:", leftText);
+                        console.log("Right text:", rightText);
+                        fullAst.children[currentNodeIndex].content = leftText;
+                    }
                     
                     // Create a new node based on the current node type
                     let newNode: AstNode;
@@ -377,7 +385,7 @@ const renderAst = (
                             newNode = {
                                 id: `paragraph-${Date.now()}`,
                                 type: 'Paragraph',
-                                content: rightText,
+                                content: isAtEnd ? '' : rightText,
                                 lineNumber: currentLine + 1,
                                 editing: true,
                             };
@@ -388,7 +396,7 @@ const renderAst = (
                             newNode = {
                                 id: `list-item-${Date.now()}`,
                                 type: 'ListItem',
-                                content: rightText,
+                                content: isAtEnd ? '' : rightText,
                                 lineNumber: currentLine + 1,
                                 level: currentNode.level || 0,
                                 editing: true,
@@ -401,7 +409,7 @@ const renderAst = (
                             newNode = {
                                 id: `paragraph-${Date.now()}`,
                                 type: 'Paragraph',
-                                content: rightText,
+                                content: isAtEnd ? '' : rightText,
                                 lineNumber: currentLine + 1,
                                 editing: true,
                             };
@@ -518,6 +526,7 @@ const renderAst = (
                         const currentNodeId = currentElement.dataset.nodeid;
                         console.log("Current node id:", currentNodeId);
                         
+                        
                         // Check if fullAst is a Document type with children
                         if (fullAst.type === 'Document' && fullAst.children) {
                             console.log("Number of children:", fullAst.children.length);
@@ -548,12 +557,15 @@ const renderAst = (
                                     }
                                     return;
                                 } else if (currentNode.level === 0) {
-                                    // Convert to paragraph when fully unindented
-                                    console.log("Converting list item to paragraph");
+                                    
+                                    // Store the content from the element instead of the node
+                                    const content = currentElement.textContent || '';
+                                    
+                                    // Create a new paragraph node with the same content
                                     const newNode: AstNode = {
                                         id: `paragraph-${Date.now()}`,
                                         type: 'Paragraph',
-                                        content: currentNode.content || '',
+                                        content: content,
                                         lineNumber: currentNode.lineNumber,
                                         editing: true,
                                     };
