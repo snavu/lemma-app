@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useEffect } from "react";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
@@ -15,19 +14,41 @@ interface Props {
 }
 
 const Preview: React.FC<Props> = ({ doc }) => {
-  const md = unified()
-    .use(remarkParse)
-    .use(remarkGfm)
-    .use(remarkRehype)
-    .use(rehypeHighlight, { detect: true })
-    // @ts-expect-error rehypeReact is not typed
-    .use(rehypeReact, {
-      createElement: React.createElement,
-      Fragment: React.Fragment,
-    })
-    .processSync(doc).result as React.ReactNode;
+  /*useEffect(() => {
+    console.log('Preview component mounted with doc:', doc);
+  }, [doc]);*/
 
-  return <div className="preview markdown-body">{md}</div>;
+  try {
+    const md = unified()
+      .use(remarkParse)
+      .use(remarkGfm)
+      .use(remarkRehype)
+      .use(rehypeHighlight, { detect: true })
+      // @ts-expect-error rehypeReact is not typed
+      .use(rehypeReact, {
+        createElement: React.createElement,
+        Fragment: React.Fragment,
+      })
+      .processSync(doc).result as React.ReactNode;
+
+    return (
+      <div className="preview markdown-body">
+        {md}
+      </div>
+    );
+  } catch (error) {
+    console.error('Error processing markdown:', error);
+    return (
+      <div className="preview markdown-body">
+        <div style={{ color: 'red', padding: '1rem' }}>
+          Error rendering preview: {error instanceof Error ? error.message : String(error)}
+        </div>
+        <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          {doc}
+        </pre>
+      </div>
+    );
+  }
 };
 
 export default Preview;

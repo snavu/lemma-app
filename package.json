@@ -49,6 +49,7 @@
     "@codemirror/theme-one-dark": "^6.1.2",
     "@codemirror/view": "^6.36.5",
     "@lezer/highlight": "^1.2.1",
+    "@mdxeditor/editor": "^3.30.0",
     "electron-squirrel-startup": "^1.0.1",
     "github-markdown-css": "^5.8.1",
     "highlight.js": "^11.11.1",

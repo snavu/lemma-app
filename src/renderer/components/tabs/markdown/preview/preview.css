@@ -1,12 +1,23 @@
 .preview {
-    flex: 0 0 50%;
+    flex: 1;
     height: 100%;
     width: 100%;
     box-sizing: border-box;
     overflow: auto;
-    color: #abb2bf
+    color: #abb2bf;
+    padding: 1rem;
+    background-color: #14181e;
 }
 
-.preview.markdown-body{
+.preview.markdown-body {
+    background-color: #14181e;
+    min-height: 100%;
+}
+
+/* Ensure the preview container takes up available space */
+.preview-section {
+    flex: 1;
+    height: 100%;
+    overflow: auto;
     background-color: #14181e;
 }

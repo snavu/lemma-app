@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { LivePreview } from './LivePreview';
 import { InlineLivePreview } from './InlineLivePreview';
-import { Editor } from './editor/page';
-import Preview from './preview/page';
+//import { Editor } from './editor/page';
+import Renderer from './renderer/Renderer';
+//import Preview from './preview/page';
 import { MarkdownToolbar, ViewMode } from './MarkdownToolbar';
 import './markdown-tab.css';
 
@@ -11,6 +12,29 @@ interface MarkdownTabProps {
   viewMode?: ViewMode;
   onChange?: (content: string) => void;
 }
+
+const tempText = `
+# Hello World
+
+This is a test of the markdown renderer.
+
+## This is a heading
+
+This is a paragraph.
+
+*This is bold text*
+
+_This is italic text_
+
+[This is a link](https://www.google.com)
+
+- First level
+    - Second level (4 spaces)
+        - Third level (8 spaces)
+- Back to first level
+	- Second level (1 tab)
+
+`;
 
 export const MarkdownTab = ({ initialDoc, viewMode: initialViewMode = 'split', onChange }: MarkdownTabProps) => {
   const [content, setContent] = useState(initialDoc);
@@ -35,7 +59,7 @@ export const MarkdownTab = ({ initialDoc, viewMode: initialViewMode = 'split', o
       case 'preview':
         return (
           <div className="preview-only">
-            <Preview doc={content} />
+            <Renderer text={tempText} onChange={handleContentChange} />
           </div>
         );
       case 'inline':
