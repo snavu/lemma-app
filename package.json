@@ -57,6 +57,7 @@
     "react-resizable-box": "^2.1.0",
     "rehype-highlight": "^7.0.2",
     "rehype-react": "^7.1.1",
+    "rehype-stringify": "^10.0.1",
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2"

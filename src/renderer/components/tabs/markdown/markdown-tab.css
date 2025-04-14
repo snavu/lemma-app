@@ -111,4 +111,31 @@
 .cm-scroller {
   font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
   padding: 10px;
+}
+
+/* New styles for different view modes */
+.markdown-tab {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.markdown-content {
+  flex: 1;
+  overflow: hidden;
+}
+
+.editor-only {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.preview-only {
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+  padding: 1rem;
 } 

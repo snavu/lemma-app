@@ -1,0 +1,175 @@
+.inline-live-preview-container {
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.inline-live-preview {
+  min-height: 100%;
+  width: 100%;
+  outline: none;
+  font-family: var(--font-family);
+  line-height: 1.6;
+}
+
+/* Styles for markdown blocks */
+.markdown-block {
+  position: relative;
+  margin-bottom: 0.5em;
+  transition: background-color 0.2s ease;
+}
+
+.markdown-block:hover {
+  background-color: var(--bg-secondary-color);
+}
+
+.markdown-block.editing {
+  background-color: var(--bg-secondary-color);
+  outline: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0.2em 0.4em;
+}
+
+/* Ensure the preview has proper spacing and styling */
+.inline-live-preview h1,
+.inline-live-preview h2,
+.inline-live-preview h3,
+.inline-live-preview h4,
+.inline-live-preview h5,
+.inline-live-preview h6 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.inline-live-preview p {
+  margin-bottom: 1em;
+}
+
+.inline-live-preview ul,
+.inline-live-preview ol {
+  margin-bottom: 1em;
+  padding-left: 2em;
+}
+
+.inline-live-preview code {
+  background-color: var(--code-bg-color);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: var(--monospace-font);
+}
+
+.inline-live-preview pre {
+  background-color: var(--code-bg-color);
+  padding: 1em;
+  border-radius: 5px;
+  overflow-x: auto;
+  margin-bottom: 1em;
+}
+
+.inline-live-preview blockquote {
+  border-left: 4px solid var(--border-color);
+  padding-left: 1em;
+  margin-left: 0;
+  margin-bottom: 1em;
+  color: var(--text-secondary-color);
+}
+
+.inline-live-preview table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 1em;
+}
+
+.inline-live-preview th,
+.inline-live-preview td {
+  border: 1px solid var(--border-color);
+  padding: 0.5em;
+}
+
+.inline-live-preview th {
+  background-color: var(--bg-secondary-color);
+}
+
+/* Transition effects for smoother editing experience */
+.markdown-block {
+  transition: background-color 0.2s ease, outline 0.2s ease;
+}
+
+.inline-live-preview.editing {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.inline-live-preview.preview {
+  /* Styles for the preview mode */
+}
+
+/* Ensure the preview has proper spacing and styling */
+.inline-live-preview.preview h1,
+.inline-live-preview.preview h2,
+.inline-live-preview.preview h3,
+.inline-live-preview.preview h4,
+.inline-live-preview.preview h5,
+.inline-live-preview.preview h6 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.inline-live-preview.preview p {
+  margin-bottom: 1em;
+}
+
+.inline-live-preview.preview ul,
+.inline-live-preview.preview ol {
+  margin-bottom: 1em;
+  padding-left: 2em;
+}
+
+.inline-live-preview.preview code {
+  background-color: var(--code-bg-color);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: var(--monospace-font);
+}
+
+.inline-live-preview.preview pre {
+  background-color: var(--code-bg-color);
+  padding: 1em;
+  border-radius: 5px;
+  overflow-x: auto;
+  margin-bottom: 1em;
+}
+
+.inline-live-preview.preview blockquote {
+  border-left: 4px solid var(--border-color);
+  padding-left: 1em;
+  margin-left: 0;
+  margin-bottom: 1em;
+  color: var(--text-secondary-color);
+}
+
+.inline-live-preview.preview table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 1em;
+}
+
+.inline-live-preview.preview th,
+.inline-live-preview.preview td {
+  border: 1px solid var(--border-color);
+  padding: 0.5em;
+}
+
+.inline-live-preview.preview th {
+  background-color: var(--bg-secondary-color);
+}
+
+/* Transition effects for smoother editing experience */
+.inline-live-preview {
+  transition: background-color 0.2s ease;
+}
+
+.inline-live-preview.editing {
+  background-color: var(--bg-secondary-color);
+} 

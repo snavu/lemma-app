@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Editor } from './editor/page';
 import Preview from './preview/page';
-import { EditorState, StateEffect } from '@codemirror/state';
+import { StateEffect } from '@codemirror/state';
 import { EditorView, ViewUpdate } from '@codemirror/view';
 import './live-preview.css';
 
