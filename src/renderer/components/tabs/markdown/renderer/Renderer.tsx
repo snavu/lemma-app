@@ -277,6 +277,27 @@ const renderAst = (
         outline: 'none', // Remove the focus outline
     };
     
+    // Helper function to convert a node to its markdown representation
+    const nodeToMarkdown = (node: AstNode): string => {
+        switch (node.type) {
+            case 'Heading':
+                return `${'#'.repeat(node.level || 1)} ${node.content || ''}`;
+            case 'Bold':
+                return `*${node.content || ''}*`;
+            case 'Italic':
+                return `_${node.content || ''}_`;
+            case 'Link':
+                return `[${node.content || ''}](${node.url || ''})`;
+            case 'Image':
+                return `![${node.alt || ''}](${node.url || ''})`;
+            case 'ListItem':
+                return `${'  '.repeat(node.level || 0)}- ${node.content || ''}`;
+            case 'Paragraph':
+            default:
+                return node.content || '';
+        }
+    };
+    
     // Helper function to create clickable elements
     const createEditableElement = (
         elementType: keyof React.JSX.IntrinsicElements | React.ComponentType<any>,
@@ -285,15 +306,130 @@ const renderAst = (
         additionalProps: Record<string, any> = {},
         nodeId?: string  // Add nodeId parameter
     ): React.ReactNode => {
-
+        // Get the raw markdown text for editing only when the node is being edited
+        const isEditing = (ast as AstNode).editing;
+        const displayText = isEditing && nodeId ? nodeToMarkdown(ast as AstNode) : content;
+        
         const handleChange = (newContent: string) => {
-            // Create a new AST with the updated content
-            const updatedAst = { ...ast } as AstNode;
-            if ('content' in updatedAst) {
-                updatedAst.content = newContent;
-            }
-            //const markdown = convertAstToMarkdown(updatedAst);
+            // Get the node id from the element's dataset
+            const currentNodeId = (ast as AstNode).id;
             
+            // Find the current node in the AST
+            let currentNode = null;
+            if (fullAst.type === 'Document' && fullAst.children) {
+                // Find a node by its ID
+                const findNodeById = (nodes: AstNode[]): AstNode | null => {
+                    for (const node of nodes) {
+                        if (node.id === currentNodeId) return node;
+                        if (node.children) {
+                            const found = findNodeById(node.children);
+                            if (found) return found;
+                        }
+                    }
+                    return null;
+                };
+                
+                currentNode = findNodeById(fullAst.children);
+            }
+            
+            if (currentNode) {
+                // Check if the content matches a markdown format
+                let newType = currentNode.type;
+                let newLevel = currentNode.level;
+                
+                // Check for headings
+                const headingMatch = newContent.match(/^(#{1,6})\s+(.*)/);
+                if (headingMatch) {
+                    newType = 'Heading';
+                    newLevel = headingMatch[1].length;
+                    newContent = headingMatch[2];
+                }
+                
+                // Check for bold text
+                const boldMatch = newContent.match(/^\*(.*?)\*/);
+                if (boldMatch) {
+                    newType = 'Bold';
+                    newContent = boldMatch[1];
+                }
+                
+                // Check for italic text
+                const italicMatch = newContent.match(/^_(.*?)_/);
+                if (italicMatch) {
+                    newType = 'Italic';
+                    newContent = italicMatch[1];
+                }
+                
+                // Check for links
+                const linkMatch = newContent.match(/^\[([^\]]+)\]\(([^)]+)\)/);
+                if (linkMatch) {
+                    newType = 'Link';
+                    const linkContent = linkMatch[1];
+                    const linkUrl = linkMatch[2];
+                    newContent = linkContent;
+                    
+                    // Update the node with the new type and URL
+                    currentNode.type = newType;
+                    currentNode.content = newContent;
+                    currentNode.url = linkUrl;
+                    
+                    // Create a deep copy of the AST to ensure React detects the change
+                    const newAst = JSON.parse(JSON.stringify(fullAst));
+                    
+                    // Update the AST state to force a re-render
+                    if (updateAst) {
+                        updateAst(newAst);
+                    }
+                    return;
+                }
+                
+                // Check for images
+                const imageMatch = newContent.match(/^!\[([^\]]+)\]\(([^)]+)\)/);
+                if (imageMatch) {
+                    newType = 'Image';
+                    const imageAlt = imageMatch[1];
+                    const imageUrl = imageMatch[2];
+                    
+                    // Update the node with the new type and URL
+                    currentNode.type = newType;
+                    currentNode.alt = imageAlt;
+                    currentNode.url = imageUrl;
+                    
+                    // Create a deep copy of the AST to ensure React detects the change
+                    const newAst = JSON.parse(JSON.stringify(fullAst));
+                    
+                    // Update the AST state to force a re-render
+                    if (updateAst) {
+                        updateAst(newAst);
+                    }
+                    return;
+                }
+                
+                // Check for list items
+                const listItemMatch = newContent.match(/^([\t ]*)-([^\n]+)(?:\n|$)/);
+                if (listItemMatch) {
+                    newType = 'ListItem';
+                    const indentStr = listItemMatch[1];
+                    const tabCount = (indentStr.match(/\t/g) || []).length;
+                    const spaceCount = Math.floor((indentStr.match(/ /g) || []).length / 4);
+                    newLevel = tabCount + spaceCount;
+                    newContent = listItemMatch[2].trim();
+                }
+                
+                // Update the node with the new type and content
+                currentNode.type = newType;
+                currentNode.content = newContent;
+                if (newLevel !== undefined) {
+                    currentNode.level = newLevel;
+                }
+                
+                // Create a deep copy of the AST to ensure React detects the change
+                const newAst = JSON.parse(JSON.stringify(fullAst));
+                
+                // Update the AST state to force a re-render
+                if (updateAst) {
+                    updateAst(newAst);
+                }
+            }
         };
 
         const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
@@ -731,9 +867,77 @@ const renderAst = (
                 ...additionalProps.style,
             },
             'data-nodeid': nodeId, // Add the node ID as a data attribute
+            onFocus: (e: React.FocusEvent<HTMLElement>) => {
+                if (e.currentTarget.getAttribute('contenteditable') === 'true') {
+                    // Get the node id from the element's dataset
+                    const currentNodeId = e.currentTarget.dataset.nodeid;
+                    
+                    // Find the current node in the AST
+                    if (fullAst.type === 'Document' && fullAst.children) {
+                        // Find a node by its ID
+                        const findNodeById = (nodes: AstNode[]): AstNode | null => {
+                            for (const node of nodes) {
+                                if (node.id === currentNodeId) return node;
+                                if (node.children) {
+                                    const found = findNodeById(node.children);
+                                    if (found) return found;
+                                }
+                            }
+                            return null;
+                        };
+                        
+                        const currentNode = findNodeById(fullAst.children);
+                        if (currentNode) {
+                            // Set editing to true when the user focuses on the node
+                            currentNode.editing = true;
+                            
+                            // Create a deep copy of the AST to ensure React detects the change
+                            const newAst = JSON.parse(JSON.stringify(fullAst));
+                            
+                            // Update the AST state to force a re-render
+                            if (updateAst) {
+                                updateAst(newAst);
+                            }
+                        }
+                    }
+                }
+            },
             onBlur: (e: React.FocusEvent<HTMLElement>) => {
                 if (e.currentTarget.getAttribute('contenteditable') === 'true') {
-                    handleChange(e.currentTarget.textContent || '');
+                    // Get the node id from the element's dataset
+                    const currentNodeId = e.currentTarget.dataset.nodeid;
+                    
+                    // Find the current node in the AST
+                    if (fullAst.type === 'Document' && fullAst.children) {
+                        // Find a node by its ID
+                        const findNodeById = (nodes: AstNode[]): AstNode | null => {
+                            for (const node of nodes) {
+                                if (node.id === currentNodeId) return node;
+                                if (node.children) {
+                                    const found = findNodeById(node.children);
+                                    if (found) return found;
+                                }
+                            }
+                            return null;
+                        };
+                        
+                        const currentNode = findNodeById(fullAst.children);
+                        if (currentNode) {
+                            // Set editing to false when the user moves away from the node
+                            currentNode.editing = false;
+                            
+                            // Update the content
+                            handleChange(e.currentTarget.textContent || '');
+                            
+                            // Create a deep copy of the AST to ensure React detects the change
+                            const newAst = JSON.parse(JSON.stringify(fullAst));
+                            
+                            // Update the AST state to force a re-render
+                            if (updateAst) {
+                                updateAst(newAst);
+                            }
+                        }
+                    }
                 }
             },
             onKeyDown: handleKeyDown,
@@ -746,10 +950,10 @@ const renderAst = (
         }
         
         if (typeof elementType === 'string') {
-            return React.createElement(elementType, props, content);
+            return React.createElement(elementType, props, displayText);
         } else {
             const Element = elementType;
-            return <Element {...props}>{content}</Element>;
+            return <Element {...props}>{displayText}</Element>;
         }
     };
     
@@ -829,27 +1033,6 @@ const renderAst = (
     return null; // Fallback for unknown node types
 }
 
-// Helper function to convert AST back to markdown
-const convertAstToMarkdown = (node: AstNode): string => {
-    switch (node.type) {
-        case 'Heading':
-            return `${'#'.repeat(node.level || 1)} ${node.content || ''}\n`;
-        case 'Paragraph':
-            return `${node.content || ''}\n\n`;
-        case 'Bold':
-            return `**${node.content || ''}**`;
-        case 'Italic':
-            return `_${node.content || ''}_`;
-        case 'Link':
-            return `[${node.content || ''}](${node.url || ''})`;
-        case 'Image':
-            return `![${node.alt || ''}](${node.url || ''})`;
-        case 'ListItem':
-            return `${'  '.repeat(node.level || 0)}- ${node.content || ''}\n`;
-        default:
-            return '';
-    }
-};
 
 /**
  * Main Markdown renderer component
