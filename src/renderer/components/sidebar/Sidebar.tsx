@@ -63,12 +63,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (!filePath) return;
 
     try {
-      // Show a confirmation dialog
-      const confirmDelete = window.confirm(
-        `Are you sure you want to delete "${filePath.split(/[\\/]/).pop()}"?`
-      );
-
-      if (!confirmDelete) return;
 
       // Call the parent component's delete handler
       const success = await onDeleteFile(filePath);
