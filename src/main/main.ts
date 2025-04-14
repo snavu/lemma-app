@@ -44,7 +44,7 @@ const setupDefaultNotesDirectory = (): void => {
   if (notesDirectory === null) {
     // Create a 'Notes' folder in the user's documents directory
     const documentsPath = app.getPath('documents');
-    const defaultNotesPath = path.join(documentsPath, 'LEMMA Notes');
+    const defaultNotesPath = path.join(documentsPath, 'My Notes');
     
     // Create the directory if it doesn't exist
     if (!fs.existsSync(defaultNotesPath)) {
@@ -161,7 +161,7 @@ const saveConfigSettings = (): void => {
   }
 };
 
-// Set up IPC handlers
+  // Set up IPC handlers
 const setupIpcHandlers = (): void => {
   // Select notes directory
   ipcMain.handle('select-notes-directory', async () => {
@@ -218,6 +218,28 @@ const setupIpcHandlers = (): void => {
       return { success: true, filePath };
     } catch (error) {
       console.error('Error creating file:', error);
+      throw error;
+    }
+  });
+  
+  // Delete a file
+  ipcMain.handle('delete-file', async (_, filePath) => {
+    try {
+      // Confirm the file exists
+      if (!fs.existsSync(filePath)) {
+        throw new Error('File does not exist');
+      }
+      
+      // Make sure the file is within the notes directory (security check)
+      if (!filePath.startsWith(notesDirectory!)) {
+        throw new Error('Cannot delete files outside of the notes directory');
+      }
+      
+      // Delete the file
+      fs.unlinkSync(filePath);
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting file:', error);
       throw error;
     }
   });

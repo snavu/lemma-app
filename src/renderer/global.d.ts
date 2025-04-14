@@ -15,6 +15,7 @@ interface Window {
       readFile: (filePath: string) => Promise<string>;
       saveFile: (filePath: string, content: string) => Promise<{ success: boolean }>;
       createFile: (fileName: string) => Promise<{ success: boolean; filePath: string }>;
+      deleteFile: (filePath: string) => Promise<{ success: boolean }>;
       getNotesDirectory: () => Promise<string | null>;
     };
     on: {

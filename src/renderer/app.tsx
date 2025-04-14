@@ -129,6 +129,31 @@ export const App = () => {
       console.error('Failed to open file:', error);
     }
   }, [tabs]);
+  
+  // Handle file deletion
+  const handleDeleteFile = useCallback(async (filePath: string) => {
+    if (!window.electron?.fs) return;
+    
+    try {
+      // Delete the file
+      await window.electron.fs.deleteFile(filePath);
+      
+      // Refresh the files list
+      const updatedFiles = await window.electron.fs.getFiles();
+      setFiles(updatedFiles);
+      
+      // If the file is open in a tab, close it
+      const tabToClose = tabs.find(tab => tab.filePath === filePath);
+      if (tabToClose) {
+        handleCloseTab(tabToClose.id);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to delete file:', error);
+      return false;
+    }
+  }, [tabs]);
 
   // Handle creating a new note
   const handleNewNote = useCallback(async () => {
@@ -231,9 +256,8 @@ export const App = () => {
           onFileSelect={handleFileSelect}
           onNewNote={handleNewNote}
           onSelectDirectory={handleSelectDirectory}
-          onViewModeChange={setViewMode}
-          viewMode={viewMode}
           notesDirectory={notesDirectory}
+          onDeleteFile={handleDeleteFile}
         />
         <div className="main-content">
           <TabBar
