@@ -1,3 +1,9 @@
+/* 
+ * Inline Markdown Editor Styles
+ * A clean, dark-themed editor with syntax highlighting
+ */
+
+/* Main editor container */
 .inline-markdown-editor {
   display: flex;
   flex-direction: column;
@@ -9,6 +15,7 @@
   position: relative;
 }
 
+/* Editor toolbar */
 .editor-toolbar {
   display: flex;
   justify-content: space-between;
@@ -61,10 +68,243 @@
   border: 1px solid #3a404d;
 }
 
+/* Editor content area */
 .editor-content-area {
   flex: 1;
   overflow-y: auto;
   position: relative;
+}
+
+/* Source code editor */
+.source-editor {
+  width: 100%;
+  height: 100%;
+  background-color: #282c34;
+  color: #abb2bf;
+  border: none;
+  resize: none;
+  padding: 10px;
+  font-family: var(--font-monospace);
+  font-size: 14px;
+  line-height: 1.6;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* TipTap editor core styles */
+.inline-markdown-editor .ProseMirror {
+  height: 100%;
+  min-height: 200px;
+  padding: 10px;
+  outline: none;
+  font-size: 14px;
+  line-height: 1.6;
+  font-family: var(--default-font);
+  color: #abb2bf;
+}
+
+.ProseMirror * {
+  box-sizing: border-box;
+}
+
+/* Editor content typography */
+.ProseMirror p {
+  margin: 0.5em 0;
+}
+
+.ProseMirror h1 {
+  font-size: 1.8em;
+  font-weight: bold;
+  margin: 0.8em 0 0.5em;
+  color: #e5c07b;
+}
+
+.ProseMirror h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 0.8em 0 0.5em;
+  color: #e5c07b;
+}
+
+.ProseMirror h3 {
+  font-size: 1.2em;
+  font-weight: bold;
+  margin: 0.8em 0 0.5em;
+  color: #e5c07b;
+}
+
+.ProseMirror a {
+  color: #61afef;
+  text-decoration: underline;
+}
+
+/* Lists */
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.ProseMirror li p {
+  margin: 0;
+}
+
+/* Task lists */
+.ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding: 0;
+}
+
+.ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  margin: 0.2em 0;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label {
+  margin-right: 0.5em;
+  user-select: none;
+}
+
+.ProseMirror ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+
+/* Checkbox styling */
+.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"] {
+  margin: 0;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid #4b5363;
+  border-radius: 2px;
+  position: relative;
+  top: 2px;
+  cursor: pointer;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"]:checked {
+  background-color: #61afef;
+  border-color: #61afef;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"]:checked::after {
+  content: '✓';
+  color: #1e2127;
+  position: absolute;
+  top: -3px;
+  left: 2px;
+  font-size: 12px;
+}
+
+/* Placeholder text */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #4b5363;
+  pointer-events: none;
+  height: 0;
+}
+
+/* Blockquotes */
+.ProseMirror blockquote {
+  border-left: 3px solid #3a404d;
+  padding-left: 1em;
+  margin-left: 0;
+  color: #7f848e;
+}
+
+/* Inline code */
+.ProseMirror p code {
+  font-family: var(--font-monospace);
+  font-size: 0.9em;
+  background-color: rgba(30, 33, 39, 0.7);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
+
+/* Code blocks with syntax highlighting */
+.ProseMirror pre {
+  background-color: #1e2127;
+  border-radius: 5px;
+  padding: 12px 14px;
+  margin: 1em 0;
+  overflow-x: auto;
+  font-family: var(--font-monospace);
+}
+
+.ProseMirror pre code {
+  background: none;
+  padding: 0;
+  font-family: var(--font-monospace);
+  font-size: 0.9em;
+}
+
+/* Syntax highlighting for code blocks */
+.ProseMirror pre .hljs-comment,
+.ProseMirror pre .hljs-quote {
+  color: #616161;
+  font-style: italic;
+}
+
+.ProseMirror pre .hljs-variable,
+.ProseMirror pre .hljs-template-variable,
+.ProseMirror pre .hljs-attribute,
+.ProseMirror pre .hljs-tag,
+.ProseMirror pre .hljs-name,
+.ProseMirror pre .hljs-regexp,
+.ProseMirror pre .hljs-link,
+.ProseMirror pre .hljs-selector-id,
+.ProseMirror pre .hljs-selector-class {
+  color: #f98181;
+}
+
+.ProseMirror pre .hljs-number,
+.ProseMirror pre .hljs-meta,
+.ProseMirror pre .hljs-built_in,
+.ProseMirror pre .hljs-builtin-name,
+.ProseMirror pre .hljs-literal,
+.ProseMirror pre .hljs-type,
+.ProseMirror pre .hljs-params {
+  color: #fbbc88;
+}
+
+.ProseMirror pre .hljs-string,
+.ProseMirror pre .hljs-symbol,
+.ProseMirror pre .hljs-bullet {
+  color: #b9f18d;
+}
+
+.ProseMirror pre .hljs-title,
+.ProseMirror pre .hljs-section {
+  color: #faf594;
+}
+
+.ProseMirror pre .hljs-keyword,
+.ProseMirror pre .hljs-selector-tag {
+  color: #70cff8;
+}
+
+.ProseMirror pre .hljs-emphasis {
+  font-style: italic;
+}
+
+.ProseMirror pre .hljs-strong {
+  font-weight: 700;
+}
+
+/* Language tag for code blocks */
+.ProseMirror pre::before {
+  content: attr(data-language);
+  color: #5c6370;
+  font-size: 0.75em;
+  font-family: var(--default-font);
+  text-transform: uppercase;
+  position: absolute;
+  top: 5px;
+  right: 10px;
+  background-color: rgba(30, 33, 39, 0.7);
+  padding: 2px 5px;
+  border-radius: 3px;
 }
 
 /* Bubble menu styling */
@@ -240,182 +480,4 @@
 .dialog-buttons button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-/* Source code editor */
-.source-editor {
-  width: 100%;
-  height: 100%;
-  background-color: #282c34;
-  color: #abb2bf;
-  border: none;
-  resize: none;
-  padding: 10px;
-  font-family: var(--font-monospace);
-  font-size: 14px;
-  line-height: 1.6;
-  outline: none;
-  box-sizing: border-box;
-}
-
-/* TipTap editor styling */
-.inline-markdown-editor .ProseMirror {
-  height: 100%;
-  min-height: 200px;
-  padding: 10px;
-  outline: none;
-  font-size: 14px;
-  line-height: 1.6;
-  font-family: var(--default-font);
-}
-
-/* Editor content styles */
-.ProseMirror p {
-  margin: 0.5em 0;
-  font-family: var(--default-font);
-}
-
-.ProseMirror h1 {
-  font-size: 1.8em;
-  font-weight: bold;
-  margin: 0.5em 0;
-  color: #e5c07b;
-  font-family: var(--default-font);
-}
-
-.ProseMirror h2 {
-  font-size: 1.5em;
-  font-weight: bold;
-  margin: 0.5em 0;
-  color: #e5c07b;
-  font-family: var(--default-font);
-}
-
-.ProseMirror h3 {
-  font-size: 1.2em;
-  font-weight: bold;
-  margin: 0.5em 0;
-  color: #e5c07b;
-  font-family: var(--default-font);
-}
-
-.ProseMirror a {
-  color: #61afef;
-  text-decoration: underline;
-}
-
-.ProseMirror ul,
-.ProseMirror ol {
-  padding-left: 1.5em;
-  margin: 0.5em 0;
-  font-family: var(--default-font);
-}
-
-.ProseMirror li p {
-  margin: 0;
-}
-
-.ProseMirror pre {
-  background-color: #1e2127;
-  border-radius: 3px;
-  padding: 10px;
-  font-family: var(--font-monospace);
-  overflow-x: auto;
-}
-
-.ProseMirror code {
-  background-color: #1e2127;
-  border-radius: 3px;
-  padding: 0 4px;
-  font-family: var(--font-monospace);
-}
-
-.ProseMirror blockquote {
-  border-left: 3px solid #3a404d;
-  padding-left: 1em;
-  margin-left: 0;
-  color: #7f848e;
-  font-family: var(--default-font);
-}
-
-/* Task lists */
-.ProseMirror ul[data-type="taskList"] {
-  list-style: none;
-  padding: 0;
-  font-family: var(--default-font);
-}
-
-.ProseMirror ul[data-type="taskList"] li {
-  display: flex;
-  margin: 0.2em 0;
-}
-
-.ProseMirror ul[data-type="taskList"] li > label {
-  margin-right: 0.5em;
-  user-select: none;
-}
-
-.ProseMirror ul[data-type="taskList"] li > div {
-  flex: 1;
-}
-
-/* Checkbox styling */
-.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"] {
-  margin: 0;
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  border: 1px solid #4b5363;
-  border-radius: 2px;
-  position: relative;
-  top: 2px;
-  cursor: pointer;
-}
-
-.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"]:checked {
-  background-color: #61afef;
-  border-color: #61afef;
-}
-
-.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"]:checked::after {
-  content: '✓';
-  color: #1e2127;
-  position: absolute;
-  top: -3px;
-  left: 2px;
-  font-size: 12px;
-}
-
-/* Placeholder text */
-.ProseMirror p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  float: left;
-  color: #4b5363;
-  pointer-events: none;
-  height: 0;
-  font-family: var(--default-font);
-}
-
-/* Additional styling for better readability */
-.ProseMirror {
-  color: #abb2bf;
-}
-
-.ProseMirror * {
-  box-sizing: border-box;
-}
-
-/* Override monospace fonts in code elements */
-.ProseMirror pre code {
-  font-family: var(--font-monospace);
-  font-size: 0.9em;
-}
-
-/* Style for inline code */
-.ProseMirror p code {
-  font-family: var(--font-monospace);
-  font-size: 0.9em;
-  background-color: rgba(30, 33, 39, 0.7);
-  padding: 0.1em 0.3em;
-  border-radius: 3px;
 }

@@ -9,6 +9,8 @@ import TaskItem from '@tiptap/extension-task-item';
 import { Markdown } from 'tiptap-markdown';
 import './inline-editor.css';
 import { ContextMenu } from '../../../context-menu/ContextMenu';
+import { all, createLowlight } from 'lowlight'
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 
 interface EditorProps {
   initialData: string;
@@ -39,9 +41,15 @@ export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onCha
     linkUrl: '',
   });
 
+  // Create a lowlight instance for syntax highlighting
+  const lowlight = createLowlight(all)
+
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        // Disable the default code block
+        codeBlock: false,
+      }),
       Placeholder.configure({
         placeholder: 'Start writing...',
       }),
@@ -54,7 +62,14 @@ export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onCha
         },
         validate: href => /^https?:\/\//.test(href),
       }),
-      CodeBlock,
+      CodeBlockLowlight.configure({
+        lowlight,
+        HTMLAttributes: {
+          class: 'code-block-wrapper',
+        },
+        defaultLanguage: 'typescript',
+        languageClassPrefix: 'language-',
+      }),
       TaskList,
       TaskItem.configure({
         nested: true,
@@ -186,6 +201,13 @@ export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onCha
     setShowLinkMenu(false);
   };
 
+  // Helper to insert a code block with language
+  const insertCodeBlock = (language = 'plaintext') => {
+    if (editor) {
+      editor.chain().focus().toggleCodeBlock({ language }).run();
+    }
+  };
+
   // Close context menu
   const closeContextMenu = () => {
     setContextMenu((prev) => ({ ...prev, show: false }));
@@ -200,10 +222,8 @@ export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onCha
         {
           label: 'Open link in default browser',
           onClick: () => {
-            if (contextMenu.linkUrl) {
-              if (contextMenu.linkUrl && window.electron?.shell?.openExternal) {
-                window.electron.shell.openExternal(contextMenu.linkUrl);
-              }
+            if (contextMenu.linkUrl && window.electron?.shell?.openExternal) {
+              window.electron.shell.openExternal(contextMenu.linkUrl);
             }
           },
           icon: (
@@ -277,6 +297,20 @@ export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onCha
       },
         { isSeparator: true }
       );
+    }
+
+    // Add code block option if not already in one
+    if (!editor?.isActive('codeBlock')) {
+      options.push({
+        label: 'Insert code block',
+        onClick: () => insertCodeBlock(),
+        icon: (
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="16 18 22 12 16 6"></polyline>
+            <polyline points="8 6 2 12 8 18"></polyline>
+          </svg>
+        ),
+      });
     }
 
     // Add generic text editing options
@@ -472,7 +506,7 @@ export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onCha
             Insert Link
           </button>
           <button
-            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+            onClick={() => insertCodeBlock()}
             className={editor.isActive('codeBlock') ? 'is-active' : ''}
             disabled={isSourceMode}
           >
