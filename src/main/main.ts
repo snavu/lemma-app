@@ -1,6 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
+import { upsertNote } from './database';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -187,6 +188,8 @@ const setupIpcHandlers = (): void => {
   ipcMain.handle('save-file', async (_, { filePath, content }) => {
     try {
       fs.writeFileSync(filePath, content);
+      // Update vector database on new file content
+      await upsertNote(notesDirectory, filePath, content);
       return { success: true };
     } catch (error) {
       console.error('Error saving file:', error);
