@@ -5,7 +5,6 @@ import './layout.css';
 import EmptyState from './components/emptystate/EmptyState';
 import { TabBar } from './components/tabs/tab-bar/TabBar';
 import { InlineMarkdownTab } from './components/tabs/markdown/InlineMarkdownTab';
-import { MarkdownTab } from './components/tabs/markdown/MarkdownTab';
 import { Search } from './components/sidebar/search';
 import React from 'react';
 
