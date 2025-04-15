@@ -4,7 +4,7 @@ import { Sidebar } from './components/sidebar/Sidebar';
 import './layout.css';
 import EmptyState from './components/emptystate/EmptyState';
 import { TabBar } from './components/tabs/tab-bar/TabBar';
-import { MarkdownTab } from './components/tabs/markdown/MarkdownTab';
+import { InlineMarkdownTab } from './components/tabs/markdown/InlineMarkdownTab';
 import React from 'react';
 
 interface FileInfo {
@@ -267,7 +267,7 @@ export const App = () => {
             onTabClose={handleCloseTab}
           />
           {activeTab && (
-            <MarkdownTab
+            <InlineMarkdownTab
               key={activeTab}
               initialDoc={getCurrentTabContent()}
               viewMode={viewMode}
