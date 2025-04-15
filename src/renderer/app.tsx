@@ -5,6 +5,7 @@ import './layout.css';
 import EmptyState from './components/emptystate/EmptyState';
 import { TabBar } from './components/tabs/tab-bar/TabBar';
 import { MarkdownTab } from './components/tabs/markdown/MarkdownTab';
+import { Search } from './components/sidebar/search';
 import React from 'react';
 
 interface FileInfo {
@@ -258,7 +259,11 @@ export const App = () => {
           onSelectDirectory={handleSelectDirectory}
           notesDirectory={notesDirectory}
           onDeleteFile={handleDeleteFile}
-        />
+        >
+          {activeTab && <Search 
+            getCurrentTabContent={getCurrentTabContent}
+          />}
+        </Sidebar>
         <div className="main-content">
           <TabBar
             tabs={tabs}
@@ -270,7 +275,7 @@ export const App = () => {
             <MarkdownTab
               key={activeTab}
               initialDoc={getCurrentTabContent()}
-              viewMode={viewMode}
+              // viewMode={viewMode}
               onChange={(content) => handleNoteChange(activeTab, content)}
             />
           )}

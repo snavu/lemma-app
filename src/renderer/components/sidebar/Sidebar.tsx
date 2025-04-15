@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, ReactNode } from 'react';
 import { ContextMenu } from '../context-menu/ContextMenu';
 import './sidebar.css';
 
@@ -15,6 +15,7 @@ interface SidebarProps {
   onNewNote: () => void;
   onSelectDirectory: () => void;
   onDeleteFile: (filePath: string) => Promise<boolean>;
+  children: ReactNode;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -24,6 +25,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onNewNote,
   onSelectDirectory,
   onDeleteFile,
+  children,
 }) => {
   // State for context menu
   const [contextMenu, setContextMenu] = useState<{
@@ -153,6 +155,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span>No folder selected</span>
         )}
       </div>
+
+      {children}
 
       <div className="files-list">
         {files.length === 0 ? (

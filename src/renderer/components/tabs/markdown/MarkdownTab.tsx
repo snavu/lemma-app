@@ -27,9 +27,9 @@ export const MarkdownTab = ({ initialDoc, onChange }: MarkdownTabProps) => {
 
   return (
     <div className="markdown-tab">
-      <div className="markdown-content">
+      {/* <div className="markdown-content"> */}
         <Renderer text={content} onChange={handleContentChange} />
-      </div>
+      {/* </div> */}
     </div>
   );
 };
