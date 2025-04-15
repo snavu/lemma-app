@@ -1,0 +1,223 @@
+.inline-markdown-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background-color: #282c34;
+  font-family: var(--default-font);
+  color: #abb2bf;
+}
+
+.editor-toolbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
+  background-color: #21252b;
+  border-bottom: 1px solid #181a1f;
+}
+
+.editor-tools {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.editor-toolbar button {
+  background: transparent;
+  border: none;
+  color: #abb2bf;
+  padding: 4px 8px;
+  margin-right: 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--default-font);
+}
+
+.editor-toolbar button:hover:not(:disabled) {
+  background-color: #2c313a;
+}
+
+.editor-toolbar button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.editor-toolbar button.is-active {
+  background-color: #3a404d;
+  color: #61afef;
+}
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background-color: #3a404d;
+  margin: 0 8px;
+}
+
+.editor-mode-toggle button {
+  padding: 4px 8px;
+  background-color: #1e2127;
+  border: 1px solid #3a404d;
+}
+
+.editor-content-area {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Source code editor */
+.source-editor {
+  width: 100%;
+  height: 100%;
+  background-color: #282c34;
+  color: #abb2bf;
+  border: none;
+  resize: none;
+  padding: 10px;
+  font-family: var(--font-monospace);
+  font-size: 14px;
+  line-height: 1.6;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* TipTap editor styling */
+.inline-markdown-editor .ProseMirror {
+  height: 100%;
+  min-height: 200px;
+  padding: 10px;
+  outline: none;
+  font-size: 14px;
+  line-height: 1.6;
+  font-family: var(--default-font);
+}
+
+/* Editor content styles */
+.ProseMirror p {
+  margin: 0.5em 0;
+  font-family: var(--default-font);
+}
+
+.ProseMirror h1 {
+  font-size: 1.8em;
+  font-weight: bold;
+  margin: 0.5em 0;
+  color: #e5c07b;
+  font-family: var(--default-font);
+}
+
+.ProseMirror h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 0.5em 0;
+  color: #e5c07b;
+  font-family: var(--default-font);
+}
+
+.ProseMirror h3 {
+  font-size: 1.2em;
+  font-weight: bold;
+  margin: 0.5em 0;
+  color: #e5c07b;
+  font-family: var(--default-font);
+}
+
+.ProseMirror a {
+  color: #61afef;
+  text-decoration: underline;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+  font-family: var(--default-font);
+}
+
+.ProseMirror li p {
+  margin: 0;
+}
+
+.ProseMirror pre {
+  background-color: #1e2127;
+  border-radius: 3px;
+  padding: 10px;
+  font-family: var(--font-monospace);
+  overflow-x: auto;
+}
+
+.ProseMirror code {
+  background-color: #1e2127;
+  border-radius: 3px;
+  padding: 0 4px;
+  font-family: var(--font-monospace);
+}
+
+.ProseMirror blockquote {
+  border-left: 3px solid #3a404d;
+  padding-left: 1em;
+  margin-left: 0;
+  color: #7f848e;
+  font-family: var(--default-font);
+}
+
+.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Task lists */
+.ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding: 0;
+  font-family: var(--default-font);
+}
+
+.ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  margin: 0.2em 0;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label {
+  margin-right: 0.5em;
+  user-select: none;
+}
+
+.ProseMirror ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+
+/* Placeholder text */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #4b5363;
+  pointer-events: none;
+  height: 0;
+  font-family: var(--default-font);
+}
+
+/* Additional styling for better readability */
+.ProseMirror {
+  color: #abb2bf;
+}
+
+.ProseMirror * {
+  box-sizing: border-box;
+}
+
+/* Override monospace fonts in code elements */
+.ProseMirror pre code {
+  font-family: var(--font-monospace);
+  font-size: 0.9em;
+}
+
+/* Style for inline code */
+.ProseMirror p code {
+  font-family: var(--font-monospace);
+  font-size: 0.9em;
+  background-color: rgba(30, 33, 39, 0.7);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
