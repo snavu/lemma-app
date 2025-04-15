@@ -1,15 +1,20 @@
-const { ChromaClient } = require("chromadb");
+const { ChromaClient, DefaultEmbeddingFunction } = require("chromadb");
+// import { ChromaClient, DefaultEmbeddingFunction } from "chromadb";
 
 const client = new ChromaClient();
+const modelName = "supabase/gte-small";
+const embedFunc = new DefaultEmbeddingFunction({ model: modelName });
 
 export const upsertNote = async (notesDirectory: string, filePath: string, content: string) => {
   const docId = filePath.replace("/", "file-").replaceAll("/", "-").replaceAll(" ", "_");
   const dirId = notesDirectory.replace("/", "dir-").replaceAll("/", "-").replaceAll(" ", "_");
 
+  // console.log(embedFunc);
   try {
     // Create or retrieve a collection pertaining to the notes directory
     const collection = await client.getOrCreateCollection({
       name: dirId,
+      embeddingFunction: embedFunc,
     });
 
     // Add/update notes to vector database
