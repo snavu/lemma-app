@@ -6,6 +6,7 @@
   background-color: #282c34;
   font-family: var(--default-font);
   color: #abb2bf;
+  position: relative;
 }
 
 .editor-toolbar {
@@ -64,6 +65,181 @@
   flex: 1;
   overflow-y: auto;
   position: relative;
+}
+
+/* Bubble menu styling */
+.bubble-menu {
+  display: flex;
+  background-color: #21252b;
+  border-radius: 5px;
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);
+  padding: 5px;
+  overflow: hidden;
+  align-items: center;
+}
+
+.bubble-menu button {
+  background: transparent;
+  border: none;
+  color: #abb2bf;
+  padding: 4px 8px;
+  margin: 0 2px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--default-font);
+}
+
+.bubble-menu button:hover {
+  background-color: #2c313a;
+}
+
+.bubble-menu .link-preview {
+  color: #61afef;
+  margin-right: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  text-decoration: none;
+  padding: 0 5px;
+}
+
+.bubble-menu .link-preview:hover {
+  text-decoration: underline;
+}
+
+/* Link menu */
+.link-menu {
+  background-color: #21252b;
+  border-bottom: 1px solid #181a1f;
+  padding: 8px;
+}
+
+.link-input {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.link-input input {
+  flex: 1;
+  background-color: #1e2127;
+  border: 1px solid #3a404d;
+  color: #abb2bf;
+  padding: 6px 10px;
+  border-radius: 3px;
+  font-family: var(--default-font);
+  font-size: 14px;
+  outline: none;
+  margin-right: 8px;
+}
+
+.link-input input:focus {
+  border-color: #61afef;
+}
+
+.link-input button {
+  background-color: #3a404d;
+  border: none;
+  color: #abb2bf;
+  padding: 6px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--default-font);
+  margin-right: 4px;
+}
+
+.link-input button:hover:not(:disabled) {
+  background-color: #4b5363;
+}
+
+.link-input button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.link-tip {
+  font-size: 12px;
+  color: #7f848e;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Custom dialog styling */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.dialog-content {
+  background-color: #21252b;
+  border-radius: 5px;
+  padding: 16px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.dialog-content h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  color: #e5c07b;
+  font-size: 16px;
+  font-family: var(--default-font);
+}
+
+.dialog-content input {
+  width: 100%;
+  background-color: #1e2127;
+  border: 1px solid #3a404d;
+  color: #abb2bf;
+  padding: 8px 12px;
+  border-radius: 3px;
+  font-family: var(--default-font);
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+}
+
+.dialog-content input:focus {
+  border-color: #61afef;
+}
+
+.dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dialog-buttons button {
+  background-color: #3a404d;
+  border: none;
+  color: #abb2bf;
+  padding: 6px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--default-font);
+  margin-left: 8px;
+}
+
+.dialog-buttons button:hover:not(:disabled) {
+  background-color: #4b5363;
+}
+
+.dialog-buttons button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Source code editor */
@@ -162,11 +338,6 @@
   font-family: var(--default-font);
 }
 
-.ProseMirror img {
-  max-width: 100%;
-  height: auto;
-}
-
 /* Task lists */
 .ProseMirror ul[data-type="taskList"] {
   list-style: none;
@@ -186,6 +357,33 @@
 
 .ProseMirror ul[data-type="taskList"] li > div {
   flex: 1;
+}
+
+/* Checkbox styling */
+.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"] {
+  margin: 0;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid #4b5363;
+  border-radius: 2px;
+  position: relative;
+  top: 2px;
+  cursor: pointer;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"]:checked {
+  background-color: #61afef;
+  border-color: #61afef;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"]:checked::after {
+  content: '✓';
+  color: #1e2127;
+  position: absolute;
+  top: -3px;
+  left: 2px;
+  font-size: 12px;
 }
 
 /* Placeholder text */
