@@ -1,5 +1,8 @@
 interface Window {
   electron: {
+    shell: {
+      openExternal: (url: string) => Promise<void>;
+    };
     editorFormat: {
       onFormat: (callback: (formatType: string) => void) => void;
       removeListeners: () => void;
