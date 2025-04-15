@@ -67,6 +67,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-resizable-box": "^2.1.0",
+    "react-select": "^5.10.1",
     "rehype-highlight": "^7.0.2",
     "rehype-react": "^7.1.1",
     "rehype-stringify": "^10.0.1",
