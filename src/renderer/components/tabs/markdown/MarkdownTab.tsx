@@ -1,91 +1,34 @@
-import { Editor } from './editor/page';
-import Preview from './preview/page';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import  { useState } from 'react';
+import Renderer from './renderer/Renderer';
+
 import './markdown-tab.css';
-import React from 'react';
 
 interface MarkdownTabProps {
   initialDoc: string;
-  viewMode?: 'split' | 'editor' | 'preview';
-  onChange?: (content: string) => void;  // Add this prop
+  onChange?: (content: string) => void;
 }
 
-export const MarkdownTab = ({ initialDoc, viewMode = 'split', onChange }: MarkdownTabProps) => {
-  const [doc, setDoc] = useState(initialDoc);
-  const [editorWidth, setEditorWidth] = useState(50); // percentage
-  const containerRef = useRef<HTMLDivElement>(null);
-  const isResizing = useRef(false);
 
-  const handleDocChange = useCallback((newDoc: string) => {
-    setDoc(newDoc);
-    // Call the onChange prop if it exists
+export const MarkdownTab = ({ initialDoc, onChange }: MarkdownTabProps) => {
+  const [content, setContent] = useState(initialDoc);
+  //const [tempContent, setTempContent] = useState(tempText);
+
+  const handleContentChange = (newContent: string) => {
+    setContent(newContent);
     if (onChange) {
-      onChange(newDoc);
+      onChange(newContent);
     }
-  }, [onChange]);
-
-  // Update document when initialDoc changes (file changes)
-  useEffect(() => {
-    setDoc(initialDoc);
-  }, [initialDoc]);
-
-  // Set up resize handling
-  useEffect(() => {
-    const handleResize = (e: MouseEvent) => {
-      if (!isResizing.current || !containerRef.current) return;
-
-      e.preventDefault();
-
-      const containerRect = containerRef.current.getBoundingClientRect();
-      const newWidthPx = e.clientX - containerRect.left;
-      const newWidthPercent = (newWidthPx / containerRect.width) * 100;
-
-      // Limit to 20-80% range for better usability
-      const clampedWidth = Math.max(20, Math.min(80, newWidthPercent));
-      setEditorWidth(clampedWidth);
-    };
-
-    const handleMouseUp = () => {
-      isResizing.current = false;
-      document.body.style.cursor = 'default';
-      document.body.style.userSelect = 'auto';
-
-      // Remove class from document
-      document.documentElement.classList.remove('resizing');
-    };
-
-    document.addEventListener('mousemove', handleResize);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      document.removeEventListener('mousemove', handleResize);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, []);
-
-
-  // Calculate actual editor width based on view mode
-  const calcEditorStyle = () => {
-    if (viewMode === 'editor') return { width: '100%' };
-    if (viewMode === 'preview') return { width: '0%', display: 'none' };
-    return { width: `${editorWidth}%` };
   };
 
-  // Calculate preview width based on view mode
-  const calcPreviewStyle = () => {
-    if (viewMode === 'preview') return { width: '100%' };
-    if (viewMode === 'editor') return { width: '0%', display: 'none' };
-    return { width: `${100 - editorWidth}%` };
-  };
+  /*const handleTempContentChange = (newContent: string) => {
+    setTempContent(newContent);
+  };*/
+
 
   return (
-    <div className='container' ref={containerRef}>
-      <div className='editor-container' style={calcEditorStyle()}>
-        <Editor onChange={handleDocChange} initialData={doc} />
-      </div>
-
-      <div className='preview-container' style={calcPreviewStyle()}>
-        <Preview doc={doc} />
+    <div className="markdown-tab">
+      <div className="markdown-content">
+        <Renderer text={content} onChange={handleContentChange} />
       </div>
     </div>
   );
