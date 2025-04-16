@@ -1,0 +1,483 @@
+/* 
+ * Inline Markdown Editor Styles
+ * A clean, dark-themed editor with syntax highlighting
+ */
+
+/* Main editor container */
+.inline-markdown-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background-color: #282c34;
+  font-family: var(--default-font);
+  color: #abb2bf;
+  position: relative;
+}
+
+/* Editor toolbar */
+.editor-toolbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
+  background-color: #21252b;
+  border-bottom: 1px solid #181a1f;
+}
+
+.editor-tools {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.editor-toolbar button {
+  background: transparent;
+  border: none;
+  color: #abb2bf;
+  padding: 4px 8px;
+  margin-right: 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--default-font);
+}
+
+.editor-toolbar button:hover:not(:disabled) {
+  background-color: #2c313a;
+}
+
+.editor-toolbar button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.editor-toolbar button.is-active {
+  background-color: #3a404d;
+  color: #61afef;
+}
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background-color: #3a404d;
+  margin: 0 8px;
+}
+
+.editor-mode-toggle button {
+  padding: 4px 8px;
+  background-color: #1e2127;
+  border: 1px solid #3a404d;
+}
+
+/* Editor content area */
+.editor-content-area {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Source code editor */
+.source-editor {
+  width: 100%;
+  height: 100%;
+  background-color: #282c34;
+  color: #abb2bf;
+  border: none;
+  resize: none;
+  padding: 10px;
+  font-family: var(--font-monospace);
+  font-size: 14px;
+  line-height: 1.6;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* TipTap editor core styles */
+.inline-markdown-editor .ProseMirror {
+  height: 100%;
+  min-height: 200px;
+  padding: 10px;
+  outline: none;
+  font-size: 14px;
+  line-height: 1.6;
+  font-family: var(--default-font);
+  color: #abb2bf;
+}
+
+.ProseMirror * {
+  box-sizing: border-box;
+}
+
+/* Editor content typography */
+.ProseMirror p {
+  margin: 0.5em 0;
+}
+
+.ProseMirror h1 {
+  font-size: 1.8em;
+  font-weight: bold;
+  margin: 0.8em 0 0.5em;
+  color: #e5c07b;
+}
+
+.ProseMirror h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 0.8em 0 0.5em;
+  color: #e5c07b;
+}
+
+.ProseMirror h3 {
+  font-size: 1.2em;
+  font-weight: bold;
+  margin: 0.8em 0 0.5em;
+  color: #e5c07b;
+}
+
+.ProseMirror a {
+  color: #61afef;
+  text-decoration: underline;
+}
+
+/* Lists */
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.ProseMirror li p {
+  margin: 0;
+}
+
+/* Task lists */
+.ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding: 0;
+}
+
+.ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  margin: 0.2em 0;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label {
+  margin-right: 0.5em;
+  user-select: none;
+}
+
+.ProseMirror ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+
+/* Checkbox styling */
+.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"] {
+  margin: 0;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid #4b5363;
+  border-radius: 2px;
+  position: relative;
+  top: 2px;
+  cursor: pointer;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"]:checked {
+  background-color: #61afef;
+  border-color: #61afef;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"]:checked::after {
+  content: '✓';
+  color: #1e2127;
+  position: absolute;
+  top: -3px;
+  left: 2px;
+  font-size: 12px;
+}
+
+/* Placeholder text */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #4b5363;
+  pointer-events: none;
+  height: 0;
+}
+
+/* Blockquotes */
+.ProseMirror blockquote {
+  border-left: 3px solid #3a404d;
+  padding-left: 1em;
+  margin-left: 0;
+  color: #7f848e;
+}
+
+/* Inline code */
+.ProseMirror p code {
+  font-family: var(--font-monospace);
+  font-size: 0.9em;
+  background-color: rgba(30, 33, 39, 0.7);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
+
+/* Code blocks with syntax highlighting */
+.ProseMirror pre {
+  background-color: #1e2127;
+  border-radius: 5px;
+  padding: 12px 14px;
+  margin: 1em 0;
+  overflow-x: auto;
+  font-family: var(--font-monospace);
+}
+
+.ProseMirror pre code {
+  background: none;
+  padding: 0;
+  font-family: var(--font-monospace);
+  font-size: 0.9em;
+}
+
+/* Syntax highlighting for code blocks */
+.ProseMirror pre .hljs-comment,
+.ProseMirror pre .hljs-quote {
+  color: #616161;
+  font-style: italic;
+}
+
+.ProseMirror pre .hljs-variable,
+.ProseMirror pre .hljs-template-variable,
+.ProseMirror pre .hljs-attribute,
+.ProseMirror pre .hljs-tag,
+.ProseMirror pre .hljs-name,
+.ProseMirror pre .hljs-regexp,
+.ProseMirror pre .hljs-link,
+.ProseMirror pre .hljs-selector-id,
+.ProseMirror pre .hljs-selector-class {
+  color: #f98181;
+}
+
+.ProseMirror pre .hljs-number,
+.ProseMirror pre .hljs-meta,
+.ProseMirror pre .hljs-built_in,
+.ProseMirror pre .hljs-builtin-name,
+.ProseMirror pre .hljs-literal,
+.ProseMirror pre .hljs-type,
+.ProseMirror pre .hljs-params {
+  color: #fbbc88;
+}
+
+.ProseMirror pre .hljs-string,
+.ProseMirror pre .hljs-symbol,
+.ProseMirror pre .hljs-bullet {
+  color: #b9f18d;
+}
+
+.ProseMirror pre .hljs-title,
+.ProseMirror pre .hljs-section {
+  color: #faf594;
+}
+
+.ProseMirror pre .hljs-keyword,
+.ProseMirror pre .hljs-selector-tag {
+  color: #70cff8;
+}
+
+.ProseMirror pre .hljs-emphasis {
+  font-style: italic;
+}
+
+.ProseMirror pre .hljs-strong {
+  font-weight: 700;
+}
+
+/* Language tag for code blocks */
+.ProseMirror pre::before {
+  content: attr(data-language);
+  color: #5c6370;
+  font-size: 0.75em;
+  font-family: var(--default-font);
+  text-transform: uppercase;
+  position: absolute;
+  top: 5px;
+  right: 10px;
+  background-color: rgba(30, 33, 39, 0.7);
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+
+/* Bubble menu styling */
+.bubble-menu {
+  display: flex;
+  background-color: #21252b;
+  border-radius: 5px;
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);
+  padding: 5px;
+  overflow: hidden;
+  align-items: center;
+}
+
+.bubble-menu button {
+  background: transparent;
+  border: none;
+  color: #abb2bf;
+  padding: 4px 8px;
+  margin: 0 2px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--default-font);
+}
+
+.bubble-menu button:hover {
+  background-color: #2c313a;
+}
+
+.bubble-menu .link-preview {
+  color: #61afef;
+  margin-right: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  text-decoration: none;
+  padding: 0 5px;
+}
+
+.bubble-menu .link-preview:hover {
+  text-decoration: underline;
+}
+
+/* Link menu */
+.link-menu {
+  background-color: #21252b;
+  border-bottom: 1px solid #181a1f;
+  padding: 8px;
+}
+
+.link-input {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.link-input input {
+  flex: 1;
+  background-color: #1e2127;
+  border: 1px solid #3a404d;
+  color: #abb2bf;
+  padding: 6px 10px;
+  border-radius: 3px;
+  font-family: var(--default-font);
+  font-size: 14px;
+  outline: none;
+  margin-right: 8px;
+}
+
+.link-input input:focus {
+  border-color: #61afef;
+}
+
+.link-input button {
+  background-color: #3a404d;
+  border: none;
+  color: #abb2bf;
+  padding: 6px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--default-font);
+  margin-right: 4px;
+}
+
+.link-input button:hover:not(:disabled) {
+  background-color: #4b5363;
+}
+
+.link-input button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.link-tip {
+  font-size: 12px;
+  color: #7f848e;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Custom dialog styling */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.dialog-content {
+  background-color: #21252b;
+  border-radius: 5px;
+  padding: 16px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.dialog-content h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  color: #e5c07b;
+  font-size: 16px;
+  font-family: var(--default-font);
+}
+
+.dialog-content input {
+  width: 100%;
+  background-color: #1e2127;
+  border: 1px solid #3a404d;
+  color: #abb2bf;
+  padding: 8px 12px;
+  border-radius: 3px;
+  font-family: var(--default-font);
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+}
+
+.dialog-content input:focus {
+  border-color: #61afef;
+}
+
+.dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dialog-buttons button {
+  background-color: #3a404d;
+  border: none;
+  color: #abb2bf;
+  padding: 6px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--default-font);
+  margin-left: 8px;
+}
+
+.dialog-buttons button:hover:not(:disabled) {
+  background-color: #4b5363;
+}
+
+.dialog-buttons button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

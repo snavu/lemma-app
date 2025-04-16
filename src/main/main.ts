@@ -86,7 +86,7 @@ const setupDefaultNotesDirectory = (): void => {
     // Create a 'Notes' folder in the user's documents directory
     const documentsPath = app.getPath('documents');
     const defaultNotesPath = path.join(documentsPath, 'My Notes');
-    
+
     // Create the directory if it doesn't exist
     if (!fs.existsSync(defaultNotesPath)) {
       try {
@@ -97,11 +97,11 @@ const setupDefaultNotesDirectory = (): void => {
         return;
       }
     }
-    
+
     // Set the notes directory
     notesDirectory = defaultNotesPath;
     saveConfigSettings();
-    
+
     // Notify renderer about the default directory if window is ready
     if (mainWindow) {
       mainWindow.webContents.send('notes-directory-selected', notesDirectory);
@@ -181,7 +181,7 @@ const loadConfigSettings = (): void => {
         mainWindow.webContents.send('notes-directory-selected', notesDirectory);
       }
     }
-    
+
     // If no directory is set after loading config, set up the default one
     if (notesDirectory === null) {
       setupDefaultNotesDirectory();
@@ -202,8 +202,12 @@ const saveConfigSettings = (): void => {
   }
 };
 
-  // Set up IPC handlers
+// Set up IPC handlers
 const setupIpcHandlers = (): void => {
+
+  ipcMain.handle('open-external', async (_, url) => {
+    return await shell.openExternal(url);
+  });
   // Select notes directory
   ipcMain.handle('select-notes-directory', async () => {
     return selectNotesDirectory();
@@ -242,7 +246,7 @@ const setupIpcHandlers = (): void => {
     // Ensure we have a notes directory
     if (!notesDirectory) {
       setupDefaultNotesDirectory();
-      
+
       if (!notesDirectory) {
         throw new Error('Failed to create or find a notes directory');
       }
@@ -264,7 +268,7 @@ const setupIpcHandlers = (): void => {
       throw error;
     }
   });
-  
+
   // Delete a file
   ipcMain.handle('delete-file', async (_, filePath) => {
     try {
@@ -272,12 +276,12 @@ const setupIpcHandlers = (): void => {
       if (!fs.existsSync(filePath)) {
         throw new Error('File does not exist');
       }
-      
+
       // Make sure the file is within the notes directory (security check)
       if (!filePath.startsWith(notesDirectory!)) {
         throw new Error('Cannot delete files outside of the notes directory');
       }
-      
+
       // Delete the file
       fs.unlinkSync(filePath);
       return { success: true };
@@ -286,7 +290,7 @@ const setupIpcHandlers = (): void => {
       throw error;
     }
   });
-  
+
   // Get current notes directory
   ipcMain.handle('get-notes-directory', () => {
     return notesDirectory;
