@@ -173,12 +173,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
 
-      {/* {activeTab && <Search 
+      {activeTab && <Search 
         getCurrentTabContent={getCurrentTabContent}
         tabArray={tabArray}
         activeTab={activeTab}
         searchTab={changeTab}
-        />} */}
+        />}
 
       <div className="files-list">
         {files.length === 0 ? (

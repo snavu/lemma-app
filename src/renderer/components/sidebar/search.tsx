@@ -26,7 +26,6 @@ export const Search: React.FC<SearchProps> = ({ getCurrentTabContent, tabArray, 
   const [selectedOption, setSelectedOption] = useState<Option | null>(null);
   const [options, setOptions] = useState<Option[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [pendingScrollOption, setPendingScrollOption] = useState<Option | null>(null);
 
 
   useEffect(() => {
@@ -84,9 +83,6 @@ export const Search: React.FC<SearchProps> = ({ getCurrentTabContent, tabArray, 
       };
     }),
   }));
-  
-  console.log(groupedHashtagOptions);
-  
 
   // for handling the scrolling when an option is selected
   const handleChange = (option: Option | null) => {
@@ -94,13 +90,13 @@ export const Search: React.FC<SearchProps> = ({ getCurrentTabContent, tabArray, 
     if (!option) return;
 
     const [tag, tabId, label] = option.value.split(':');
-    // searchTab(tabId);
+    searchTab(tabId);
     
+    // waiting for dom to load
     setTimeout(() => {
     const target = Array.from(document.querySelectorAll(tag)).find(
       (heading) => heading.textContent?.trim() === label
     ) as HTMLElement;
-    // console.log(target);
 
     const container = document.querySelector('.editor-content-area') as HTMLElement;
     const targetRect = target.getBoundingClientRect();
