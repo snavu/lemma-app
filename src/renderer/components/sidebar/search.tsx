@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Select from 'react-select';
+import Select, { StylesConfig } from 'react-select';
 
 interface SearchProps {
   getCurrentTabContent: () => string;
@@ -14,9 +14,6 @@ export const Search: React.FC<SearchProps> = ({ getCurrentTabContent }) => {
   const [selectedOption, setSelectedOption] = useState<Option | null>(null);
   const [options, setOptions] = useState<Option[]>([]);
 
-  // const content = getCurrentTabContent();
-  // const tagRegex = /^#{1,3} .+/gm;
-  // const tags = content.match(tagRegex);
   useEffect(() => {
     const editor = document.querySelector('.editor-content-area');
     const headingElements: HTMLElement[] = Array.from(editor?.querySelectorAll('h1, h2, h3') || []);
@@ -55,16 +52,45 @@ export const Search: React.FC<SearchProps> = ({ getCurrentTabContent }) => {
     });
   };
   
+  const customStyles: StylesConfig<Option> = {
+    control: (styles) => ({ ...styles, 
+                            backgroundColor: 'var(--background-secondary)', 
+                            border: 'none',
+                            boxShadow: 'none',        
+    }),
+    menu: (styles) => ({ ...styles,
+                        border: '1px solid var(--text-normal)',
+                        borderRadius: '6px',
+                        backgroundColor: 'var(--background-secondary)',
+    }),
+    menuList: (styles) => ({ ...styles,
+                            "::-webkit-scrollbar": {
+                              display: 'none',
+                              
+                            }
+    }),
+    option: (styles) => ({ ...styles,
+                          color: 'var(--text-normal)',
+                          backgroundColor: 'var(--background-secondary)',
+    }),
+    input: (styles) => ({ ...styles, color: 'var(--text-normal)' }),
+    placeholder: (styles) => ({ ...styles, color: 'var(--text-normal)' }),
+    singleValue: (styles) => ({ ...styles,color: 'var(--text-normal)' }),
+  };
 
   return (
     <div>
       <label>
         <Select<Option>
+          placeholder="Search for Tag" 
           value={selectedOption}
           onChange={handleChange}
           options={options}
+          components={{ DropdownIndicator: () => null, IndicatorSeparator: () => null }}
+          styles={customStyles}
         />
       </label>
+      <div style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)', paddingBottom: '12px' }}></div>
     </div>
   );
 };
