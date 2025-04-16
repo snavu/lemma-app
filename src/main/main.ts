@@ -27,7 +27,8 @@ const startChromaDb = (): void => {
   chromaProcess = spawn(chromaRunCommand, ['run', '--path', dbPath], {
     cwd: process.cwd(),
     stdio: 'inherit',
-    detached: true
+    detached: true,
+    // windowsHide: true
   });
 
   chromaProcess.on('error', (err) => {
@@ -386,5 +387,6 @@ app.on('before-quit', () => {
   if (chromaProcess && !isNaN(chromaProcess.pid)) {
     process.kill(-chromaProcess.pid); // Kill the whole process group
     console.log('Closed ChromaDB server with PID:', chromaProcess.pid);
+    chromaProcess = undefined;
   }
 });
