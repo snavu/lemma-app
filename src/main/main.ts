@@ -1,6 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
+import { ChildProcess, spawn, spawnSync } from 'child_process';
 import { upsertNote } from './database';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
@@ -10,6 +11,31 @@ if (require('electron-squirrel-startup')) {
 
 let mainWindow: BrowserWindow | null = null;
 let notesDirectory: string | null = null;
+let chromaProcess: null | ChildProcess;
+
+// Starts up the ChromaDB by executing `chroma run --path lemma-db`
+const startChromaDb = (): void => {
+  const venvPath = path.join(process.cwd(), 'venv');
+  const chromaRunCommand = process.platform === 'win32'
+    ? path.join(venvPath, 'Scripts', 'chroma.exe')
+    : path.join(venvPath, 'bin', 'chroma');
+
+  const dbPath = path.join(process.cwd(), 'lemma-db');
+
+  console.log('Starting ChromaDB server...');
+  // Run `chroma run --path lemma-db`
+  chromaProcess = spawn(chromaRunCommand, ['run', '--path', dbPath], {
+    cwd: process.cwd(),
+    stdio: 'inherit',
+    detached: true
+  });
+
+  chromaProcess.on('error', (err) => {
+    console.error('Failed to start Chroma:', err.message);
+  });
+
+  console.log("Started ChromaDB server with PID:", chromaProcess.pid);
+}
 
 const createWindow = (): void => {
   // Create the browser window
@@ -330,6 +356,7 @@ const getFilesFromDirectory = async (): Promise<{ name: string; path: string; st
 
 // Initialize app
 app.on('ready', () => {
+  startChromaDb();
   createWindow();
   createAppMenu();
   setupIpcHandlers();
@@ -339,10 +366,25 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+  if (chromaProcess && !isNaN(chromaProcess.pid)) {
+    process.kill(-chromaProcess.pid); // Kill the whole process group
+    console.log('Closed ChromaDB server with PID:', chromaProcess.pid);
+    chromaProcess = undefined;
+  }
 });
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
+    if (!chromaProcess) {
+      startChromaDb();
+    }
     createWindow();
+  }
+});
+
+app.on('before-quit', () => {
+  if (chromaProcess && !isNaN(chromaProcess.pid)) {
+    process.kill(-chromaProcess.pid); // Kill the whole process group
+    console.log('Closed ChromaDB server with PID:', chromaProcess.pid);
   }
 });

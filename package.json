@@ -9,7 +9,9 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx ."
+    "lint": "eslint --ext .ts,.tsx .",
+    "python-setup": "node -e 'const { execSync } = require(\"child_process\"), { existsSync } = require(\"fs\"); execSync(`python3 -m venv venv`); const pip = existsSync(\"venv/bin/pip\") ? \"venv/bin/pip\" : \"venv\\\\Scripts\\\\pip\"; execSync(`${pip} install chromadb`, { stdio: \"inherit\" });'",
+    "postinstall": "npm run python-setup"
   },
   "keywords": [],
   "author": {
@@ -49,6 +51,8 @@
     "@codemirror/theme-one-dark": "^6.1.2",
     "@codemirror/view": "^6.36.5",
     "@lezer/highlight": "^1.2.1",
+    "chromadb": "^2.2.0",
+    "chromadb-default-embed": "^2.14.0",
     "electron-squirrel-startup": "^1.0.1",
     "github-markdown-css": "^5.8.1",
     "highlight.js": "^11.11.1",

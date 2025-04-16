@@ -8,7 +8,7 @@ const embedFunc = new DefaultEmbeddingFunction({ model: modelName });
 
 // Get file or collection ID based on file or directory path
 // Replace all forbidden characters for specifying a collection ID
-const getDbId = (filePath: string, type: string): string => {
+const getId = (filePath: string, type: string): string => {
   // Check if system is Windows or Linux
   const isWindows = os.platform() === "win32";
   // Replace all colons and backslashes for Windows file paths
@@ -22,13 +22,11 @@ const getDbId = (filePath: string, type: string): string => {
     .replace(/-+/g, "-");
 };
 
+// Add/update embeddings for the specified note
 export const upsertNote = async (notesDirectory: string, filePath: string, content: string) => {
-  // const docId = filePath.replace("/", "file-").replaceAll("/", "-").replaceAll(" ", "_");
-  // const dirId = notesDirectory.replace("/", "dir-").replaceAll("/", "-").replaceAll(" ", "_");
-  const docId = getDbId(filePath, "file");
-  const dirId = getDbId(notesDirectory, "dir");
+  const docId = getId(filePath, "file");
+  const dirId = getId(notesDirectory, "dir");
 
-  // console.log(embedFunc);
   try {
     // Create or retrieve a collection pertaining to the notes directory
     const collection = await client.getOrCreateCollection({
@@ -43,12 +41,6 @@ export const upsertNote = async (notesDirectory: string, filePath: string, conte
       ],
       ids: [docId],
     });
-
-    // Query the collection with an embedded query
-    // const results = await collection.query({
-    //   queryTexts: "I want some orange",
-    //   nResults: 2,
-    // });
 
     // Get document from database for debugging
     const results = await collection.get({
