@@ -1,13 +1,32 @@
-const { ChromaClient, DefaultEmbeddingFunction } = require("chromadb");
-// import { ChromaClient, DefaultEmbeddingFunction } from "chromadb";
+const { DefaultEmbeddingFunction } = require("chromadb");
+import { ChromaClient } from "chromadb";
+import os from "os";
 
 const client = new ChromaClient();
 const modelName = "supabase/gte-small";
 const embedFunc = new DefaultEmbeddingFunction({ model: modelName });
 
+// Get file or collection ID based on file or directory path
+// Replace all forbidden characters for specifying a collection ID
+const getDbId = (filePath: string, type: string): string => {
+  // Check if system is Windows or Linux
+  const isWindows = os.platform() === "win32";
+  // Replace all colons and backslashes for Windows file paths
+  // Replace all slashes for Linux file paths
+  const unsafeChars = isWindows ? /[\\/:]/g : /\//g;
+
+  return filePath
+    .replace(unsafeChars, "-")
+    .replace(/\s+/g, "_")
+    .replace(/^/, `${type}-`)
+    .replace(/-+/g, "-");
+};
+
 export const upsertNote = async (notesDirectory: string, filePath: string, content: string) => {
-  const docId = filePath.replace("/", "file-").replaceAll("/", "-").replaceAll(" ", "_");
-  const dirId = notesDirectory.replace("/", "dir-").replaceAll("/", "-").replaceAll(" ", "_");
+  // const docId = filePath.replace("/", "file-").replaceAll("/", "-").replaceAll(" ", "_");
+  // const dirId = notesDirectory.replace("/", "dir-").replaceAll("/", "-").replaceAll(" ", "_");
+  const docId = getDbId(filePath, "file");
+  const dirId = getDbId(notesDirectory, "dir");
 
   // console.log(embedFunc);
   try {
