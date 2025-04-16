@@ -259,11 +259,9 @@ export const App = () => {
           onSelectDirectory={handleSelectDirectory}
           notesDirectory={notesDirectory}
           onDeleteFile={handleDeleteFile}
-        >
-          {activeTab && <Search 
-            getCurrentTabContent={getCurrentTabContent}
-          />}
-        </Sidebar>
+          getCurrentTabContent={getCurrentTabContent}
+          activeTab={activeTab}
+        />
         <div className="main-content">
           <TabBar
             tabs={tabs}

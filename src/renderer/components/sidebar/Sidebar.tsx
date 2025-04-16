@@ -1,5 +1,6 @@
 import React, { useState, useCallback, ReactNode } from 'react';
 import { ContextMenu } from '../context-menu/ContextMenu';
+import { Search } from './search';
 import './sidebar.css';
 
 interface FileInfo {
@@ -15,7 +16,8 @@ interface SidebarProps {
   onNewNote: () => void;
   onSelectDirectory: () => void;
   onDeleteFile: (filePath: string) => Promise<boolean>;
-  children: ReactNode;
+  getCurrentTabContent: () => string;
+  activeTab: string | null;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -25,7 +27,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onNewNote,
   onSelectDirectory,
   onDeleteFile,
-  children,
+  getCurrentTabContent,
+  activeTab,
 }) => {
   // State for context menu
   const [contextMenu, setContextMenu] = useState<{
@@ -156,7 +159,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
 
-      {children}
+      {activeTab && <Search getCurrentTabContent={getCurrentTabContent} />}
 
       <div className="files-list">
         {files.length === 0 ? (
