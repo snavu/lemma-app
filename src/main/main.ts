@@ -28,7 +28,7 @@ const startChromaDb = (): void => {
     cwd: process.cwd(),
     stdio: 'inherit',
     detached: true,
-    // windowsHide: true
+    windowsHide: true
   });
 
   chromaProcess.on('error', (err) => {
@@ -41,7 +41,7 @@ const startChromaDb = (): void => {
 const endChromaDb = (): void => {
   if (chromaProcess && !isNaN(chromaProcess.pid) && !chromaProcess.killed) {
     if (process.platform === 'win32') {
-      chromaProcess.kill(); // Kill only the main process
+      chromaProcess.kill('SIGTERM'); // Kill only the main process
     }
     else {
       process.kill(-chromaProcess.pid); // Kill the whole process group
