@@ -36,7 +36,20 @@ const startChromaDb = (): void => {
   });
 
   console.log("Started ChromaDB server with PID:", chromaProcess.pid);
-}
+};
+
+const endChromaDb = (): void => {
+  if (chromaProcess && !isNaN(chromaProcess.pid) && !chromaProcess.killed) {
+    if (process.platform === 'win32') {
+      chromaProcess.kill(); // Kill only the main process
+    }
+    else {
+      process.kill(-chromaProcess.pid); // Kill the whole process group
+    }
+    console.log('Closed ChromaDB server with PID:', chromaProcess.pid);
+    chromaProcess = undefined;
+  }
+};
 
 const createWindow = (): void => {
   // Create the browser window
@@ -367,10 +380,8 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
-  if (chromaProcess && !isNaN(chromaProcess.pid)) {
-    process.kill(-chromaProcess.pid); // Kill the whole process group
-    console.log('Closed ChromaDB server with PID:', chromaProcess.pid);
-    chromaProcess = undefined;
+  else {
+    endChromaDb();
   }
 });
 
@@ -384,9 +395,5 @@ app.on('activate', () => {
 });
 
 app.on('before-quit', () => {
-  if (chromaProcess && !isNaN(chromaProcess.pid)) {
-    process.kill(-chromaProcess.pid); // Kill the whole process group
-    console.log('Closed ChromaDB server with PID:', chromaProcess.pid);
-    chromaProcess = undefined;
-  }
+  endChromaDb();
 });
