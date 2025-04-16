@@ -9,6 +9,14 @@ interface FileInfo {
   stats?: any;
 }
 
+interface TabInfo {
+  id: string;
+  filePath: string;
+  fileName: string;
+  content: string;
+  hashtags: string[];
+}
+
 interface SidebarProps {
   files: FileInfo[];
   notesDirectory: string | null;
@@ -18,6 +26,8 @@ interface SidebarProps {
   onDeleteFile: (filePath: string) => Promise<boolean>;
   getCurrentTabContent: () => string;
   activeTab: string | null;
+  tabArray: TabInfo[];
+  changeTab: (tabId: string) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -29,6 +39,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onDeleteFile,
   getCurrentTabContent,
   activeTab,
+  tabArray,
+  changeTab,
 }) => {
   // State for context menu
   const [contextMenu, setContextMenu] = useState<{
@@ -135,6 +147,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </svg>
   );
 
+  // console.log(tabArray);
+
   return (
     <div className="sidebar">
       <div className="sidebar-header">
@@ -159,7 +173,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
 
-      {activeTab && <Search getCurrentTabContent={getCurrentTabContent} />}
+      {/* {activeTab && <Search 
+        getCurrentTabContent={getCurrentTabContent}
+        tabArray={tabArray}
+        activeTab={activeTab}
+        searchTab={changeTab}
+        />} */}
 
       <div className="files-list">
         {files.length === 0 ? (

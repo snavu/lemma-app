@@ -5,7 +5,6 @@ import './layout.css';
 import EmptyState from './components/emptystate/EmptyState';
 import { TabBar } from './components/tabs/tab-bar/TabBar';
 import { InlineMarkdownTab } from './components/tabs/markdown/InlineMarkdownTab';
-import { Search } from './components/sidebar/search';
 import React from 'react';
 
 interface FileInfo {
@@ -19,6 +18,7 @@ interface TabInfo {
   filePath: string;
   fileName: string;
   content: string;
+  hashtags: string[];
 }
 
 export const App = () => {
@@ -122,6 +122,7 @@ export const App = () => {
         filePath,
         fileName,
         content,
+        hashtags: [],
       };
 
       setTabs(prevTabs => [...prevTabs, newTab]);
@@ -261,6 +262,8 @@ export const App = () => {
           onDeleteFile={handleDeleteFile}
           getCurrentTabContent={getCurrentTabContent}
           activeTab={activeTab}
+          tabArray={tabs}
+          changeTab={setActiveTab}
         />
         <div className="main-content">
           <TabBar
@@ -273,7 +276,7 @@ export const App = () => {
             <InlineMarkdownTab
               key={activeTab}
               initialDoc={getCurrentTabContent()}
-              // viewMode={viewMode}
+              viewMode={viewMode}
               onChange={(content) => handleNoteChange(activeTab, content)}
             />
           )}

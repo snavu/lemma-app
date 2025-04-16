@@ -1,8 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Select, { StylesConfig } from 'react-select';
+
+
+interface TabInfo {
+  id: string;
+  filePath: string;
+  fileName: string;
+  content: string;
+  hashtags: string[];
+}
 
 interface SearchProps {
   getCurrentTabContent: () => string;
+  tabArray: TabInfo[];
+  activeTab: string;
+  searchTab: (tabId: string) => void;
 }
 
 interface Option {
@@ -10,9 +22,12 @@ interface Option {
   label: string;
 }
 
-export const Search: React.FC<SearchProps> = ({ getCurrentTabContent }) => {
+export const Search: React.FC<SearchProps> = ({ getCurrentTabContent, tabArray, activeTab, searchTab }) => {
   const [selectedOption, setSelectedOption] = useState<Option | null>(null);
   const [options, setOptions] = useState<Option[]>([]);
+  const [inputValue, setInputValue] = useState('');
+  const [pendingScrollOption, setPendingScrollOption] = useState<Option | null>(null);
+
 
   useEffect(() => {
     const editor = document.querySelector('.editor-content-area');
@@ -28,20 +43,66 @@ export const Search: React.FC<SearchProps> = ({ getCurrentTabContent }) => {
       };
     });
     setOptions(updatedOptions);
+    const activeTabObj = tabArray.find(tab => tab.id === activeTab);
+    if (activeTabObj) {
+      debouncedUpdateHashtags(activeTabObj, updatedOptions);
+    }
   }, [getCurrentTabContent]); 
 
+  const handleInputChange = (newValue: string) => {
+    setInputValue(newValue);
+  };
+
+  const updateHashtags = (activeTabObj: TabInfo, options: Option[]) => {
+    if (!activeTabObj) return;
+    activeTabObj.hashtags.length = 0;
+  
+    options.forEach((opt) => {
+      if (!activeTabObj.hashtags.includes(opt.label)) {
+        activeTabObj.hashtags.push(opt.value);
+      }
+    });
+  };
+
+  const debounce = (fn: Function, ms = 1000) => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    return function (...args: any[]) {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => fn.apply(this, args), ms);
+    };
+  };
+
+  const debouncedUpdateHashtags = useMemo(() => debounce(updateHashtags, 500), []);
+
+  const groupedHashtagOptions = tabArray.map((tab) => ({
+    label: tab.fileName,
+    options: tab.hashtags.map((h) => {
+      const [tag, label] = h.split(':');
+      return {
+        value: `${tag}:${tab.id}:${label}`,
+        label,
+      };
+    }),
+  }));
+  
+  console.log(groupedHashtagOptions);
+  
+
+  // for handling the scrolling when an option is selected
   const handleChange = (option: Option | null) => {
     setSelectedOption(option);
     if (!option) return;
-  
-    const [tag, label] = option.value.split(':');
+
+    const [tag, tabId, label] = option.value.split(':');
+    // searchTab(tabId);
     
+    setTimeout(() => {
     const target = Array.from(document.querySelectorAll(tag)).find(
       (heading) => heading.textContent?.trim() === label
     ) as HTMLElement;
-  
+    // console.log(target);
+
     const container = document.querySelector('.editor-content-area') as HTMLElement;
-    
     const targetRect = target.getBoundingClientRect();
     const containerRect = container.getBoundingClientRect();
     const offset = targetRect.top - containerRect.top + container.scrollTop;
@@ -50,8 +111,10 @@ export const Search: React.FC<SearchProps> = ({ getCurrentTabContent }) => {
       top: offset,
       behavior: 'smooth',
     });
-  };
-  
+  }, 100);
+};
+
+  // CSS for react-select
   const customStyles: StylesConfig<Option> = {
     control: (styles) => ({ ...styles, 
                             backgroundColor: 'var(--background-secondary)', 
@@ -81,13 +144,17 @@ export const Search: React.FC<SearchProps> = ({ getCurrentTabContent }) => {
   return (
     <div>
       <label>
-        <Select<Option>
+        <Select
           placeholder="Search for Tag" 
           value={selectedOption}
           onChange={handleChange}
-          options={options}
+          options={groupedHashtagOptions}
           components={{ DropdownIndicator: () => null, IndicatorSeparator: () => null }}
           styles={customStyles}
+          menuIsOpen={inputValue.length > 0}
+          inputValue={inputValue}
+          isSearchable={true}
+          onInputChange={handleInputChange}
         />
       </label>
       <div style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)', paddingBottom: '12px' }}></div>
