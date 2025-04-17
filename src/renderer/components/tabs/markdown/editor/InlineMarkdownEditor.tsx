@@ -3,7 +3,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
-import CodeBlock from '@tiptap/extension-code-block';
+//import CodeBlock from '@tiptap/extension-code-block';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import { Markdown } from 'tiptap-markdown';
@@ -11,6 +11,7 @@ import './inline-editor.css';
 import { ContextMenu } from '../../../context-menu/ContextMenu';
 import { all, createLowlight } from 'lowlight'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { TagExtension } from './extensions/TagExtension';
 
 interface EditorProps {
   initialData: string;
@@ -75,12 +76,13 @@ export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onCha
         nested: true,
       }),
       Markdown.configure({
-        html: false,
+        html: true,
         tightLists: true,
         tightListClass: 'tight',
         bulletListMarker: '-',
         linkify: true,
       }),
+      TagExtension,
     ],
     content: initialData,
     onUpdate: ({ editor }) => {
