@@ -36,6 +36,16 @@ build/Release
 node_modules/
 jspm_packages/
 
+# chromaDB
+lemma-db/
+./lemma-db
+
+# Python virtual environment
+venv/
+env/
+.env/
+.venv/
+
 # TypeScript v1 declaration files
 typings/
 
