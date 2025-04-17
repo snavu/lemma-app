@@ -481,3 +481,11 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.tag-node {
+  background-color: #e0f2ff;
+  color: #0369a1;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-weight: 500;
+}

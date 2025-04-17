@@ -11,6 +11,7 @@ import './inline-editor.css';
 import { ContextMenu } from '../../../context-menu/ContextMenu';
 import { all, createLowlight } from 'lowlight'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { TagExtension } from './extensions/TagExtension';
 
 interface EditorProps {
   initialData: string;
@@ -75,12 +76,13 @@ export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onCha
         nested: true,
       }),
       Markdown.configure({
-        html: false,
+        html: true,
         tightLists: true,
         tightListClass: 'tight',
         bulletListMarker: '-',
         linkify: true,
       }),
+      TagExtension,
     ],
     content: initialData,
     onUpdate: ({ editor }) => {
