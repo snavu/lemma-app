@@ -29,13 +29,13 @@ export const Search: React.FC<SearchProps> = ({ getCurrentTabContent, tabArray, 
 
 
   useEffect(() => {
+    //grab all the html elements with tags
     const editor = document.querySelector('.editor-content-area');
-    const headingElements: HTMLElement[] = Array.from(editor?.querySelectorAll('h1, h2, h3') || []);
-
-    const updatedOptions: Option[] = Array.from(headingElements).map((el) => {
-      const label = el.textContent?.trim() || ''; 
-      const tag = el.tagName.toLowerCase();
-      const value = `${tag}:${label}`;
+    const spanElements: HTMLElement[] = Array.from(editor?.querySelectorAll('.tag-node') || []);
+    
+    const updatedOptions: Option[] = Array.from(spanElements).map((el) => {
+      const label = el.textContent; 
+      const value = `${el.outerHTML}:${label}`;
       return {
         value, 
         label,
@@ -43,9 +43,7 @@ export const Search: React.FC<SearchProps> = ({ getCurrentTabContent, tabArray, 
     });
     setOptions(updatedOptions);
     const activeTabObj = tabArray.find(tab => tab.id === activeTab);
-    if (activeTabObj) {
-      debouncedUpdateHashtags(activeTabObj, updatedOptions);
-    }
+    debouncedUpdateHashtags(activeTabObj, updatedOptions);
   }, [getCurrentTabContent]); 
 
   const handleInputChange = (newValue: string) => {
@@ -73,6 +71,7 @@ export const Search: React.FC<SearchProps> = ({ getCurrentTabContent, tabArray, 
 
   const debouncedUpdateHashtags = useMemo(() => debounce(updateHashtags, 500), []);
 
+   //displaying the options in search
   const groupedHashtagOptions = tabArray.map((tab) => ({
     label: tab.fileName,
     options: tab.hashtags.map((h) => {
@@ -84,19 +83,27 @@ export const Search: React.FC<SearchProps> = ({ getCurrentTabContent, tabArray, 
     }),
   }));
 
+  // console.log(groupedHashtagOptions);
+
   // for handling the scrolling when an option is selected
   const handleChange = (option: Option | null) => {
     setSelectedOption(option);
     if (!option) return;
 
     const [tag, tabId, label] = option.value.split(':');
-    searchTab(tabId);
+    searchTab(tabId); //set active tab
+    console.log(tag);
+    console.log(tabId);
+    console.log(label);
     
     // waiting for dom to load
     setTimeout(() => {
-    const target = Array.from(document.querySelectorAll(tag)).find(
-      (heading) => heading.textContent?.trim() === label
-    ) as HTMLElement;
+    const target = document.querySelector(`span.tag-node[contenteditable="false"][data-tag="${label.slice(1)}"][tagname="${label.slice(1)}"]`);
+    // const target = Array.from(document.querySelectorAll(`span.tag-node[contenteditable="false"][data-tag="${label}"][tagname="${label}"]`)).find(
+    //   (heading) => heading.textContent?.trim() === label
+    // ) as HTMLElement;
+
+    console.log(target);
 
     const container = document.querySelector('.editor-content-area') as HTMLElement;
     const targetRect = target.getBoundingClientRect();
