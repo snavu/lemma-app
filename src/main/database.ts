@@ -23,10 +23,10 @@ const getId = (filePath: string, type: string): string => {
 };
 
 // Add/update embeddings for the specified note
-export const upsertNote = async (notesDirectory: string, filePath: string, content: string) => {
+export const upsertNote = async (notesDirectory: string, filePath: string, content: string, updateHashtags: string[]) => {
   const docId = getId(filePath, "file");
   const dirId = getId(notesDirectory, "dir");
-
+  console.log("Updated hashtags:", updateHashtags); // Debugging line
   try {
     // Create or retrieve a collection pertaining to the notes directory
     const collection = await client.getOrCreateCollection({
@@ -46,8 +46,7 @@ export const upsertNote = async (notesDirectory: string, filePath: string, conte
     const results = await collection.get({
       ids: [docId],
     });
-
-    console.log(results); // Output results
+    console.log("Document successfully upserted:", results); // Output results
   } catch (error) {
     console.error("Error during ChromaDB operation:", error);
   }

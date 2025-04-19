@@ -5,7 +5,7 @@ import './layout.css';
 import EmptyState from './components/emptystate/EmptyState';
 import { TabBar } from './components/tabs/tab-bar/TabBar';
 import { InlineMarkdownTab } from './components/tabs/markdown/InlineMarkdownTab';
-import React from 'react';
+//import React from 'react';
 
 interface FileInfo {
   name: string;
@@ -131,25 +131,25 @@ export const App = () => {
       console.error('Failed to open file:', error);
     }
   }, [tabs]);
-  
+
   // Handle file deletion
   const handleDeleteFile = useCallback(async (filePath: string) => {
     if (!window.electron?.fs) return;
-    
+
     try {
       // Delete the file
       await window.electron.fs.deleteFile(filePath);
-      
+
       // Refresh the files list
       const updatedFiles = await window.electron.fs.getFiles();
       setFiles(updatedFiles);
-      
+
       // If the file is open in a tab, close it
       const tabToClose = tabs.find(tab => tab.filePath === filePath);
       if (tabToClose) {
         handleCloseTab(tabToClose.id);
       }
-      
+
       return true;
     } catch (error) {
       console.error('Failed to delete file:', error);
@@ -187,7 +187,7 @@ export const App = () => {
   }, [notesDirectory, handleFileSelect]);
 
   // Handle markdown content change
-  const handleNoteChange = useCallback((tabId: string, newContent: string) => {
+  const handleNoteChange = useCallback((tabId: string, newContent: string, updateHashtags: string[]) => {
     // Find the tab that changed
     const tabToUpdate = tabs.find(tab => tab.id === tabId);
 
@@ -201,7 +201,7 @@ export const App = () => {
     // Auto-save the content to the file
     if (window.electron && tabToUpdate.filePath) {
       // Add debouncing here to avoid too many saves
-      autoSaveDebounced(tabToUpdate.filePath, newContent);
+      autoSaveDebounced(tabToUpdate.filePath, newContent, updateHashtags);
     }
   }, [tabs]);
 
@@ -216,8 +216,8 @@ export const App = () => {
 
   // Create a debounced version of the save function
   const autoSaveDebounced = useCallback(
-    debounce((filePath: string, content: string) => {
-      window.electron?.fs.saveFile(filePath, content )
+    debounce((filePath: string, content: string, updateHashtags: string[]) => {
+      window.electron?.fs.saveFile(filePath, content, updateHashtags)
         .then(() => {
           console.log('Auto-saved file:', filePath);
 
@@ -277,10 +277,10 @@ export const App = () => {
               key={activeTab}
               initialDoc={getCurrentTabContent()}
               viewMode={viewMode}
-              onChange={(content) => handleNoteChange(activeTab, content)}
+              onChange={(content) => handleNoteChange(activeTab, content, hashtagsArray)}
             />
           )}
-          {!activeTab && <EmptyState onCreateNote={handleNewNote}/>}
+          {!activeTab && <EmptyState onCreateNote={handleNewNote} />}
         </div>
       </div>
     </div>

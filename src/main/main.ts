@@ -229,11 +229,11 @@ const setupIpcHandlers = (): void => {
   });
 
   // Save file content
-  ipcMain.handle('save-file', async (_, { filePath, content }) => {
+  ipcMain.handle('save-file', async (_, { filePath, content, updateHashtags }) => {
     try {
       fs.writeFileSync(filePath, content);
       // Update vector database on new file content
-      await upsertNote(notesDirectory, filePath, content);
+      await upsertNote(notesDirectory, filePath, content, updateHashtags);
       return { success: true };
     } catch (error) {
       console.error('Error saving file:', error);

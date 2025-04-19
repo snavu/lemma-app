@@ -7,7 +7,7 @@ import { contextBridge, ipcRenderer, shell } from 'electron';
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electron', {
   shell: {
-    openExternal: (url: string) => ipcRenderer.invoke('open-external', url), 
+    openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
   },
   editorFormat: {
     onFormat: (callback: (formatType: string) => void) => {
@@ -25,7 +25,7 @@ contextBridge.exposeInMainWorld('electron', {
     getFiles: () => ipcRenderer.invoke('get-files'),
     readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
     saveFile: (filePath: string, content: string) =>
-      ipcRenderer.invoke('save-file', { filePath, content }),
+      ipcRenderer.invoke('save-file', { filePath, content, updateHashtags: [] }),
     createFile: (fileName: string) => ipcRenderer.invoke('create-file', fileName),
     deleteFile: (filePath: string) => ipcRenderer.invoke('delete-file', filePath),
     getNotesDirectory: () => ipcRenderer.invoke('get-notes-directory'),
