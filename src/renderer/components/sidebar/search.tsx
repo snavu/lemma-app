@@ -114,6 +114,8 @@ export const Search: React.FC<SearchProps> = ({ getCurrentTabContent, tabArray, 
       top: offset,
       behavior: 'smooth',
     });
+    setInputValue('');
+    setSelectedOption(null);
   }, 100);
 };
 
