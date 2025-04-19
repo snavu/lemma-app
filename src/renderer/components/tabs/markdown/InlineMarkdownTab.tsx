@@ -6,17 +6,26 @@ import React from 'react';
 interface MarkdownTabProps {
   initialDoc: string;
   viewMode?: 'split' | 'editor' | 'preview';
+  onHashtagChange: (hashtags: string[]) => void;
   onChange?: (content: string) => void;
 }
 
-export const InlineMarkdownTab = ({ initialDoc, onChange }: MarkdownTabProps) => {
+export const InlineMarkdownTab = ({ initialDoc, onChange, onHashtagChange }: MarkdownTabProps) => {
   const [doc, setDoc] = useState(initialDoc);
 
   const handleDocChange = useCallback((newDoc: string) => {
     setDoc(newDoc);
     // Call the onChange prop if it exists
+    const editor = document.querySelector('.editor-content-area');
+    const spanElements: HTMLElement[] = Array.from(editor?.querySelectorAll('.tag-node') || []);
+    const updatedHashtags: string[] = Array.from(spanElements).map((el) => {
+      const label = el.textContent; 
+      return label;
+    });
+    
     if (onChange) {
       onChange(newDoc);
+      onHashtagChange(updatedHashtags);
     }
   }, [onChange]);
 
