@@ -39,6 +39,7 @@ export const upsertNote = async (notesDirectory: string, filePath: string, conte
       documents: [
         content,
       ],
+      metadatas: [{ hashtags: updateHashtags.join(', ')}],
       ids: [docId],
     });
 
