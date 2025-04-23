@@ -5,7 +5,7 @@ import './layout.css';
 import EmptyState from './components/emptystate/EmptyState';
 import { TabBar } from './components/tabs/tab-bar/TabBar';
 import { InlineMarkdownTab } from './components/tabs/markdown/InlineMarkdownTab';
-import React from 'react';
+//import React from 'react';
 
 interface FileInfo {
   name: string;
@@ -18,6 +18,7 @@ interface TabInfo {
   filePath: string;
   fileName: string;
   content: string;
+  hashtags: string[];
 }
 
 export const App = () => {
@@ -28,6 +29,7 @@ export const App = () => {
   // State for tabs system
   const [tabs, setTabs] = useState<TabInfo[]>([]);
   const [activeTab, setActiveTab] = useState<string | null>(null);
+  const [hashtagsArray, setHashtagArray] = useState<string[]>([]);
 
   // View mode
   const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
@@ -121,6 +123,7 @@ export const App = () => {
         filePath,
         fileName,
         content,
+        hashtags: [],
       };
 
       setTabs(prevTabs => [...prevTabs, newTab]);
@@ -129,25 +132,25 @@ export const App = () => {
       console.error('Failed to open file:', error);
     }
   }, [tabs]);
-  
+
   // Handle file deletion
   const handleDeleteFile = useCallback(async (filePath: string) => {
     if (!window.electron?.fs) return;
-    
+
     try {
       // Delete the file
       await window.electron.fs.deleteFile(filePath);
-      
+
       // Refresh the files list
       const updatedFiles = await window.electron.fs.getFiles();
       setFiles(updatedFiles);
-      
+
       // If the file is open in a tab, close it
       const tabToClose = tabs.find(tab => tab.filePath === filePath);
       if (tabToClose) {
         handleCloseTab(tabToClose.id);
       }
-      
+
       return true;
     } catch (error) {
       console.error('Failed to delete file:', error);
@@ -199,9 +202,9 @@ export const App = () => {
     // Auto-save the content to the file
     if (window.electron && tabToUpdate.filePath) {
       // Add debouncing here to avoid too many saves
-      autoSaveDebounced(tabToUpdate.filePath, newContent);
+      autoSaveDebounced(tabToUpdate.filePath, newContent, hashtagsArray);
     }
-  }, [tabs]);
+  }, [tabs, hashtagsArray]);
 
   // Debounce function to limit the rate of auto-saving
   const debounce = (fn: Function, ms = 1000) => {
@@ -214,8 +217,9 @@ export const App = () => {
 
   // Create a debounced version of the save function
   const autoSaveDebounced = useCallback(
-    debounce((filePath: string, content: string) => {
-      window.electron?.fs.saveFile(filePath, content )
+    debounce((filePath: string, content: string, updateHashtags: string[]) => {
+      console.log(updateHashtags);
+      window.electron?.fs.saveFile(filePath, content, updateHashtags)
         .then(() => {
           console.log('Auto-saved file:', filePath);
 
@@ -258,6 +262,10 @@ export const App = () => {
           onSelectDirectory={handleSelectDirectory}
           notesDirectory={notesDirectory}
           onDeleteFile={handleDeleteFile}
+          getCurrentTabContent={getCurrentTabContent}
+          activeTab={activeTab}
+          tabArray={tabs}
+          changeTab={setActiveTab}
         />
         <div className="main-content">
           <TabBar
@@ -272,9 +280,10 @@ export const App = () => {
               initialDoc={getCurrentTabContent()}
               viewMode={viewMode}
               onChange={(content) => handleNoteChange(activeTab, content)}
+              onHashtagChange={(hashtags) => setHashtagArray(hashtags)}
             />
           )}
-          {!activeTab && <EmptyState onCreateNote={handleNewNote}/>}
+          {!activeTab && <EmptyState onCreateNote={handleNewNote} />}
         </div>
       </div>
     </div>

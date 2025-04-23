@@ -1,11 +1,20 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, ReactNode } from 'react';
 import { ContextMenu } from '../context-menu/ContextMenu';
+import { Search } from './search';
 import './sidebar.css';
 
 interface FileInfo {
   name: string;
   path: string;
   stats?: any;
+}
+
+interface TabInfo {
+  id: string;
+  filePath: string;
+  fileName: string;
+  content: string;
+  hashtags: string[];
 }
 
 interface SidebarProps {
@@ -15,6 +24,10 @@ interface SidebarProps {
   onNewNote: () => void;
   onSelectDirectory: () => void;
   onDeleteFile: (filePath: string) => Promise<boolean>;
+  getCurrentTabContent: () => string;
+  activeTab: string | null;
+  tabArray: TabInfo[];
+  changeTab: (tabId: string) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -24,6 +37,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onNewNote,
   onSelectDirectory,
   onDeleteFile,
+  getCurrentTabContent,
+  activeTab,
+  tabArray,
+  changeTab,
 }) => {
   // State for context menu
   const [contextMenu, setContextMenu] = useState<{
@@ -130,6 +147,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </svg>
   );
 
+  // console.log(tabArray);
+
   return (
     <div className="sidebar">
       <div className="sidebar-header">
@@ -153,6 +172,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span>No folder selected</span>
         )}
       </div>
+
+      {activeTab && <Search 
+        getCurrentTabContent={getCurrentTabContent}
+        tabArray={tabArray}
+        activeTab={activeTab}
+        searchTab={changeTab}
+        />}
 
       <div className="files-list">
         {files.length === 0 ? (
