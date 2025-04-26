@@ -1,7 +1,7 @@
 import InlineMarkdownEditor from './editor/InlineMarkdownEditor';
+import KnowledgeGraph from './graph/KnowledgeGraph'
 import { useState, useEffect, useCallback } from 'react';
 import './inline-markdown-tab.css';
-import React from 'react';
 
 interface MarkdownTabProps {
   initialDoc: string;
@@ -19,10 +19,10 @@ export const InlineMarkdownTab = ({ initialDoc, onChange, onHashtagChange }: Mar
     const editor = document.querySelector('.editor-content-area');
     const spanElements: HTMLElement[] = Array.from(editor?.querySelectorAll('.tag-node') || []);
     const updatedHashtags: string[] = Array.from(spanElements).map((el) => {
-      const label = el.textContent; 
+      const label = el.textContent;
       return label;
     });
-    
+
     if (onChange) {
       onChange(newDoc);
       onHashtagChange(updatedHashtags);
@@ -36,10 +36,11 @@ export const InlineMarkdownTab = ({ initialDoc, onChange, onHashtagChange }: Mar
 
   return (
     <div className="inline-markdown-tab">
-      <InlineMarkdownEditor 
-        initialData={doc} 
-        onChange={handleDocChange} 
+      <InlineMarkdownEditor
+        initialData={doc}
+        onChange={handleDocChange}
       />
+      <KnowledgeGraph Nodes={[]} Edges={[]} />
     </div>
   );
 };
