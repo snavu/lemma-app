@@ -8,9 +8,10 @@ interface MarkdownTabProps {
   viewMode?: 'split' | 'editor' | 'preview';
   onHashtagChange: (hashtags: string[]) => void;
   onChange?: (content: string) => void;
+  graphJsonPath?: string;
 }
 
-export const InlineMarkdownTab = ({ initialDoc, onChange, onHashtagChange }: MarkdownTabProps) => {
+export const InlineMarkdownTab = ({ initialDoc, onChange, onHashtagChange, graphJsonPath }: MarkdownTabProps) => {
   const [doc, setDoc] = useState(initialDoc);
 
   const handleDocChange = useCallback((newDoc: string) => {
@@ -40,7 +41,7 @@ export const InlineMarkdownTab = ({ initialDoc, onChange, onHashtagChange }: Mar
         initialData={doc}
         onChange={handleDocChange}
       />
-      <KnowledgeGraph Nodes={[]} Edges={[]} />
+      <KnowledgeGraph graphJsonPath={graphJsonPath} />
     </div>
   );
 };
