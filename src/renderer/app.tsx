@@ -280,7 +280,13 @@ export const App = () => {
               key={activeTab}
               initialDoc={getCurrentTabContent()}
               viewMode={viewMode}
+<<<<<<< HEAD
               onChange={(content, hashtags) => handleNoteChange(activeTab, content, hashtags)}
+=======
+              onChange={(content) => handleNoteChange(activeTab, content)}
+              onHashtagChange={(hashtags) => setHashtagArray(hashtags)}
+              graphJsonPath='./graph.json'
+>>>>>>> 1d40921 (load graph from json)
             />
           )}
           {!activeTab && <EmptyState onCreateNote={handleNewNote} />}

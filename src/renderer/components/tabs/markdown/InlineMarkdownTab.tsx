@@ -6,11 +6,20 @@ import './inline-markdown-tab.css';
 interface MarkdownTabProps {
   initialDoc: string;
   viewMode?: 'split' | 'editor' | 'preview';
+<<<<<<< HEAD
   // onHashtagChange: (hashtags: string[]) => void;
   onChange?: (content: string, hashtags: string[]) => void;
 }
 
 export const InlineMarkdownTab = ({ initialDoc, onChange }: MarkdownTabProps) => {
+=======
+  onHashtagChange: (hashtags: string[]) => void;
+  onChange?: (content: string) => void;
+  graphJsonPath?: string;
+}
+
+export const InlineMarkdownTab = ({ initialDoc, onChange, onHashtagChange, graphJsonPath }: MarkdownTabProps) => {
+>>>>>>> 1d40921 (load graph from json)
   const [doc, setDoc] = useState(initialDoc);
 
   const handleDocChange = useCallback((newDoc: string) => {
@@ -47,7 +56,7 @@ export const InlineMarkdownTab = ({ initialDoc, onChange }: MarkdownTabProps) =>
         initialData={doc}
         onChange={handleDocChange}
       />
-      <KnowledgeGraph Nodes={[]} Edges={[]} />
+      <KnowledgeGraph graphJsonPath={graphJsonPath} />
     </div>
   );
 };
