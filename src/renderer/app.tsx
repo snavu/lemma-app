@@ -5,6 +5,7 @@ import './layout.css';
 import EmptyState from './components/emptystate/EmptyState';
 import { TabBar } from './components/tabs/tab-bar/TabBar';
 import { InlineMarkdownTab } from './components/tabs/markdown/InlineMarkdownTab';
+import KnowledgeGraph from './components/tabs/markdown/graph/KnowledgeGraph';
 //import React from 'react';
 
 interface FileInfo {
@@ -251,6 +252,7 @@ export const App = () => {
 
   return (
     <div className="app">
+
       <div className="header">
         <Header />
       </div>
