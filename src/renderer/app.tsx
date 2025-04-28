@@ -29,7 +29,6 @@ export const App = () => {
   // State for tabs system
   const [tabs, setTabs] = useState<TabInfo[]>([]);
   const [activeTab, setActiveTab] = useState<string | null>(null);
-  const [hashtagsArray, setHashtagArray] = useState<string[]>([]);
 
   // View mode
   const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
@@ -188,7 +187,7 @@ export const App = () => {
   }, [notesDirectory, handleFileSelect]);
 
   // Handle markdown content change
-  const handleNoteChange = useCallback((tabId: string, newContent: string) => {
+  const handleNoteChange = useCallback((tabId: string, newContent: string, hashtags: string[]) => {
     // Find the tab that changed
     const tabToUpdate = tabs.find(tab => tab.id === tabId);
 
@@ -202,9 +201,10 @@ export const App = () => {
     // Auto-save the content to the file
     if (window.electron && tabToUpdate.filePath) {
       // Add debouncing here to avoid too many saves
-      autoSaveDebounced(tabToUpdate.filePath, newContent, hashtagsArray);
+      console.log("saved: ", hashtags);
+      autoSaveDebounced(tabToUpdate.filePath, newContent, hashtags);
     }
-  }, [tabs, hashtagsArray]);
+  }, [tabs]);
 
   // Debounce function to limit the rate of auto-saving
   const debounce = (fn: Function, ms = 1000) => {
@@ -218,7 +218,6 @@ export const App = () => {
   // Create a debounced version of the save function
   const autoSaveDebounced = useCallback(
     debounce((filePath: string, content: string, updateHashtags: string[]) => {
-      console.log(updateHashtags);
       window.electron?.fs.saveFile(filePath, content, updateHashtags)
         .then(() => {
           console.log('Auto-saved file:', filePath);
@@ -279,8 +278,7 @@ export const App = () => {
               key={activeTab}
               initialDoc={getCurrentTabContent()}
               viewMode={viewMode}
-              onChange={(content) => handleNoteChange(activeTab, content)}
-              onHashtagChange={(hashtags) => setHashtagArray(hashtags)}
+              onChange={(content, hashtags) => handleNoteChange(activeTab, content, hashtags)}
             />
           )}
           {!activeTab && <EmptyState onCreateNote={handleNewNote} />}
