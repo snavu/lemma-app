@@ -1,0 +1,28 @@
+.input-field {
+    background-color: rgba(171, 178, 191, 0.1);
+    color: var(--text-normal);
+    width: 100%;
+    font-size: 16px;
+    padding: 16px 0px 16px 8px;
+    box-sizing: border-box;
+    border: 3px solid #474747;
+    border-radius: 8px;
+}
+
+.option-dropdown {
+    margin: 3px 0px 0px 0px;
+    padding: 8px 8px 8px 8px;
+    background-color: #282c39;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+    list-style-type: none;
+}
+
+.option-item:hover {
+    background-color: gray;
+    color: var(--text-normal);
+    border: 1px solid ;
+    border-radius: 8px;
+    
+}

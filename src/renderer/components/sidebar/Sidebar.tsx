@@ -1,6 +1,6 @@
 import React, { useState, useCallback, ReactNode } from 'react';
 import { ContextMenu } from '../context-menu/ContextMenu';
-import { Search } from './search';
+import { Search } from '../search/search';
 import './sidebar.css';
 
 interface FileInfo {
@@ -24,10 +24,7 @@ interface SidebarProps {
   onNewNote: () => void;
   onSelectDirectory: () => void;
   onDeleteFile: (filePath: string) => Promise<boolean>;
-  getCurrentTabContent: () => string;
   activeTab: string | null;
-  tabArray: TabInfo[];
-  changeTab: (tabId: string) => void;
   setSearchresult: (check: boolean) => void;
   handleSearch: () => void;
 }
@@ -39,10 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onNewNote,
   onSelectDirectory,
   onDeleteFile,
-  getCurrentTabContent,
   activeTab,
-  tabArray,
-  changeTab,
   setSearchresult,
   handleSearch,
 }) => {
@@ -151,8 +145,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </svg>
   );
 
-  // console.log(tabArray);
-
   return (
     <div className="sidebar">
       <div className="sidebar-header">
@@ -178,10 +170,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {activeTab && <Search 
-        getCurrentTabContent={getCurrentTabContent}
-        tabArray={tabArray}
-        activeTab={activeTab}
-        searchTab={changeTab}
         setSearchresult={setSearchresult}
         handleSearch={handleSearch}
         />}

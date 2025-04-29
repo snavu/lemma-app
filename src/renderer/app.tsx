@@ -26,6 +26,7 @@ type SearchResult = {
   id: string;
   filename: string;
   hashtags: string[];
+  filePath: string;
 };
 
 export const App = () => {
@@ -286,10 +287,7 @@ export const App = () => {
           onSelectDirectory={handleSelectDirectory}
           notesDirectory={notesDirectory}
           onDeleteFile={handleDeleteFile}
-          getCurrentTabContent={getCurrentTabContent}
           activeTab={activeTab}
-          tabArray={tabs}
-          changeTab={setActiveTab}
           setSearchresult={setSearchResult}
           handleSearch={handleSearch}
         />
