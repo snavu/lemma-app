@@ -4,6 +4,7 @@ import os from "os";
 
 interface Note {
   id: string,
+  filePath: string,
   content: string,
   hashtags: string[]
 }
@@ -47,6 +48,7 @@ export const upsertNote = async (notesDirectory: string, filePath: string, conte
       metadatas: [{
         hashtags: updateHashtags.join(','),
         directory: notesDirectory,
+        filePath: filePath,
       }],
     });
 
@@ -77,6 +79,7 @@ export const queryAllNotes = async (notesDirectory: string): Promise<Note[]> => 
   // Transform the queried results into a list of notes
   const results = data.ids.map((id, index) => ({
     id: id,
+    filePath: String(data.metadatas[index].filePath),
     content: data.documents[index],
     hashtags: String(data.metadatas[index].hashtags).split(','),
   }));
