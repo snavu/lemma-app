@@ -31,25 +31,23 @@ const getId = (filePath: string, type: string): string => {
 // Add/update embeddings for the specified note
 export const upsertNote = async (notesDirectory: string, filePath: string, content: string, updateHashtags: string[]) => {
   const docId = getId(filePath, "file");
-  const dirId = getId(notesDirectory, "dir");
+  // const dirId = getId(notesDirectory, "dir");
   console.log("Updated hashtags:", updateHashtags); // Debugging line
   try {
-    // Create or retrieve a collection pertaining to the notes directory
+    // Get the notes collection
     const collection = await client.getOrCreateCollection({
-      name: dirId,
+      name: "Notes",
       embeddingFunction: embedFunc,
     });
 
     // Add/update notes to vector database
     await collection.upsert({
-      documents: [
-        content,
-      ],
-      metadatas: [{ 
-        hashtags: updateHashtags.join(','),
-        type: "file",
-      }],
       ids: [docId],
+      documents: [content],
+      metadatas: [{
+        hashtags: updateHashtags.join(','),
+        directory: notesDirectory,
+      }],
     });
 
     // Get document from database for debugging
@@ -58,22 +56,23 @@ export const upsertNote = async (notesDirectory: string, filePath: string, conte
     // });
     // console.log("Document successfully upserted:", results); // Output results
     const results = await queryAllNotes(notesDirectory);
-    console.log("Documents in", notesDirectory, "\n", results);
+    console.log("Documents in", notesDirectory);
+    console.log(results);
   } catch (error) {
     console.error("Error during ChromaDB operation:", error);
   }
 };
 
-// Queries all notes in the collection (directory)
+// Queries all notes in the directory
 export const queryAllNotes = async (notesDirectory: string): Promise<Note[]> => {
-  const dirId = getId(notesDirectory, "dir");
+  // const dirId = getId(notesDirectory, "dir");
 
   const collection = await client.getOrCreateCollection({
-    name: dirId,
+    name: "Notes",
     embeddingFunction: embedFunc,
   });
 
-  const data = await collection.get({where: {"type": "file"}});
+  const data = await collection.get({ where: {"directory": notesDirectory} });
 
   // Transform the queried results into a list of notes
   const results = data.ids.map((id, index) => ({
