@@ -119,7 +119,7 @@ export const App = () => {
   // Handle querying hashtags
   const handleSearch = async () => {
     try {
-      const queryResults = await window.electron.queryDatabase(notesDirectory);
+      const queryResults = await window.electron.db.queryDatabase(notesDirectory);
       setResults(queryResults);
       console.log(queryResults);
     } catch (err) {
