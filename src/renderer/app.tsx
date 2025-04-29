@@ -286,7 +286,10 @@ export const App = () => {
               onChange={(content) => handleNoteChange(activeTab, content)}
               onHashtagChange={(hashtags) => setHashtagArray(hashtags)}
               graphJsonPath='./graph.json'
+<<<<<<< HEAD
 >>>>>>> 1d40921 (load graph from json)
+=======
+>>>>>>> 1d4092122def8ca7bdbe4dd296992d4eac7c7e28
             />
           )}
           {!activeTab && <EmptyState onCreateNote={handleNewNote} />}
