@@ -271,7 +271,7 @@ export const App = () => {
           changeTab={setActiveTab}
           setSearchresult={setSearchResult}
         />
-        {searchResult && <SearchResults/>}
+        {searchResult && <SearchResults setSearchresult={setSearchResult}/>}
         <div className="main-content">
           <TabBar
             tabs={tabs}
