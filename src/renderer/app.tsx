@@ -5,6 +5,7 @@ import './layout.css';
 import EmptyState from './components/emptystate/EmptyState';
 import { TabBar } from './components/tabs/tab-bar/TabBar';
 import { InlineMarkdownTab } from './components/tabs/markdown/InlineMarkdownTab';
+import { SearchResults } from './components/search/searchResult';
 //import React from 'react';
 
 interface FileInfo {
@@ -29,6 +30,9 @@ export const App = () => {
   // State for tabs system
   const [tabs, setTabs] = useState<TabInfo[]>([]);
   const [activeTab, setActiveTab] = useState<string | null>(null);
+
+  // State for searchResult UI
+  const [searchResult, setSearchResult] = useState<boolean>(false);
 
   // View mode
   const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
@@ -265,7 +269,9 @@ export const App = () => {
           activeTab={activeTab}
           tabArray={tabs}
           changeTab={setActiveTab}
+          setSearchresult={setSearchResult}
         />
+        {searchResult && <SearchResults/>}
         <div className="main-content">
           <TabBar
             tabs={tabs}
