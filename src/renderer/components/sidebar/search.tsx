@@ -16,6 +16,7 @@ interface SearchProps {
   activeTab: string;
   searchTab: (tabId: string) => void;
   setSearchresult: (check: boolean) => void;
+  handleSearch: () => void;
 }
 
 interface Option {
@@ -23,7 +24,7 @@ interface Option {
   label: string;
 }
 
-export const Search: React.FC<SearchProps> = ({ getCurrentTabContent, tabArray, activeTab, searchTab, setSearchresult }) => {
+export const Search: React.FC<SearchProps> = ({ getCurrentTabContent, tabArray, activeTab, searchTab, setSearchresult, handleSearch }) => {
   const [selectedOption, setSelectedOption] = useState<Option | null>(null);
   const [options, setOptions] = useState<Option[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -92,6 +93,8 @@ export const Search: React.FC<SearchProps> = ({ getCurrentTabContent, tabArray, 
     if (!option) return;
 
     setSearchresult(true);
+    handleSearch();
+    
     const [tag, tabId, label] = option.value.split(':');
     searchTab(tabId); //set active tab
     console.log(tag);

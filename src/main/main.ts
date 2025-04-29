@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { ChildProcess, spawn, spawnSync } from 'child_process';
-import { upsertNote } from './database';
+import { upsertNote, queryAllNotes } from './database';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -204,6 +204,10 @@ const saveConfigSettings = (): void => {
 
 // Set up IPC handlers
 const setupIpcHandlers = (): void => {
+
+  ipcMain.handle('search-query', async (_, notesDirectory) => {
+    return await queryAllNotes(notesDirectory);
+  });
 
   ipcMain.handle('open-external', async (_, url) => {
     return await shell.openExternal(url);

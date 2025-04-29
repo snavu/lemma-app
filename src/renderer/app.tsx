@@ -22,6 +22,12 @@ interface TabInfo {
   hashtags: string[];
 }
 
+type SearchResult = {
+  id: string;
+  filename: string;
+  hashtags: string[];
+};
+
 export const App = () => {
   // State for files and directories
   const [notesDirectory, setNotesDirectory] = useState<string | null>(null);
@@ -33,6 +39,9 @@ export const App = () => {
 
   // State for searchResult UI
   const [searchResult, setSearchResult] = useState<boolean>(false);
+  // query results
+  const [results, setResults] = useState<SearchResult[]>([]);
+
 
   // View mode
   const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
@@ -73,6 +82,7 @@ export const App = () => {
     }
   }, [notesDirectory]);
 
+
   // Set up directory selection listener
   useEffect(() => {
     if (window.electron?.on) {
@@ -105,6 +115,17 @@ export const App = () => {
       await window.electron.fs.selectDirectory();
     }
   }, []);
+
+  // Handle querying hashtags
+  const handleSearch = async () => {
+    try {
+      const queryResults = await window.electron.queryDatabase(notesDirectory);
+      setResults(queryResults);
+      console.log(queryResults);
+    } catch (err) {
+      console.error("Search error:", err);
+    }
+  };
 
   // Handle file selection from sidebar
   const handleFileSelect = useCallback(async (filePath: string) => {
@@ -270,8 +291,9 @@ export const App = () => {
           tabArray={tabs}
           changeTab={setActiveTab}
           setSearchresult={setSearchResult}
+          handleSearch={handleSearch}
         />
-        {searchResult && <SearchResults setSearchresult={setSearchResult}/>}
+        {searchResult && <SearchResults setSearchresult={setSearchResult} results={results}/>}
         <div className="main-content">
           <TabBar
             tabs={tabs}

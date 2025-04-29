@@ -49,4 +49,5 @@ contextBridge.exposeInMainWorld('electron', {
       };
     }
   },
+  queryDatabase: (notesDirectory: string) => ipcRenderer.invoke('search-query', notesDirectory),
 });

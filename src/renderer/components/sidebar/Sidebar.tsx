@@ -29,6 +29,7 @@ interface SidebarProps {
   tabArray: TabInfo[];
   changeTab: (tabId: string) => void;
   setSearchresult: (check: boolean) => void;
+  handleSearch: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -43,6 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   tabArray,
   changeTab,
   setSearchresult,
+  handleSearch,
 }) => {
   // State for context menu
   const [contextMenu, setContextMenu] = useState<{
@@ -181,6 +183,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         activeTab={activeTab}
         searchTab={changeTab}
         setSearchresult={setSearchresult}
+        handleSearch={handleSearch}
         />}
 
       <div className="files-list">
