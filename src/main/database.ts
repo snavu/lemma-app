@@ -81,7 +81,7 @@ export const queryAllNotes = async (notesDirectory: string): Promise<Note[]> => 
     id: id,
     filePath: String(data.metadatas[index].filePath),
     content: data.documents[index],
-    hashtags: String(data.metadatas[index].hashtags).split(','),
+    hashtags: data.metadatas[index].hashtags ? String(data.metadatas[index].hashtags).split(',') : [],
   }));
 
   return results;
