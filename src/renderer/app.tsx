@@ -5,7 +5,6 @@ import './layout.css';
 import EmptyState from './components/emptystate/EmptyState';
 import { TabBar } from './components/tabs/tab-bar/TabBar';
 import { InlineMarkdownTab } from './components/tabs/markdown/InlineMarkdownTab';
-import KnowledgeGraph from './components/tabs/markdown/graph/KnowledgeGraph';
 //import React from 'react';
 
 interface FileInfo {
@@ -202,7 +201,7 @@ export const App = () => {
     // Auto-save the content to the file
     if (window.electron && tabToUpdate.filePath) {
       // Add debouncing here to avoid too many saves
-      console.log("saved: ", hashtags);
+      console.log("saved: { Hashtags", hashtags, "}");
       autoSaveDebounced(tabToUpdate.filePath, newContent, hashtags);
     }
   }, [tabs]);
@@ -251,7 +250,6 @@ export const App = () => {
 
   return (
     <div className="app">
-
       <div className="header">
         <Header />
       </div>
@@ -277,19 +275,12 @@ export const App = () => {
           />
           {activeTab && (
             <InlineMarkdownTab
+              files={files}
               key={activeTab}
               initialDoc={getCurrentTabContent()}
               viewMode={viewMode}
-<<<<<<< HEAD
+              onFileSelect={handleFileSelect}
               onChange={(content, hashtags) => handleNoteChange(activeTab, content, hashtags)}
-=======
-              onChange={(content) => handleNoteChange(activeTab, content)}
-              onHashtagChange={(hashtags) => setHashtagArray(hashtags)}
-              graphJsonPath='./graph.json'
-<<<<<<< HEAD
->>>>>>> 1d40921 (load graph from json)
-=======
->>>>>>> 1d4092122def8ca7bdbe4dd296992d4eac7c7e28
             />
           )}
           {!activeTab && <EmptyState onCreateNote={handleNewNote} />}
@@ -298,4 +289,3 @@ export const App = () => {
     </div>
   );
 };
-

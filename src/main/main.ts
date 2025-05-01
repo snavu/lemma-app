@@ -54,14 +54,13 @@ const endChromaDb = (): void => {
 const createWindow = (): void => {
   // Create the browser window
   mainWindow = new BrowserWindow({
-    width: 1600,
+    width: 1200,
     height: 900,
     frame: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      devTools: false
     },
   });
 

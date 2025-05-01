@@ -62,10 +62,12 @@
     "@tiptap/extension-task-list": "^2.1.13",
     "@tiptap/react": "^2.1.13",
     "@tiptap/starter-kit": "^2.1.13",
+    "@tiptap/suggestion": "^2.11.9",
     "3d-force-graph": "^1.77.0",
     "chromadb": "^2.2.0",
     "chromadb-default-embed": "^2.14.0",
     "electron-squirrel-startup": "^1.0.1",
+    "fuse.js": "^7.1.0",
     "github-markdown-css": "^5.8.1",
     "highlight.js": "^11.11.1",
     "lowlight": "^3.3.0",
@@ -80,6 +82,7 @@
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
     "three": "^0.176.0",
+    "tippy.js": "^6.3.7",
     "tiptap-markdown": "^0.8.2"
   }
 }

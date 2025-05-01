@@ -12,13 +12,29 @@ import { ContextMenu } from '../../../context-menu/ContextMenu';
 import { all, createLowlight } from 'lowlight'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { TagExtension } from './extensions/TagExtension';
+import LinkExtension from './extensions/LinkExtension';
 
-interface EditorProps {
-  initialData: string;
-  onChange: (content: string) => void;
+// Add type for link click event
+interface LinkClickProps {
+  href: string;
+  event: MouseEvent;
 }
 
-export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onChange }) => {
+interface FileInfo {
+  name: string;
+  path: string;
+  stats?: any;
+}
+
+interface EditorProps {
+  files: FileInfo[];
+  initialData: string;
+  onChange: (content: string) => void;
+  onFileselect?: (file: string) => void; // its the file path thats the argument
+  currentFilePath?: string; // Add current file path prop
+}
+
+export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onChange, files, onFileselect, currentFilePath }) => {
   const [markdownContent, setMarkdownContent] = useState(initialData);
   const [isSourceMode, setIsSourceMode] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
@@ -26,7 +42,6 @@ export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onCha
   const [editLinkUrl, setEditLinkUrl] = useState('');
   const [showEditDialog, setShowEditDialog] = useState(false);
   const savedRangeRef = useRef(null);
-
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
     show: boolean;
@@ -51,17 +66,19 @@ export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onCha
         // Disable the default code block
         codeBlock: false,
       }),
+      LinkExtension.configure({
+        files: files.filter(f => f.path !== currentFilePath), // Filter out current file
+      }),
       Placeholder.configure({
         placeholder: 'Start writing...',
       }),
       Link.configure({
-        openOnClick: false,
+        openOnClick: false,  // Disable default behavior
         HTMLAttributes: {
-          class: 'custom-link',
-          target: '_blank',
-          rel: 'noopener noreferrer'
+          class: 'editor-link',
         },
-        validate: href => /^https?:\/\//.test(href),
+        // Remove any validation to allow all link types
+        validate: () => true,
       }),
       CodeBlockLowlight.configure({
         lowlight,
@@ -88,8 +105,41 @@ export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onCha
     onUpdate: ({ editor }) => {
       // Convert the editor content to markdown
       const markdown = editor.storage.markdown.getMarkdown();
+      console.log('[InlineMarkdownEditor] Generated Markdown:', JSON.stringify(markdown));
       setMarkdownContent(markdown);
       onChange(markdown);
+    },
+    editorProps: {
+      handleClick: (view: any, pos: number, event: MouseEvent) => {
+        const target = event.target as HTMLElement;
+        const linkElement = target.closest('a');
+        if (linkElement) {
+          const href = linkElement.getAttribute('href');
+          console.log('Link clicked:', { href, currentFilePath });
+          if (href) {
+            // If we have onFileselect and this is a file link (not an external URL)
+            if (onFileselect && !href.startsWith('http')) {
+              // Don't allow linking to self
+              if (href === currentFilePath) {
+                console.log('Prevented self-linking');
+                event.preventDefault();
+                return true;
+              }
+              console.log('Calling onFileselect with:', href);
+              onFileselect(href);
+              event.preventDefault();
+              return true;
+            }
+            // For external links, open in default browser
+            if (href.startsWith('http') && window.electron?.shell?.openExternal) {
+              window.electron.shell.openExternal(href);
+              event.preventDefault();
+              return true;
+            }
+          }
+        }
+        return false;
+      },
     },
   });
 

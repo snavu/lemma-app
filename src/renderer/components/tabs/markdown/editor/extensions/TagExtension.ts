@@ -1,8 +1,10 @@
 import { Node, mergeAttributes, nodeInputRule } from '@tiptap/core'
 
 export interface TagOptions {
+
   HTMLAttributes: Record<string, any>,
 }
+
 export const TagExtension = Node.create<TagOptions>({
   name: 'tag',
   inline: true,
@@ -32,22 +34,20 @@ export const TagExtension = Node.create<TagOptions>({
         'data-tag': node.attrs.tagName,
         class: 'tag-node',
       }),
-      `#${node.attrs.tagName}`, // this becomes the inner text content
+      `#${node.attrs.tagName}`,
     ]
   },
 
   addInputRules() {
     return [
       nodeInputRule({
-        find: /(^|\s)#([\w-]+)\s$/, // Updated regex to match only when a space follows the tag
+        find: /(^|\s)#([\w-]+)\s$/,
         type: this.type,
         getAttributes: match => {
-          const full = match[0]; // e.g. "#example-tag "
-          const tag = match[2];  // e.g. "example-tag"
-          console.log('[Tag Match]', { full, tag });
+          const tag = match[2];
           return { tagName: tag };
         },
       }),
     ]
-  }
+  },
 })
