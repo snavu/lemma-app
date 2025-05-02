@@ -1,17 +1,19 @@
+
 .input-field {
     background-color: rgba(171, 178, 191, 0.1);
     color: var(--text-normal);
-    width: 100%;
+    width: 90%;
     font-size: 16px;
-    padding: 16px 0px 16px 8px;
+    padding: 1px 0px 1px 8px;
+    /* margin-left: 9px; */
     box-sizing: border-box;
     border: 3px solid #474747;
-    border-radius: 8px;
+    border-radius: 5px;
 }
 
 .option-dropdown {
-    margin: 3px 0px 0px 0px;
-    padding: 8px 8px 8px 8px;
+    margin: 3px 0px 0px 9px;
+    padding: 1px 8px 1px 8px;
     background-color: #282c39;
     border: 1px solid #ccc;
     border-radius: 5px;

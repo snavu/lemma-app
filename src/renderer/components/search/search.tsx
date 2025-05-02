@@ -4,18 +4,26 @@ import './search.css';
 interface SearchProps {
   setSearchresult: (check: boolean) => void;
   handleSearch: () => void;
+  setSearchInput: (input: string) => void;
+}
+
+interface SearchInput {
+  type: string;
+  input: string;
 }
 
 const staticOptions = ['Hashtag: ', 'Keyword: '];
 
-export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch }) => {
+export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch, setSearchInput }) => {
   const [inputValue, setInputValue] = useState('');
   const [showOptions, setShowOptions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLUListElement>(null);
 
   const handleInputClick = () => {
-    setShowOptions(true);
+    if (inputValue === '') {
+      setShowOptions(true);
+    }
   };
 
   const handleOptionClick = (option: string) => {
@@ -24,11 +32,25 @@ export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch })
     inputRef.current?.focus();
   };
 
+  // pulled from app.tsx
+  const debounce = (fn: (...args: any[]) => void, ms = 1000) => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    return function (this: any, ...args: any[]) {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => fn.apply(this, args), ms);
+    };
+  };
+
+  //debounce for searching
+  const debouncedHandleSearch = useMemo(() => debounce(handleSearch, 1000), [handleSearch]);
+  const debouncedSetSearchInput = useMemo(() => debounce((value: string) => setSearchInput(value), 1000),[]);
+  
   // when the user is typing
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setInputValue(value);
-    handleSearch();
+    debouncedSetSearchInput(value);
+    debouncedHandleSearch();
     setSearchresult(true);
 
     const lowerValue = value.toLowerCase();
@@ -45,19 +67,36 @@ export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch })
     setShowOptions(isPartialMatch);
   };
 
-    // Handle click event to close the dropdown if clicked outside
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setShowOptions(false);
-      }
-    };
+    // // Handle click event to close the dropdown if clicked outside
+    // const handleClickOutside = (e: MouseEvent) => {
+    //   if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+    //     console.log(inputValue);
+    //     setInputValue('');
+    //     setShowOptions(false);
+    //   }
+    // };
   
+    // useEffect(() => {
+    //   document.addEventListener('mousedown', handleClickOutside);
+    //   return () => {
+    //     document.removeEventListener('mousedown', handleClickOutside);
+    //   };
+    // }, []);
+
     useEffect(() => {
+      const handleClickOutside = (e: MouseEvent) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+          console.log('Clicked outside. Current value:', inputValue);
+          setInputValue('');
+          setShowOptions(false);
+        }
+      };
+    
       document.addEventListener('mousedown', handleClickOutside);
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
-    }, []);
+    }, [inputValue]);
   
 
   return (
@@ -85,7 +124,6 @@ export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch })
             ))}
         </ul>
       )}
-       <div style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)', paddingBottom: '12px' }}></div>
     </div>
   );
 

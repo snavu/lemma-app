@@ -26,7 +26,6 @@ interface SidebarProps {
   onDeleteFile: (filePath: string) => Promise<boolean>;
   activeTab: string | null;
   setSearchresult: (check: boolean) => void;
-  handleSearch: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -38,7 +37,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onDeleteFile,
   activeTab,
   setSearchresult,
-  handleSearch,
 }) => {
   // State for context menu
   const [contextMenu, setContextMenu] = useState<{
@@ -114,6 +112,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </svg>
   );
 
+  const SearchIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8"></circle>
+      <line x1="16" y1="16" x2="20" y2="20" />
+    </svg>
+  );
+
   // Icons for the context menu
   const OpenIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -145,6 +150,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </svg>
   );
 
+  
+
   return (
     <div className="sidebar">
       <div className="sidebar-header">
@@ -155,6 +162,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
           <button onClick={onSelectDirectory} title="Select Notes Directory">
             <FolderIcon /> Folder
+          </button>
+          <button onClick={() => setSearchresult(true)}title="Search">
+            <SearchIcon />
           </button>
         </div>
       </div>
@@ -168,11 +178,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span>No folder selected</span>
         )}
       </div>
-
-      {activeTab && <Search 
-        setSearchresult={setSearchresult}
-        handleSearch={handleSearch}
-        />}
 
       <div className="files-list">
         {files.length === 0 ? (

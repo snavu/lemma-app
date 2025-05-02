@@ -40,9 +40,8 @@ export const App = () => {
 
   // State for searchResult UI
   const [searchResult, setSearchResult] = useState<boolean>(false);
-  // query results
   const [results, setResults] = useState<SearchResult[]>([]);
-
+  const [searchInput, setSearchInput] = useState<string>('');
 
   // View mode
   const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
@@ -288,10 +287,17 @@ export const App = () => {
           notesDirectory={notesDirectory}
           onDeleteFile={handleDeleteFile}
           activeTab={activeTab}
-          setSearchresult={setSearchResult}
-          handleSearch={handleSearch}
+          setSearchresult={setSearchResult} 
         />
-        {searchResult && <SearchResults setSearchresult={setSearchResult} results={results}/>}
+        {searchResult && 
+          <SearchResults 
+            handleFileSelect={handleFileSelect}
+            setSearchresult={setSearchResult} 
+            results={results}
+            searchInput={searchInput}
+            handleSearch={handleSearch}
+            setSearchInput={setSearchInput}
+        />}
         <div className="main-content">
           <TabBar
             tabs={tabs}
