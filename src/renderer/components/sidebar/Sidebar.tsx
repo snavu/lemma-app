@@ -1,6 +1,5 @@
 import React, { useState, useCallback, ReactNode } from 'react';
 import { ContextMenu } from '../context-menu/ContextMenu';
-import { Search } from '../search/search';
 import './sidebar.css';
 
 interface FileInfo {

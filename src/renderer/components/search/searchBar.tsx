@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import './search.css';
+import './searchBar.css';
 
 interface SearchProps {
   setSearchresult: (check: boolean) => void;

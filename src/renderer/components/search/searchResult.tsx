@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Resizable } from "re-resizable";
 import './searchResult.css';
-import { Search } from './search';
+import { Search } from './searchBar';
 
 type SearchResult = {
     id: string;
@@ -27,7 +27,7 @@ export const SearchResults: React.FC<SearchResultProps> = ({
     handleSearch,
     setSearchInput, 
 }) => {
-    
+
     const handleClick = (filePath: string, hashtag: string) => {
         handleFileSelect(filePath); // opens the file
         // need a timeout for the dom to load
