@@ -256,12 +256,11 @@ export const get_links = (): Link[] | null => {
 // Parse file content to extract linked files
 export const parse_file_links = (content: string, availableFiles: string[]): string[] => {
     const linkedFiles: string[] = [];
-    const regex = /\[\[(.*?)\]\]/g;
+    const regex = /\\\[\\\[(.*?)\\\]\\\]/g;  // Escaped links: \[\[filename\]\]
     let match;
 
     while ((match = regex.exec(content)) !== null) {
         const linkedFile = match[1].trim();
-
         // Only include files that exist in the available files list
         if (availableFiles.includes(linkedFile)) {
             linkedFiles.push(linkedFile);
