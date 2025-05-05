@@ -114,5 +114,6 @@ export const queryNotes = async (searchQuery: string, notesDirectory: string): P
 
 // Return a list of notes that contains the tag specified in the search query
 export const queryNotesByTag = async (searchQuery: string, notesDirectory: string): Promise<Note[]> => {
+  console.log("Query Hashtag");
   return queryNotes(getTagElement(searchQuery), notesDirectory);
 }

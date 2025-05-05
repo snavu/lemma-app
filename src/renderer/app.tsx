@@ -22,11 +22,11 @@ interface TabInfo {
   hashtags: string[];
 }
 
-type SearchResult = {
-  id: string;
-  filename: string;
-  hashtags: string[];
-  filePath: string;
+interface SearchResult {
+  id: string,
+  filePath: string,
+  content: string,
+  hashtags: string[]
 };
 
 export const App = () => {
@@ -41,7 +41,8 @@ export const App = () => {
   // State for searchResult UI
   const [searchResult, setSearchResult] = useState<boolean>(false);
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [searchInput, setSearchInput] = useState<string>('');
+  const [searchInput, setSearchInput] = useState<string>(''); // For knowing what the input
+  const [searchType, setSearchType] = useState<string>('');
 
   // View mode
   const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
@@ -117,13 +118,16 @@ export const App = () => {
   }, []);
 
   // Handle querying hashtags
-  const handleSearch = async (searchQuery: string) => {
+  const handleSearch = async (searchType: string, searchQuery: string) => {
+    console.log(searchQuery);
     try {
-      const queryResults = searchQuery.includes("#") ? 
-                            await window.electron.db.queryDBTags(searchQuery.slice(1), notesDirectory)
+      const queryResults = searchType === "Hashtag" ? 
+                            await window.electron.db.queryDBTags(searchQuery, notesDirectory)
                             : await window.electron.db.queryDBKeyWords(searchQuery, notesDirectory);
+      setSearchType(searchType);
       setResults(queryResults);
       console.log(queryResults);
+      console.log(searchType);
     } catch (err) {
       console.error("Search error:", err);
     }
@@ -299,6 +303,8 @@ export const App = () => {
             searchInput={searchInput}
             handleSearch={handleSearch}
             setSearchInput={setSearchInput}
+            searchType={searchType}
+            setResults={setResults}
         />}
         <div className="main-content">
           <TabBar
