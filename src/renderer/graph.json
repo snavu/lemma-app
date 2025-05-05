@@ -87,8 +87,15 @@
     {"id": "J-5", "name": "J-5", "group": 10},
     {"id": "J-6", "name": "J-6", "group": 10},
     {"id": "J-7", "name": "J-7", "group": 10},
-    {"id": "J-8", "name": "J-8", "group": 10}
-  ],
+    {"id": "J-8", "name": "J-8", "group": 10},
+    {"id": "J-9", "name": "J-9", "group": 10},
+    {"id": "J-10", "name": "J-10", "group": 10},
+    {"id": "J-11", "name": "J-11", "group": 10},
+    {"id": "J-12", "name": "J-12", "group": 10},
+    {"id": "J-13", "name": "J-13", "group": 10},
+    {"id": "J-14", "name": "J-14", "group": 10}
+  
+],
   "links": [
     {"source": "A", "target": "A-1"},
     {"source": "A", "target": "A-2"},

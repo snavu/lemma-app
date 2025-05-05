@@ -24,6 +24,7 @@ interface TabInfo {
 export const App = () => {
   // State for files and directories
   const [notesDirectory, setNotesDirectory] = useState<string | null>(null);
+  const [graphJsonPath, setGraphJsonPath] = useState<string | null>(null);
   const [files, setFiles] = useState<FileInfo[]>([]);
 
   // State for tabs system
@@ -41,6 +42,10 @@ export const App = () => {
           const directory = await window.electron.fs.getNotesDirectory();
           if (directory) {
             setNotesDirectory(directory);
+            const path = await window.electron.fs.getGraphJsonPath();
+            if (path) {
+              setGraphJsonPath(path);
+            }
           }
         } catch (error) {
           console.error('Failed to get default notes directory:', error);
@@ -280,6 +285,7 @@ export const App = () => {
               initialDoc={getCurrentTabContent()}
               viewMode={viewMode}
               onFileSelect={handleFileSelect}
+              graphJsonPath={graphJsonPath}
               onChange={(content, hashtags) => handleNoteChange(activeTab, content, hashtags)}
             />
           )}

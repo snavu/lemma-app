@@ -11,14 +11,15 @@ interface FileInfo {
 
 interface MarkdownTabProps {
   files: FileInfo[];
-  onFileselect?: (file: string) => void; // its the file path thats the argument
+  onFileSelect: (filePath: string) => void;
+  graphJsonPath: string | null;
   initialDoc: string;
   viewMode?: 'split' | 'editor' | 'preview';
   // onHashtagChange: (hashtags: string[]) => void;
   onChange?: (content: string, hashtags: string[], klinks: string[]) => void;
 }
 
-export const InlineMarkdownTab = ({ initialDoc, onChange, files, onFileselect }: MarkdownTabProps) => {
+export const InlineMarkdownTab = ({ initialDoc, onChange, files, onFileSelect, graphJsonPath }: MarkdownTabProps) => {
   const [doc, setDoc] = useState(initialDoc);
 
   const handleDocChange = useCallback((newDoc: string) => {
@@ -48,13 +49,13 @@ export const InlineMarkdownTab = ({ initialDoc, onChange, files, onFileselect }:
     <div className="inline-markdown-tab">
       <InlineMarkdownEditor
         files={files}
-        onFileselect={onFileselect}
+        onFileSelect={onFileSelect}
         initialData={doc}
         onChange={handleDocChange}
       />
-      {/*<KnowledgeGraph
-        graphJsonPath={'./graph.json'}
-      />*/}
+      <KnowledgeGraph
+        graphJsonPath={graphJsonPath}
+      />
     </div>
   );
 };

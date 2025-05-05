@@ -30,11 +30,11 @@ interface EditorProps {
   files: FileInfo[];
   initialData: string;
   onChange: (content: string) => void;
-  onFileselect?: (file: string) => void; // its the file path thats the argument
+  onFileSelect?: (file: string) => void; // its the file path thats the argument
   currentFilePath?: string; // Add current file path prop
 }
 
-export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onChange, files, onFileselect, currentFilePath }) => {
+export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onChange, files, onFileSelect, currentFilePath }) => {
   const [markdownContent, setMarkdownContent] = useState(initialData);
   const [isSourceMode, setIsSourceMode] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
@@ -118,7 +118,7 @@ export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onCha
           console.log('Link clicked:', { href, currentFilePath });
           if (href) {
             // If we have onFileselect and this is a file link (not an external URL)
-            if (onFileselect && !href.startsWith('http')) {
+            if (onFileSelect && !href.startsWith('http')) {
               // Don't allow linking to self
               if (href === currentFilePath) {
                 console.log('Prevented self-linking');
@@ -126,7 +126,7 @@ export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onCha
                 return true;
               }
               console.log('Calling onFileselect with:', href);
-              onFileselect(href);
+              onFileSelect(href);
               event.preventDefault();
               return true;
             }
