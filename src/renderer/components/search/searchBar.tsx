@@ -3,7 +3,7 @@ import './searchBar.css';
 
 interface SearchProps {
   setSearchresult: (check: boolean) => void;
-  handleSearch: () => void;
+  handleSearch: (searchQuery: string) => void;
   setSearchInput: (input: string) => void;
 }
 
@@ -12,7 +12,7 @@ interface SearchInput {
   input: string;
 }
 
-const staticOptions = ['Hashtag: ', 'Keyword: '];
+const staticOptions = ['Hashtag:', 'Keyword:'];
 
 export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch, setSearchInput }) => {
   const [inputValue, setInputValue] = useState('');
@@ -20,17 +20,17 @@ export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch, s
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLUListElement>(null);
 
-  const handleInputClick = () => {
-    if (inputValue === '') {
-      setShowOptions(true);
-    }
-  };
+  // const handleInputClick = () => {
+  //   if (inputValue === '') {
+  //     setShowOptions(true);
+  //   }
+  // };
 
-  const handleOptionClick = (option: string) => {
-    setInputValue(option);
-    setShowOptions(false);
-    inputRef.current?.focus();
-  };
+  // const handleOptionClick = (option: string) => {
+  //   setInputValue(option);
+  //   setShowOptions(false);
+  //   inputRef.current?.focus();
+  // };
 
   // pulled from app.tsx
   const debounce = (fn: (...args: any[]) => void, ms = 1000) => {
@@ -48,9 +48,10 @@ export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch, s
   // when the user is typing
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
+    console.log(value);
     setInputValue(value);
     debouncedSetSearchInput(value);
-    debouncedHandleSearch();
+    debouncedHandleSearch(value);
     setSearchresult(true);
 
     const lowerValue = value.toLowerCase();
@@ -83,20 +84,20 @@ export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch, s
     //   };
     // }, []);
 
-    useEffect(() => {
-      const handleClickOutside = (e: MouseEvent) => {
-        if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-          console.log('Clicked outside. Current value:', inputValue);
-          setInputValue('');
-          setShowOptions(false);
-        }
-      };
+    // useEffect(() => {
+    //   const handleClickOutside = (e: MouseEvent) => {
+    //     if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+    //       console.log('Clicked outside. Current value:', inputValue);
+    //       setInputValue('');
+    //       setShowOptions(false);
+    //     }
+    //   };
     
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }, [inputValue]);
+    //   document.addEventListener('mousedown', handleClickOutside);
+    //   return () => {
+    //     document.removeEventListener('mousedown', handleClickOutside);
+    //   };
+    // }, [inputValue]);
   
 
   return (
@@ -106,12 +107,12 @@ export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch, s
         type="text"
         placeholder="Search..."
         value={inputValue}
-        onClick={handleInputClick}
+        // onClick={handleInputClick}
         onChange={handleChange}
         ref={inputRef}
       />
 
-      {showOptions && (
+      {/* {showOptions && (
         <ul ref={dropdownRef} className="option-dropdown">
           {staticOptions
             .filter(option =>
@@ -123,7 +124,7 @@ export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch, s
               </li>
             ))}
         </ul>
-      )}
+      )} */}
     </div>
   );
 

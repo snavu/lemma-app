@@ -15,7 +15,7 @@ interface SearchResultProps {
     results: SearchResult[];
     searchInput: string;
     handleFileSelect: (filePath: string) => void;
-    handleSearch: () => void;
+    handleSearch: (searchQuery: string) => void;
     setSearchInput: (input: string) => void;
 }
 

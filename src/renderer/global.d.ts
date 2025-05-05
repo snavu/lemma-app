@@ -26,7 +26,8 @@ interface Window {
       newNote: (callback: () => void) => () => void;
     };
     db: {
-      queryDatabase: (notesDirectory: string) => Promise<Array<{ id: string; filename: string; hashtags: string[], filePath: string }>>;
+      queryDBTags: (searchQuery: string, notesDirectory: string) => Promise<Note[]>;
+      queryDBKeyWords: (searchQuery: string, notesDirectory: string) => Promise<Note[]>;
     };
   };
 }

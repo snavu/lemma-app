@@ -117,9 +117,11 @@ export const App = () => {
   }, []);
 
   // Handle querying hashtags
-  const handleSearch = async () => {
+  const handleSearch = async (searchQuery: string) => {
     try {
-      const queryResults = await window.electron.db.queryDatabase(notesDirectory);
+      const queryResults = searchQuery.includes("#") ? 
+                            await window.electron.db.queryDBTags(searchQuery.slice(1), notesDirectory)
+                            : await window.electron.db.queryDBKeyWords(searchQuery, notesDirectory);
       setResults(queryResults);
       console.log(queryResults);
     } catch (err) {

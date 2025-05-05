@@ -91,6 +91,7 @@ export const queryAllNotes = async (notesDirectory: string): Promise<Note[]> => 
 
 // Return a list of notes that matches the search query
 export const queryNotes = async (searchQuery: string, notesDirectory: string): Promise<Note[]> => {
+  console.log(searchQuery);
   const collection = await client.getOrCreateCollection({
     name: "Notes",
     embeddingFunction: embedFunc,
