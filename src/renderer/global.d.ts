@@ -24,6 +24,9 @@ interface Window {
       getGraphJsonPath: () => Promise<string | null>;
       getGeneratedGraphJsonPath: () => Promise<string | null>;
     };
+    graph: {
+      syncGraph: () => Promise<boolean>;
+    };
     on: {
       notesDirectorySelected: (callback: (directory: string) => void) => () => void;
       newNote: (callback: () => void) => () => void;

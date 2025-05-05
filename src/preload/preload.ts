@@ -33,6 +33,9 @@ contextBridge.exposeInMainWorld('electron', {
     getGraphJsonPath: () => ipcRenderer.invoke('get-graph-json-path'),
     getGeneratedGraphJsonPath: () => ipcRenderer.invoke('get-generated-graph-json-path'),
   },
+  graph: {
+    syncGraph: () => ipcRenderer.invoke('sync-graph'),
+  },
   windowControls: {
     minimize: () => ipcRenderer.send('window-control', 'minimize'),
     maximize: () => ipcRenderer.send('window-control', 'maximize'),

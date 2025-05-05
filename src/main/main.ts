@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
 import * as path from 'path';
 import * as fileService from './file-service';
 import * as chromaService from './chroma-service';
+import * as graphLoader from './graph-loader';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -20,6 +21,7 @@ const createWindow = (): void => {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      devTools: false
     },
   });
 
@@ -48,6 +50,15 @@ const initializeFileSystem = (): void => {
     // Notify renderer about the default directory if window is ready
     if (mainWindow && newDir) {
       mainWindow.webContents.send('notes-directory-selected', newDir);
+      
+      // Sync graph with files in the directory
+      graphLoader.syncGraphWithFiles().then(success => {
+        if (success) {
+          console.log('Graph successfully synced with files');
+        } else {
+          console.error('Failed to sync graph with files');
+        }
+      });
     }
   } else {
     // If directory exists from config, ensure it has the proper structure
@@ -56,6 +67,15 @@ const initializeFileSystem = (): void => {
     // Notify renderer about the directory
     if (mainWindow) {
       mainWindow.webContents.send('notes-directory-selected', notesDir);
+      
+      // Sync graph with files in the directory
+      graphLoader.syncGraphWithFiles().then(success => {
+        if (success) {
+          console.log('Graph successfully synced with files');
+        } else {
+          console.error('Failed to sync graph with files');
+        }
+      });
     }
   }
 };
@@ -132,6 +152,15 @@ const selectNotesDirectory = async (): Promise<string | null> => {
 
     // Notify renderer about the selected directory
     mainWindow.webContents.send('notes-directory-selected', directory);
+    
+    // Sync graph with files in the new directory
+    graphLoader.syncGraphWithFiles().then(success => {
+      if (success) {
+        console.log('Graph successfully synced with files in new directory');
+      } else {
+        console.error('Failed to sync graph with files in new directory');
+      }
+    });
 
     return directory;
   }
@@ -150,17 +179,50 @@ const setupIpcHandlers = (): void => {
   ipcMain.handle('select-notes-directory', selectNotesDirectory);
   ipcMain.handle('get-files', fileService.getFilesFromDirectory);
   ipcMain.handle('read-file', (_, filePath) => fileService.readFile(filePath));
-  ipcMain.handle('save-file', (_, { filePath, content, updateHashtags }) => 
-    fileService.saveFile(filePath, content, updateHashtags)
-  );
-  ipcMain.handle('create-file', (_, fileName) => fileService.createFile(fileName));
-  ipcMain.handle('delete-file', (_, filePath) => fileService.deleteFile(filePath));
+  
+  // Modified save-file handler to update the graph
+  ipcMain.handle('save-file', async (_, { filePath, content, updateHashtags }) => {
+    const result = await fileService.saveFile(filePath, content, updateHashtags);
+    if (result.success) {
+      // Update the graph for this file
+      const filename = path.basename(filePath);
+      await graphLoader.updateFileInGraph(filename);
+    }
+    return result;
+  });
+  
+  // Modified create-file handler to update the graph
+  ipcMain.handle('create-file', async (_, fileName) => {
+    const result = fileService.createFile(fileName);
+    if (result.success) {
+      // Add the new file to the graph
+      await graphLoader.updateFileInGraph(fileName);
+    }
+    return result;
+  });
+  
+  // Modified delete-file handler to update the graph
+  ipcMain.handle('delete-file', (_, filePath) => {
+    const result = fileService.deleteFile(filePath);
+    if (result.success) {
+      // Remove the file from the graph
+      const filename = path.basename(filePath);
+      graphLoader.removeFileFromGraph(filename);
+    }
+    return result;
+  });
+  
   ipcMain.handle('get-notes-directory', fileService.getNotesDirectory);
   
   // Graph file path operations
   ipcMain.handle('get-graph-json-path', fileService.getGraphJsonPath);
   ipcMain.handle('get-generated-graph-json-path', fileService.getGeneratedGraphJsonPath);
   ipcMain.handle('get-generated-folder-path', fileService.getGeneratedFolderPath);
+  
+  // New graph-related handlers
+  ipcMain.handle('sync-graph', async () => {
+    return await graphLoader.syncGraphWithFiles();
+  });
 
   // Window control messages
   ipcMain.on('window-control', (_, command) => {
