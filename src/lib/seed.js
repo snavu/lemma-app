@@ -251,7 +251,7 @@ function generateContent(nodeId) {
     content += `## Related Notes\n\n`;
     nodeLinks[nodeId].forEach(linkedId => {
       const linkedNode = graphData.nodes.find(n => n.id === linkedId);
-      content += `- [[${linkedNode.name}]]\n`;
+      content += `- [[${linkedNode.name}.md]]\n`;
     });
   }
   
@@ -266,7 +266,7 @@ function generateContent(nodeId) {
 }
 
 // Create files in a directory structure
-const baseDir = 'knowledge_graph_notes';
+const baseDir = 'LEMMA Notes';
 
 // Create the base directory and required subdirectories
 function createDirectories() {
