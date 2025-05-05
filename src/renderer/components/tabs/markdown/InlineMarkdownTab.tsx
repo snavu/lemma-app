@@ -52,9 +52,9 @@ export const InlineMarkdownTab = ({ initialDoc, onChange, files, onFileselect }:
         initialData={doc}
         onChange={handleDocChange}
       />
-      <KnowledgeGraph
+      {/*<KnowledgeGraph
         graphJsonPath={'./graph.json'}
-      />
+      />*/}
     </div>
   );
 };

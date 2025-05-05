@@ -86,16 +86,18 @@ const LinkExtension = Extension.create<LinkExtensionOptions>({
         let container: HTMLElement
         let currentItems: FileInfo[] = []
         let tippyInstance: TippyInstance<Props> | undefined
-        
+
         const destroyPopup = () => {
-          console.log("Destroying popup, current state:", tippyInstance ? "exists" : "doesn't exist")
-          if (tippyInstance) {
-            tippyInstance.destroy()
-            tippyInstance = undefined
-            popup = undefined
+          if (!tippyInstance) {
+            console.log("Popup does not exist, skipping destruction")
+            return
           }
+          console.log("Destroying popup, current state: exists")
+          tippyInstance.destroy()
+          tippyInstance = undefined
+          popup = undefined
         }
-        
+
         const updateList = (props: SuggestionProps<FileInfo> | ExtendedKeyDownProps) => {
           const items = 'items' in props ? props.items : currentItems
           if (!items || !Array.isArray(items)) {
@@ -119,7 +121,29 @@ const LinkExtension = Extension.create<LinkExtensionOptions>({
             container.appendChild(el)
           })
         }
-        
+
+        const createPopup = (props: SuggestionProps<FileInfo>) => {
+          if (tippyInstance) {
+            console.warn("Popup already exists, destroying the old instance before creating a new one.")
+            destroyPopup()
+          }
+          const instances = tippy(document.body, {
+            getReferenceClientRect: props.clientRect,
+            appendTo: () => document.body,
+            content: container,
+            showOnCreate: true,
+            interactive: true,
+            placement: 'bottom-start',
+            theme: 'light',
+            maxWidth: 'none',
+          }) as unknown as TippyInstance<Props>[]
+          if (instances.length > 0) {
+            tippyInstance = instances[0]
+            popup = tippyInstance
+            console.log("Created new popup instance")
+          }
+        }
+
         return {
           onStart(props: SuggestionProps<FileInfo>) {
             container = document.createElement('div')
@@ -127,21 +151,7 @@ const LinkExtension = Extension.create<LinkExtensionOptions>({
             currentItems = props.items as FileInfo[]
             selectedIndex = 0
             updateList(props)
-            const instances = tippy(document.body, {
-              getReferenceClientRect: props.clientRect,
-              appendTo: () => document.body,
-              content: container,
-              showOnCreate: true,
-              interactive: true,
-              placement: 'bottom-start',
-              theme: 'light',
-              maxWidth: 'none',
-            }) as unknown as TippyInstance<Props>[]
-            if (instances.length > 0) {
-              tippyInstance = instances[0]
-              popup = tippyInstance
-              console.log("Created new popup instance")
-            }
+            createPopup(props)
           },
 
           onUpdate(props: SuggestionProps<FileInfo>) {
@@ -171,13 +181,13 @@ const LinkExtension = Extension.create<LinkExtensionOptions>({
               props.event.preventDefault()
               const selectedItem = items[selectedIndex]
               if (selectedItem) {
-                console.log("Enter pressed, destroying popup")
-                destroyPopup()
+                console.log("Enter pressed, destroying popup and executing command")
                 suggestionConfig.command({
                   editor: suggestionConfig.editor,
                   range: props.range,
                   props: { name: selectedItem.name, path: selectedItem.path }
                 })
+                destroyPopup() // Ensure popup is destroyed only once
               }
               return true
             }
