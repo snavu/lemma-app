@@ -68,6 +68,7 @@ export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onCha
       }),
       LinkExtension.configure({
         files: files.filter(f => f.path !== currentFilePath), // Filter out current file
+        openNote: onFileSelect, // Pass the onFileSelect function to open notes when wiki links are clicked
       }),
       Placeholder.configure({
         placeholder: 'Start writing...',

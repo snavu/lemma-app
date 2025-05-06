@@ -1,0 +1,33 @@
+/* Wiki link button styling */
+.wiki-link-content {
+  color: var(--text-accent, #0366d6);
+  background-color: rgba(3, 102, 214, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  display: inline-block;
+  transition: all 0.15s ease;
+  border: 1px solid rgba(3, 102, 214, 0.2);
+  text-decoration: none;
+  margin: 0 2px;
+  position: relative;
+  z-index: 5;
+  pointer-events: auto !important;
+}
+
+.wiki-link-content:hover {
+  background-color: rgba(3, 102, 214, 0.15);
+  border-color: rgba(3, 102, 214, 0.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.wiki-link-content:active {
+  background-color: rgba(3, 102, 214, 0.2);
+  transform: translateY(1px);
+}
+
+.wiki-link-content:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(3, 102, 214, 0.3);
+} 
