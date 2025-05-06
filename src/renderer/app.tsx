@@ -26,6 +26,8 @@ export const App = () => {
   const [notesDirectory, setNotesDirectory] = useState<string | null>(null);
   const [graphJsonPath, setGraphJsonPath] = useState<string | null>(null);
   const [files, setFiles] = useState<FileInfo[]>([]);
+  const [graphRefreshTrigger, setGraphRefreshTrigger] = useState<number>(0);
+  const [lastGraphJson, setLastGraphJson] = useState<string | null>(null);
 
   // State for tabs system
   const [tabs, setTabs] = useState<TabInfo[]>([]);
@@ -63,6 +65,8 @@ export const App = () => {
         try {
           const files = await window.electron.fs.getFiles();
           setFiles(files);
+          const currentGraphJson = await window.electron.fs.readFile(graphJsonPath);
+          setLastGraphJson(currentGraphJson);
         } catch (error) {
           console.error('Failed to load files:', error);
         }
@@ -220,17 +224,61 @@ export const App = () => {
     };
   };
 
+  const hasGraphChanged = async (): Promise<boolean> => {
+
+    if (!graphJsonPath || !window.electron?.fs) return false;
+
+    try {
+      // Read the current graph.json file
+      const currentGraphJson = await window.electron.fs.readFile(graphJsonPath);
+
+      // If we haven't stored the previous state yet, store it and return true
+      if (lastGraphJson === null) {
+        setLastGraphJson(currentGraphJson);
+        return true;
+      }
+
+      // Compare with previous state
+      if (currentGraphJson !== lastGraphJson) {
+        // Update the stored state
+        setLastGraphJson(currentGraphJson);
+        return true;
+      }
+
+      // No change detected
+      return false;
+    } catch (error) {
+      console.error('Error checking if graph changed:', error);
+      return false;
+    }
+  };
+
   // Create a debounced version of the save function
   const autoSaveDebounced = useCallback(
-    debounce((filePath: string, content: string, updateHashtags: string[]) => {
-      window.electron?.fs.saveFile(filePath, content, updateHashtags)
-        .then(() => {
-          console.log('Auto-saved file:', filePath);
+    debounce(async (filePath: string, content: string, updateHashtags: string[]) => {
+      if (!window.electron?.fs) return;
 
-        })
-        .catch(error => {
-          console.error('Failed to auto-save file:', error);
-        });
+      try {
+        // First save the file
+        await window.electron.fs.saveFile(filePath, content, updateHashtags);
+        console.log('Auto-saved file:', filePath);
+
+        // Then sync the graph
+        await window.electron.graph.syncGraph();
+        console.log('Synced graph');
+
+        // Check if the graph.json changed
+        const didGraphChange = await hasGraphChanged();
+
+        if (didGraphChange) {
+          console.log('Graph data changed, refreshing visualization');
+          setGraphRefreshTrigger(prev => prev + 1);
+        } else {
+          console.log('Graph data unchanged, skipping refresh');
+        }
+      } catch (error) {
+        console.error('Error during save or sync:', error);
+      }
     }, 200), // 200ms debounce time
     []
   );
@@ -287,6 +335,7 @@ export const App = () => {
               onFileSelect={handleFileSelect}
               graphJsonPath={graphJsonPath}
               onChange={(content, hashtags) => handleNoteChange(activeTab, content, hashtags)}
+              graphRefreshTrigger={graphRefreshTrigger}
             />
           )}
           {!activeTab && <EmptyState onCreateNote={handleNewNote} />}

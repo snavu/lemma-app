@@ -17,9 +17,10 @@ interface MarkdownTabProps {
   viewMode?: 'split' | 'editor' | 'preview';
   // onHashtagChange: (hashtags: string[]) => void;
   onChange?: (content: string, hashtags: string[], klinks: string[]) => void;
+  graphRefreshTrigger?: number;
 }
 
-export const InlineMarkdownTab = ({ initialDoc, onChange, files, onFileSelect, graphJsonPath }: MarkdownTabProps) => {
+export const InlineMarkdownTab = ({ initialDoc, onChange, files, onFileSelect, graphJsonPath, graphRefreshTrigger }: MarkdownTabProps) => {
   const [doc, setDoc] = useState(initialDoc);
 
   const handleDocChange = useCallback((newDoc: string) => {
@@ -54,6 +55,7 @@ export const InlineMarkdownTab = ({ initialDoc, onChange, files, onFileSelect, g
         onChange={handleDocChange}
       />
       <KnowledgeGraph
+        graphRefreshTrigger={graphRefreshTrigger}
         graphJsonPath={graphJsonPath}
       />
     </div>

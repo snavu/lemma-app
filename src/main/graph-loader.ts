@@ -79,7 +79,7 @@ export const syncGraphWithFiles = async (): Promise<boolean> => {
       for (const linkedFile of linkedFiles) {
         if (!currentTargets.includes(linkedFile)) {
           console.log(`Adding link from ${filename} to ${linkedFile}`);
-          graphService.create_link(node.id, linkedFile, 'reference');
+          graphService.create_link(node.id, linkedFile, 'user');
         }
       }
       
@@ -154,7 +154,7 @@ export const updateFileInGraph = async (filename: string): Promise<boolean> => {
     // Add new links
     for (const linkedFile of linkedFiles) {
       if (!currentTargets.includes(linkedFile)) {
-        graphService.create_link(node.id, linkedFile, 'reference');
+        graphService.create_link(node.id, linkedFile, 'user');
       }
     }
     

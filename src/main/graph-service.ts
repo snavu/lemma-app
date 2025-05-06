@@ -269,4 +269,4 @@ export const parse_file_links = (content: string, availableFiles: string[]): str
 
     // Remove duplicates
     return [...new Set(linkedFiles)];
-};
+}
