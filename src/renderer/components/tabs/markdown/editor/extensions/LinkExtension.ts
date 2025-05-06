@@ -73,8 +73,6 @@ function findWikiLinks(doc: ProseMirrorNode) {
         continue;
       }
       
-      //console.log("Found link:", title);
-      
       // Create decorations THESE POSITIONS ARE ACCURATE DO NOT CHANGE THEM
       const docStartPos = pos + openPos - 1;
       const docTitleStartPos = pos + contentStartPos - 1;
@@ -468,9 +466,9 @@ const LinkExtension = Extension.create<LinkExtensionOptions>({
 
         console.log('Creating note link with:', props);
 
-        // Extract just the filename from the path
-        const displayName = props.name.replace(/\.md$/, '')
-        
+        // Extract just the filename from the path and include the .md extension
+        const displayName = props.name.replace('.md', '')
+
         try {
           // Insert as text node directly to prevent escaping
           const { state, dispatch } = editor.view;

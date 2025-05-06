@@ -260,7 +260,7 @@ export const parse_file_links = (content: string, availableFiles: string[]): str
     let match;
 
     while ((match = regex.exec(content)) !== null) {
-        const linkedFile = match[1].trim();
+        const linkedFile = match[1].trim() + '.md';
         // Only include files that exist in the available files list
         if (availableFiles.includes(linkedFile)) {
             linkedFiles.push(linkedFile);
