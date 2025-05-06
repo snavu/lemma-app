@@ -38,7 +38,7 @@ export const setupDefaultNotesDirectory = (): string | null => {
   if (notesDirectory === null) {
     // Create a 'Notes' folder in the user's documents directory
     const documentsPath = app.getPath('documents');
-    const defaultNotesPath = path.join(documentsPath, 'LEMMA');
+    const defaultNotesPath = path.join(documentsPath, 'LEMMA Notes');
 
     // Create the directory if it doesn't exist
     if (!fs.existsSync(defaultNotesPath)) {
