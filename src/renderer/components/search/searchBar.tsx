@@ -55,10 +55,8 @@ export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch, s
 
     // checking if theres a prefix "hashtag:" or "keyword:"
     const trimmedValue = value.trim();
-    const [prefix, val] = trimmedValue.split(":");
+    let [prefix, val] = trimmedValue.split(":");
 
-    console.log(prefix);
-    console.log(val);
     if (!trimmedValue || !val || !["hashtag", "keyword"].includes(prefix.toLowerCase())) {
       if (value === "") {
         setResults([]);
@@ -67,42 +65,14 @@ export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch, s
       return;
     }
     
-    // console.log(prefix);
-    // console.log(val);
+    if (val.startsWith('#')) {
+      val = val.slice(1);
+    }
 
     debouncedSetSearchInput(val);
     debouncedHandleSearch(prefix, val);
     setSearchresult(true);
-
-    const lowerValue = value.toLowerCase();
-  
-    const isExactMatch = staticOptions.some(
-      option => option.toLowerCase() === lowerValue
-    );
-    
-    // if exact match then don't show
-    const isPartialMatch = staticOptions.some(
-      option => option.toLowerCase().startsWith(lowerValue) && !isExactMatch
-    );
-
-    setShowOptions(isPartialMatch);
   };
-
-    // // Handle click event to close the dropdown if clicked outside
-    // const handleClickOutside = (e: MouseEvent) => {
-    //   if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-    //     console.log(inputValue);
-    //     setInputValue('');
-    //     setShowOptions(false);
-    //   }
-    // };
-  
-    // useEffect(() => {
-    //   document.addEventListener('mousedown', handleClickOutside);
-    //   return () => {
-    //     document.removeEventListener('mousedown', handleClickOutside);
-    //   };
-    // }, []);
 
     useEffect(() => {
       const handleClickOutside = (e: MouseEvent) => {
@@ -117,6 +87,21 @@ export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch, s
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
+    }, [inputValue]);
+    
+    // keep showing the option bar until the prefix is fully typed out
+    useEffect(() => {
+      const lowerValue = inputValue.toLowerCase();
+    
+      const isExactMatch = staticOptions.some(
+        option => option.toLowerCase() === lowerValue
+      );
+    
+      const isPartialMatch = staticOptions.some(
+        option => option.toLowerCase().startsWith(lowerValue) && !isExactMatch
+      );
+    
+      setShowOptions(isPartialMatch);
     }, [inputValue]);
   
 

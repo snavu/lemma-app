@@ -66,6 +66,7 @@
     "electron-squirrel-startup": "^1.0.1",
     "github-markdown-css": "^5.8.1",
     "highlight.js": "^11.11.1",
+    "i": "^0.3.7",
     "lowlight": "^3.3.0",
     "re-resizable": "^6.11.2",
     "react": "^19.1.0",

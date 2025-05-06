@@ -39,9 +39,9 @@ export const App = () => {
   const [activeTab, setActiveTab] = useState<string | null>(null);
 
   // State for searchResult UI
-  const [searchResult, setSearchResult] = useState<boolean>(false);
+  const [searchResult, setSearchResult] = useState<boolean>(false); // closing and opening UI
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [searchInput, setSearchInput] = useState<string>(''); // For knowing what the input
+  const [searchInput, setSearchInput] = useState<string>(''); // For knowing what the input to display
   const [searchType, setSearchType] = useState<string>('');
 
   // View mode
@@ -127,7 +127,6 @@ export const App = () => {
       setSearchType(searchType);
       setResults(queryResults);
       console.log(queryResults);
-      console.log(searchType);
     } catch (err) {
       console.error("Search error:", err);
     }
@@ -232,7 +231,7 @@ export const App = () => {
     // Auto-save the content to the file
     if (window.electron && tabToUpdate.filePath) {
       // Add debouncing here to avoid too many saves
-      console.log("saved: ", hashtags);
+      // console.log("saved: ", hashtags);
       autoSaveDebounced(tabToUpdate.filePath, newContent, hashtags);
     }
   }, [tabs]);

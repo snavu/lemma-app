@@ -38,14 +38,15 @@ export const SearchResults: React.FC<SearchResultProps> = ({
 
     // opens the file and jumps to the tag or keyword
     const handleClick = (filePath: string, word: string) => {
+        setCurrentIndex(0);
         const keywordResults: HTMLElement[] = [];
         const hashtagResults: Element[] = [];
-        
         handleFileSelect(filePath);
 
         // need a timeout for the dom to load
         setTimeout(() => {
             if (searchType.toLowerCase() === "hashtag") {
+                word = '#' + word;
                 document.querySelectorAll(`span.tag-node[contenteditable="false"][data-tag="${word.slice(1)}"][tagname="${word.slice(1)}"]`).forEach(elem => {
                     if (elem.textContent.includes(searchInput)) {
                         hashtagResults.push(elem);
@@ -76,40 +77,43 @@ export const SearchResults: React.FC<SearchResultProps> = ({
         });
     };
 
-    // helper function for navigating to different hashtags or keywords that are the same
+    // logic for going through multiple of the same word or hashtag
     const handleKeyDown = (event: KeyboardEvent) => {
+        // check if user is typing
+        const editorContainer = document.querySelector('.tiptap');
+        if (
+            editorContainer &&
+            editorContainer.contains(document.activeElement)
+        ) {
+            return; 
+        }
+
         if (res.length > 0) {
-
-            res[currentIndex].classList.remove('highlight');
-
+            let newIndex = currentIndex;
             if (event.key === 'ArrowDown' && currentIndex < res.length - 1) {
-                setCurrentIndex(currentIndex + 1);
+                newIndex = currentIndex + 1;
+                setCurrentIndex(newIndex);
             } else if (event.key === 'ArrowUp' && currentIndex > 0) {
-                setCurrentIndex(currentIndex - 1);
+                newIndex = currentIndex - 1;
+                setCurrentIndex(newIndex);
             }
-
-            res[currentIndex].classList.add('highlight');
-            scrollToCurrentResult();
         }
     };
 
     // listens for arrow keys
     useEffect(() => {
         document.addEventListener('keydown', handleKeyDown);
-    
         return () => {
             document.removeEventListener('keydown', handleKeyDown);
         };
       }, [res, currentIndex]);
     
-    // listens for update to current index to add highlights
+    // jumps to word or hashtag
     useEffect(() => {
     if (res.length > 0) {
-        res[currentIndex].classList.add('highlight');
         scrollToCurrentResult();
     }
     }, [currentIndex, res]);
-
 
     const CloseIcon = () => (
         <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -148,21 +152,9 @@ export const SearchResults: React.FC<SearchResultProps> = ({
                 {results.map((result: SearchResult, index) => (
                     <div key={index}>
                     <div>{result.filePath.split(/[/\\]/).pop()}</div>
-                    {searchType === "Hashtag" ? (
-                        result.hashtags.map((hashtag, idx) => (
-                        <button
-                            key={idx}
-                            onClick={() => handleClick(result.filePath, hashtag)}
-                            className="hashtag-button"
-                        >
-                            {hashtag}
-                        </button>
-                        ))
-                    ) : (
-                        <button className="hashtag-button" onClick={() => handleClick(result.filePath, searchInput)}>
-                            {searchInput}
-                        </button>
-                    )}
+                    <button onClick={() => handleClick(result.filePath, searchInput)} className="select-button">
+                        {searchInput}
+                    </button>
                     </div>
                 ))}
             </div>

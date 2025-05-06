@@ -17,13 +17,7 @@
     margin-bottom: 15px;
 }
 
-.highlight {
-    background-color: yellow; 
-    border: 1px solid red;
-    padding: 2px;         
-}
-
-.hashtag-button {
+.select-button {
     display: block;
     border: none;
     background: transparent;
@@ -35,4 +29,4 @@
 .hashtag-button:hover {
     background-color: var(--interactive-hover);
     color: var(--text-normal);
-  }
+}
