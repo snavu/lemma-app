@@ -49,7 +49,7 @@ export const upsertNote = async (notesDirectory: string, filePath: string, conte
     // Add/update notes to vector database
     await collection.upsert({
       ids: [docId],
-      documents: [content],
+      documents: [content.toLowerCase()],
       metadatas: [{
         hashtags: updateHashtags.join(','),
         directory: notesDirectory,
@@ -98,7 +98,7 @@ export const queryNotes = async (searchQuery: string, notesDirectory: string): P
 
   const data = await collection.get({ 
     where: {"directory": notesDirectory},
-    whereDocument: {"$contains": searchQuery}
+    whereDocument: {"$contains": searchQuery.toLowerCase()}
   });
 
   const results = data.ids.map((id, index) => ({
