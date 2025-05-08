@@ -256,17 +256,23 @@ export const get_links = (): Link[] | null => {
 // Parse file content to extract linked files
 export const parse_file_links = (content: string, availableFiles: string[]): string[] => {
     const linkedFiles: string[] = [];
-    const regex = /\\\[\\\[(.*?)\\\]\\\]/g;  // Escaped links: \[\[filename\]\]
+    
+    // Regex for both escaped links \[\[filename\]\] and non-escaped links [[filename]]
+    const regex = /(?:\\\[\\\[(.*?)\\\]\\\])|(?:\[\[(.*?)\]\])/g;
     let match;
-
+    
     while ((match = regex.exec(content)) !== null) {
-        const linkedFile = match[1].trim() + '.md';
-        // Only include files that exist in the available files list
-        if (availableFiles.includes(linkedFile)) {
-            linkedFiles.push(linkedFile);
+        // The filename will be in either group 1 (escaped) or group 2 (non-escaped)
+        const filename = match[1] || match[2];
+        if (filename) {
+            const linkedFile = filename.trim() + '.md';
+            // Only include files that exist in the available files list
+            if (availableFiles.includes(linkedFile)) {
+                linkedFiles.push(linkedFile);
+            }
         }
     }
-
+    
     // Remove duplicates
     return [...new Set(linkedFiles)];
 }

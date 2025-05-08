@@ -106,7 +106,7 @@ export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onCha
     onUpdate: ({ editor }) => {
       // Convert the editor content to markdown
       const markdown = editor.storage.markdown.getMarkdown();
-      console.log('[InlineMarkdownEditor] Generated Markdown:', JSON.stringify(markdown));
+      // console.log('[InlineMarkdownEditor] Generated Markdown:', JSON.stringify(markdown));
       setMarkdownContent(markdown);
       onChange(markdown);
     },

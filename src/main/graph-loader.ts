@@ -30,16 +30,8 @@ export const syncGraphWithFiles = async (): Promise<boolean> => {
     for (const filename of filenames) {
       if (!nodeNames.includes(filename)) {
         console.log(`Adding node for new file: ${filename}`);
-        
-        // Read file content to find linked files
-        const filePath = path.join(notesDir, filename);
-        const content = fileService.readFile(filePath);
-        
-        // Parse file to extract links
-        const linkedFiles = graphService.parse_file_links(content, filenames);
-        
-        // Create node with links
-        graphService.create_node(filename, linkedFiles, 'user');
+        // Create node
+        graphService.create_node(filename, [], 'user');
       }
     }
 

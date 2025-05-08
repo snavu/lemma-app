@@ -251,7 +251,7 @@ function generateContent(nodeId) {
     content += `## Related Notes\n\n`;
     nodeLinks[nodeId].forEach(linkedId => {
       const linkedNode = graphData.nodes.find(n => n.id === linkedId);
-      content += `- [[${linkedNode.name}.md]]\n`;
+      content += `- [[${linkedNode.name}]]\n`;
     });
   }
   

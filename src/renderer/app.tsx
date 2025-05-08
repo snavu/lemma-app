@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Header } from './components/header/page';
 import { Sidebar } from './components/sidebar/Sidebar';
 import './layout.css';
@@ -28,6 +28,7 @@ export const App = () => {
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [graphRefreshTrigger, setGraphRefreshTrigger] = useState<number>(0);
   const [lastGraphJson, setLastGraphJson] = useState<string | null>(null);
+  const lastGraphJsonRef = useRef(null);
 
   // State for tabs system
   const [tabs, setTabs] = useState<TabInfo[]>([]);
@@ -174,7 +175,7 @@ export const App = () => {
     try {
       // Create a unique filename
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const fileName = `Note ${timestamp}.md`;
+      const fileName = `Note ${timestamp}`;
 
       const result = await window.electron.fs.createFile(fileName);
 
@@ -223,64 +224,97 @@ export const App = () => {
       timeoutId = setTimeout(() => fn.apply(this, args), ms);
     };
   };
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  const hasGraphChanged = async (): Promise<boolean> => {
-
-    if (!graphJsonPath || !window.electron?.fs) return false;
-
-    try {
-      // Read the current graph.json file
-      const currentGraphJson = await window.electron.fs.readFile(graphJsonPath);
-
-      // If we haven't stored the previous state yet, store it and return true
-      if (lastGraphJson === null) {
-        setLastGraphJson(currentGraphJson);
-        return true;
+// Add this useEffect to ensure proper initialization
+useEffect(() => {
+  const initializeGraph = async () => {
+    if (graphJsonPath && window.electron?.fs) {
+      try {
+        // Read the current graph.json file on mount
+        const initialGraphJson = await window.electron.fs.readFile(graphJsonPath);
+        
+        // Set both the state and the ref
+        setLastGraphJson(initialGraphJson);
+        lastGraphJsonRef.current = initialGraphJson;
+        
+        console.log('Graph data initialized');
+        
+        // Mark as initialized
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('Error initializing graph data:', error);
       }
-
-      // Compare with previous state
-      if (currentGraphJson !== lastGraphJson) {
-        // Update the stored state
-        setLastGraphJson(currentGraphJson);
-        return true;
-      }
-
-      // No change detected
-      return false;
-    } catch (error) {
-      console.error('Error checking if graph changed:', error);
-      return false;
     }
   };
+  
+  initializeGraph();
+}, [graphJsonPath]); // Only run when graphJsonPath changes or on mount
 
+const hasGraphChanged = async (): Promise<boolean> => {
+  if (!graphJsonPath || !window.electron?.fs) return false;
+ 
+  try {
+    // Read the current graph.json file
+    const currentGraphJson = await window.electron.fs.readFile(graphJsonPath);
+
+    // If we haven't stored the previous state yet, store it and return true
+    if (lastGraphJson === null) {
+      setLastGraphJson(currentGraphJson);
+      lastGraphJsonRef.current = currentGraphJson; // Update ref for immediate access
+      return true;
+    }
+
+    // Parse JSON to objects so we can examine the links
+    try {
+      // Compare with previous state - use ref for latest value
+      if (currentGraphJson !== lastGraphJsonRef.current) {
+        // Update both state and ref
+        setLastGraphJson(currentGraphJson);
+        lastGraphJsonRef.current = currentGraphJson; // Update ref immediately
+        
+        return true;
+      }
+    } catch (e) {
+      console.error('Error parsing graph JSON:', e);
+    }
+
+    // No change detected
+    return false;
+  } catch (error) {
+    console.error('Error checking if graph changed:', error);
+    return false;
+  }
+};
   // Create a debounced version of the save function
   const autoSaveDebounced = useCallback(
     debounce(async (filePath: string, content: string, updateHashtags: string[]) => {
       if (!window.electron?.fs) return;
-
+  
       try {
         // First save the file
         await window.electron.fs.saveFile(filePath, content, updateHashtags);
         console.log('Auto-saved file:', filePath);
-
-        // Then sync the graph
-        await window.electron.graph.syncGraph();
-        console.log('Synced graph');
-
-        // Check if the graph.json changed
-        const didGraphChange = await hasGraphChanged();
-
-        if (didGraphChange) {
-          console.log('Graph data changed, refreshing visualization');
-          setGraphRefreshTrigger(prev => prev + 1);
+  
+        // Only check graph changes if initialized
+        if (isInitialized) {
+          // Check if the graph.json changed
+          const didGraphChange = await hasGraphChanged();
+  
+          if (didGraphChange) {
+            console.log('Graph data changed, refreshing visualization');
+            setGraphRefreshTrigger(prev => prev + 1);
+          } else {
+            console.log('Graph data unchanged, skipping refresh');
+          }
         } else {
-          console.log('Graph data unchanged, skipping refresh');
+          console.log('Graph not initialized yet, skipping graph check');
         }
       } catch (error) {
         console.error('Error during save or sync:', error);
       }
     }, 200), // 200ms debounce time
-    []
+    [isInitialized] // Add isInitialized to dependencies
   );
 
   // Handle closing a tab
