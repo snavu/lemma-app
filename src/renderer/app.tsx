@@ -122,8 +122,8 @@ export const App = () => {
     try {
       const queryResults = searchQuery.startsWith('#', 0) ? 
                             await window.electron.db.queryDBTags(searchQuery.slice(1), notesDirectory) //
-                            : await window.electron.db.queryDBKeyWords(searchQuery.toLowerCase(), notesDirectory);
-      setResults(queryResults);
+                            : await window.electron.db.queryDBKeyWords(searchQuery, notesDirectory);
+      searchQuery === "" ? setResults([]) : setResults(queryResults);
       // console.log(queryResults);
     } catch (err) {
       console.error("Search error:", err);
@@ -249,7 +249,6 @@ export const App = () => {
       window.electron?.fs.saveFile(filePath, content, updateHashtags)
         .then(() => {
           console.log('Auto-saved file:', filePath);
-
         })
         .catch(error => {
           console.error('Failed to auto-save file:', error);
