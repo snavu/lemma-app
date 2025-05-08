@@ -5,8 +5,6 @@ import './layout.css';
 import EmptyState from './components/emptystate/EmptyState';
 import { TabBar } from './components/tabs/tab-bar/TabBar';
 import { InlineMarkdownTab } from './components/tabs/markdown/InlineMarkdownTab';
-import { SearchResults } from './components/search/searchResult';
-//import React from 'react';
 
 interface FileInfo {
   name: string;
@@ -118,13 +116,11 @@ export const App = () => {
 
   // Handle querying hashtags
   const handleSearch = async (searchQuery: string) => {
-    // console.log(searchQuery);
     try {
       const queryResults = searchQuery.startsWith('#', 0) ? 
                             await window.electron.db.queryDBTags(searchQuery.slice(1), notesDirectory) //
                             : await window.electron.db.queryDBKeyWords(searchQuery, notesDirectory);
       searchQuery === "" ? setResults([]) : setResults(queryResults);
-      // console.log(queryResults);
     } catch (err) {
       console.error("Search error:", err);
     }

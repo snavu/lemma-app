@@ -1,12 +1,5 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import './searchBar.css';
-
-interface SearchResult {
-  id: string,
-  filePath: string,
-  content: string,
-  hashtags: string[]
-};
 
 interface SearchProps {
   setSearchresult: (check: boolean) => void;
@@ -26,7 +19,6 @@ export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch, s
     };
   };
   
-  // when the user is typing
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setInputValue(value);
@@ -35,14 +27,9 @@ export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch, s
     setSearchresult(true);
   };
 
-  //debounce for searching
-  // const debouncedHandleSearch = useMemo(() => debounce(handleSearch, 300), [handleSearch]);
-  // const debouncedSetSearchInput = useMemo(() => debounce((value: string) => setSearchInput(value), 300),[]);
-
   const debouncedHandleSearch = useCallback(
     debounce((searchTerm: string) => {
       handleSearch(searchTerm);
-      console.log('Search term:', searchTerm);
     }, 300),
     [handleSearch]
   );
@@ -50,12 +37,10 @@ export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch, s
   const debouncedSetSearchInput = useCallback(
     debounce((value: string) => {
       setSearchInput(value);
-      console.log('Search input set to:', value);
     }, 300),
     []
   );
-  
-  
+
   return (
     <div className="search-container">
       <input 
