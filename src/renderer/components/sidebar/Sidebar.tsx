@@ -1,6 +1,7 @@
 import React, { useState, useCallback, ReactNode } from 'react';
 import { ContextMenu } from '../context-menu/ContextMenu';
 import './sidebar.css';
+import { SearchResults } from '../search/searchResult';
 
 interface FileInfo {
   name: string;
@@ -16,6 +17,13 @@ interface TabInfo {
   hashtags: string[];
 }
 
+interface SearchResult {
+  id: string,
+  filePath: string,
+  content: string,
+  hashtags: string[]
+};
+
 interface SidebarProps {
   files: FileInfo[];
   notesDirectory: string | null;
@@ -25,6 +33,13 @@ interface SidebarProps {
   onDeleteFile: (filePath: string) => Promise<boolean>;
   activeTab: string | null;
   setSearchresult: (check: boolean) => void;
+  results: SearchResult[];
+  searchInput: string;
+  handleFileSelect: (filePath: string) => void;
+  handleSearch: (searchQuery: string) => void;
+  setSearchInput: (input: string) => void;
+  searchResult: boolean;
+  setResults: (info: SearchResult[]) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -36,6 +51,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onDeleteFile,
   activeTab,
   setSearchresult,
+  results, 
+  searchInput, 
+  handleFileSelect,
+  handleSearch,
+  setSearchInput, 
+  searchResult,
+  setResults,
 }) => {
   // State for context menu
   const [contextMenu, setContextMenu] = useState<{
@@ -168,78 +190,91 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      <div className="notes-location">
-        {notesDirectory ? (
-          <span title={notesDirectory}>
-            <FolderIcon /> {notesDirectory.split(/[\\/]/).pop()}
-          </span>
-        ) : (
-          <span>No folder selected</span>
-        )}
-      </div>
-
-      <div className="files-list">
-        {files.length === 0 ? (
-          <div className="no-files">
-            {notesDirectory
-              ? 'No notes yet. Create your first note!'
-              : 'Select a notes folder to get started.'}
+      {!searchResult && (
+        <>
+          <div className="notes-location">
+            {notesDirectory ? (
+              <span title={notesDirectory}>
+                <FolderIcon /> {notesDirectory.split(/[\\/]/).pop()}
+              </span>
+            ) : (
+              <span>No folder selected</span>
+            )}
           </div>
-        ) : (
-          <ul>
-            {files.map((file) => (
-              <li
-                key={file.path}
-                onClick={() => onFileSelect(file.path)}
-                onContextMenu={(e) => handleContextMenu(e, file.path)}
-              >
-                <span className="file-icon"><NoteIcon /></span>
-                <span className="file-name">{file.name}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
 
-      {contextMenu.show && (
-        <ContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          onClose={closeContextMenu}
-          options={[
-            {
-              label: 'Open',
-              onClick: () => onFileSelect(contextMenu.filePath),
-              icon: <OpenIcon />
-            },
-            {
-              label: 'Rename',
-              onClick: () => {
-                // This is a placeholder - you would implement the rename functionality
-                alert('Rename functionality will be implemented soon');
-              },
-              icon: <RenameIcon />
-            },
-            {
-              label: 'Duplicate',
-              onClick: () => {
-                // This is a placeholder - you would implement the duplicate functionality
-                alert('Duplicate functionality will be implemented soon');
-              },
-              icon: <DuplicateIcon />
-            },
-            {
-              isSeparator: true
-            },
-            {
-              label: 'Delete',
-              onClick: handleDeleteFile,
-              className: 'danger',
-              icon: <DeleteIcon />
-            },
-          ]}
-        />
+          <div className="files-list">
+            {files.length === 0 ? (
+              <div className="no-files">
+                {notesDirectory
+                  ? 'No notes yet. Create your first note!'
+                  : 'Select a notes folder to get started.'}
+              </div>
+            ) : (
+              <ul>
+                {files.map((file) => (
+                  <li
+                    key={file.path}
+                    onClick={() => onFileSelect(file.path)}
+                    onContextMenu={(e) => handleContextMenu(e, file.path)}
+                  >
+                    <span className="file-icon"><NoteIcon /></span>
+                    <span className="file-name">{file.name}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {contextMenu.show && (
+            <ContextMenu
+              x={contextMenu.x}
+              y={contextMenu.y}
+              onClose={closeContextMenu}
+              options={[
+                {
+                  label: 'Open',
+                  onClick: () => onFileSelect(contextMenu.filePath),
+                  icon: <OpenIcon />
+                },
+                {
+                  label: 'Rename',
+                  onClick: () => {
+                    alert('Rename functionality will be implemented soon');
+                  },
+                  icon: <RenameIcon />
+                },
+                {
+                  label: 'Duplicate',
+                  onClick: () => {
+                    alert('Duplicate functionality will be implemented soon');
+                  },
+                  icon: <DuplicateIcon />
+                },
+                {
+                  isSeparator: true
+                },
+                {
+                  label: 'Delete',
+                  onClick: handleDeleteFile,
+                  className: 'danger',
+                  icon: <DeleteIcon />
+                },
+              ]}
+            />
+          )}
+        </>
       )}
+
+      {searchResult && 
+        <SearchResults 
+          handleFileSelect={handleFileSelect}
+          setSearchresult={setSearchresult} 
+          results={results}
+          searchInput={searchInput}
+          handleSearch={handleSearch}
+          setSearchInput={setSearchInput}
+          setResults={setResults}
+      />}
     </div>
   );
 };

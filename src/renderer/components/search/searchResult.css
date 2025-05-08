@@ -21,12 +21,14 @@
     display: block;
     border: none;
     background: transparent;
-    padding: 0 100% 10px 0;
-    /* margin: 0 0 10px 0; */
+    padding: 10px 0 10px 0;
+    width: 100%;
+    text-align: left;
     color: var(--text-muted);
+    font-size: 15px;
 }
 
-.hashtag-button:hover {
+.select-button:hover {
     background-color: var(--interactive-hover);
     color: var(--text-normal);
 }

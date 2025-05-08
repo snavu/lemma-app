@@ -42,7 +42,6 @@ export const App = () => {
   const [searchResult, setSearchResult] = useState<boolean>(false); // closing and opening UI
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searchInput, setSearchInput] = useState<string>(''); // For knowing what the input to display
-  const [searchType, setSearchType] = useState<string>('');
 
   // View mode
   const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
@@ -118,15 +117,14 @@ export const App = () => {
   }, []);
 
   // Handle querying hashtags
-  const handleSearch = async (searchType: string, searchQuery: string) => {
-    console.log(searchQuery);
+  const handleSearch = async (searchQuery: string) => {
+    // console.log(searchQuery);
     try {
-      const queryResults = searchType === "Hashtag" ? 
-                            await window.electron.db.queryDBTags(searchQuery, notesDirectory)
-                            : await window.electron.db.queryDBKeyWords(searchQuery, notesDirectory);
-      setSearchType(searchType);
+      const queryResults = searchQuery.startsWith('#', 0) ? 
+                            await window.electron.db.queryDBTags(searchQuery.slice(1), notesDirectory) //
+                            : await window.electron.db.queryDBKeyWords(searchQuery.toLowerCase(), notesDirectory);
       setResults(queryResults);
-      console.log(queryResults);
+      // console.log(queryResults);
     } catch (err) {
       console.error("Search error:", err);
     }
@@ -293,18 +291,14 @@ export const App = () => {
           onDeleteFile={handleDeleteFile}
           activeTab={activeTab}
           setSearchresult={setSearchResult} 
+          handleFileSelect={handleFileSelect}
+          results={results}
+          searchInput={searchInput}
+          handleSearch={handleSearch}
+          setSearchInput={setSearchInput}
+          searchResult={searchResult}
+          setResults={setResults}
         />
-        {searchResult && 
-          <SearchResults 
-            handleFileSelect={handleFileSelect}
-            setSearchresult={setSearchResult} 
-            results={results}
-            searchInput={searchInput}
-            handleSearch={handleSearch}
-            setSearchInput={setSearchInput}
-            searchType={searchType}
-            setResults={setResults}
-        />}
         <div className="main-content">
           <TabBar
             tabs={tabs}

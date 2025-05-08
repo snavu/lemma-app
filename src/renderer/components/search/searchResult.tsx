@@ -1,8 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Resizable } from "re-resizable";
+import React, { useState, useEffect } from 'react';
 import './searchResult.css';
 import { Search } from './searchBar';
-import { hash } from 'crypto';
 
 interface SearchResult {
     id: string,
@@ -16,9 +14,8 @@ interface SearchResultProps {
     results: SearchResult[];
     searchInput: string;
     handleFileSelect: (filePath: string) => void;
-    handleSearch: (searchType: string, searchQuery: string) => void;
+    handleSearch: (searchQuery: string) => void;
     setSearchInput: (input: string) => void;
-    searchType: string;
     setResults: (info: SearchResult[]) => void;
 }
 
@@ -29,7 +26,6 @@ export const SearchResults: React.FC<SearchResultProps> = ({
     setSearchresult,
     handleSearch,
     setSearchInput, 
-    searchType,
     setResults,
 }) => {
     //
@@ -45,15 +41,14 @@ export const SearchResults: React.FC<SearchResultProps> = ({
 
         // need a timeout for the dom to load
         setTimeout(() => {
-            if (searchType.toLowerCase() === "hashtag") {
-                word = '#' + word;
+            if (searchInput.startsWith('#', 0)) {
                 document.querySelectorAll(`span.tag-node[contenteditable="false"][data-tag="${word.slice(1)}"][tagname="${word.slice(1)}"]`).forEach(elem => {
                     if (elem.textContent.includes(searchInput)) {
                         hashtagResults.push(elem);
                     }
                 });
                 setRes(hashtagResults);
-            } else if (searchType.toLowerCase() === "keyword") {
+            } else {
                 document.querySelectorAll("p").forEach(elem => {
                     if (elem.textContent.includes(searchInput)) {
                         keywordResults.push(elem);
@@ -124,41 +119,31 @@ export const SearchResults: React.FC<SearchResultProps> = ({
       
   return (
     <div className="search-container">
-        <Resizable
-            defaultSize={{
-            width: 250,
-            height: "100%",
-            }}
-            minWidth={250}
-            maxWidth={400}
-            enable={{ right: true }}>
-            <div className="search-result">
-                <Search 
-                        setSearchresult={setSearchresult}
-                        handleSearch={handleSearch}
-                        setSearchInput={setSearchInput}
-                        setResults={setResults}
-                />
-                <button 
-                    onClick={() => {
-                        setSearchresult(false);
-                        setResults([]);
-                      }}                      
-                    className="close-button">
-                    <CloseIcon/>
+        <div className="search-result">
+            <Search 
+                    setSearchresult={setSearchresult}
+                    handleSearch={handleSearch}
+                    setSearchInput={setSearchInput}
+            />
+            <button 
+                onClick={() => {
+                    setSearchresult(false);
+                    setResults([]);
+                    }}                      
+                className="close-button">
+                <CloseIcon/>
+            </button>
+        </div>
+        <div>
+            {results.map((result: SearchResult, index) => (
+                <div key={index}>
+                <div>{result.filePath.split(/[/\\]/).pop()}</div>
+                <button onClick={() => handleClick(result.filePath, searchInput)} className="select-button">
+                    {searchInput}
                 </button>
-            </div>
-            <div>
-                {results.map((result: SearchResult, index) => (
-                    <div key={index}>
-                    <div>{result.filePath.split(/[/\\]/).pop()}</div>
-                    <button onClick={() => handleClick(result.filePath, searchInput)} className="select-button">
-                        {searchInput}
-                    </button>
-                    </div>
-                ))}
-            </div>
-        </Resizable>
+                </div>
+            ))}
+        </div>
     </div>
   );
 };
