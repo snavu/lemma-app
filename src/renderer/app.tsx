@@ -1,96 +1,52 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+// src/App.tsx
+import { useState, useEffect } from 'react';
 import { Header } from './components/header/page';
 import { Sidebar } from './components/sidebar/Sidebar';
 import './layout.css';
 import EmptyState from './components/emptystate/EmptyState';
 import { TabBar } from './components/tabs/tab-bar/TabBar';
 import { InlineMarkdownTab } from './components/tabs/markdown/InlineMarkdownTab';
-//import React from 'react';
-
-interface FileInfo {
-  name: string;
-  path: string;
-  stats?: any;
-}
-
-interface TabInfo {
-  id: string;
-  filePath: string;
-  fileName: string;
-  content: string;
-  hashtags: string[];
-}
+import { useFiles } from './hooks/useFiles';
+import { useTabs } from './hooks/useTabs';
+import { useGraphState } from './hooks/useGraphState';
+import { useNotesSync } from './hooks/useNotesSync';
 
 export const App = () => {
-  // State for files and directories
-  const [notesDirectory, setNotesDirectory] = useState<string | null>(null);
-  const [graphJsonPath, setGraphJsonPath] = useState<string | null>(null);
-  const [files, setFiles] = useState<FileInfo[]>([]);
-  const [graphRefreshTrigger, setGraphRefreshTrigger] = useState<number>(0);
-  const [lastGraphJson, setLastGraphJson] = useState<string | null>(null);
-  const lastGraphJsonRef = useRef(null);
-
-  // State for tabs system
-  const [tabs, setTabs] = useState<TabInfo[]>([]);
-  const [activeTab, setActiveTab] = useState<string | null>(null);
-
   // View mode
   const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
 
-  // Check for default directory on initial load
-  useEffect(() => {
-    const checkForDefaultDirectory = async () => {
-      if (window.electron?.fs) {
-        try {
-          const directory = await window.electron.fs.getNotesDirectory();
-          if (directory) {
-            setNotesDirectory(directory);
-            const path = await window.electron.fs.getGraphJsonPath();
-            if (path) {
-              setGraphJsonPath(path);
-            }
-          }
-        } catch (error) {
-          console.error('Failed to get default notes directory:', error);
-        }
-      }
-    };
+  // Use custom hooks 
+  const { 
+    files, 
+    notesDirectory,
+    graphJsonPath, 
+    handleSelectDirectory,
+    handleDeleteFile,
+    handleNewNote
+  } = useFiles();
 
-    checkForDefaultDirectory();
-  }, []);
+  const {
+    tabs,
+    activeTab,
+    setActiveTab,
+    handleFileSelect,
+    handleCloseTab,
+    getCurrentTabContent
+  } = useTabs(files);
 
-  // Load files when directory is selected
-  useEffect(() => {
-    const loadFiles = async () => {
-      if (notesDirectory && window.electron?.fs) {
-        try {
-          const files = await window.electron.fs.getFiles();
-          setFiles(files);
-          const currentGraphJson = await window.electron.fs.readFile(graphJsonPath);
-          setLastGraphJson(currentGraphJson);
-        } catch (error) {
-          console.error('Failed to load files:', error);
-        }
-      }
-    };
+  const {
+    graphRefreshTrigger,
+    isInitialized,
+    hasGraphChanged,
+    triggerGraphRefresh
+  } = useGraphState(graphJsonPath);
 
-    if (notesDirectory) {
-      loadFiles();
-    }
-  }, [notesDirectory]);
-
-  // Set up directory selection listener
-  useEffect(() => {
-    if (window.electron?.on) {
-      const removeListener = window.electron.on.notesDirectorySelected((directory) => {
-        setNotesDirectory(directory);
-      });
-
-      return () => {
-        removeListener();
-      };
-    }
-  }, []);
+  const { handleNoteChange } = useNotesSync(
+    tabs, 
+    isInitialized, 
+    hasGraphChanged, 
+    triggerGraphRefresh
+  );
 
   // Set up new note listener from menu
   useEffect(() => {
@@ -103,237 +59,7 @@ export const App = () => {
         removeListener();
       };
     }
-  }, []);
-
-  // Handle selecting notes directory
-  const handleSelectDirectory = useCallback(async () => {
-    if (window.electron?.fs) {
-      await window.electron.fs.selectDirectory();
-    }
-  }, []);
-
-  // Handle file selection from sidebar
-  const handleFileSelect = useCallback(async (filePath: string) => {
-    if (!window.electron?.fs) return;
-
-    // Check if file is already open in a tab
-    const existingTab = tabs.find(tab => tab.filePath === filePath);
-    if (existingTab) {
-      setActiveTab(existingTab.id);
-      return;
-    }
-
-    try {
-      const content = await window.electron.fs.readFile(filePath);
-      const fileName = filePath.split(/[\\/]/).pop() || 'Untitled';
-
-      const newTab: TabInfo = {
-        id: `tab-${Date.now()}`,
-        filePath,
-        fileName,
-        content,
-        hashtags: [],
-      };
-
-      setTabs(prevTabs => [...prevTabs, newTab]);
-      setActiveTab(newTab.id);
-    } catch (error) {
-      console.error('Failed to open file:', error);
-    }
-  }, [tabs]);
-
-  // Handle file deletion
-  const handleDeleteFile = useCallback(async (filePath: string) => {
-    if (!window.electron?.fs) return;
-
-    try {
-      // Delete the file
-      await window.electron.fs.deleteFile(filePath);
-
-      // Refresh the files list
-      const updatedFiles = await window.electron.fs.getFiles();
-      setFiles(updatedFiles);
-
-      // If the file is open in a tab, close it
-      const tabToClose = tabs.find(tab => tab.filePath === filePath);
-      if (tabToClose) {
-        handleCloseTab(tabToClose.id);
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Failed to delete file:', error);
-      return false;
-    }
-  }, [tabs]);
-
-  // Handle creating a new note
-  const handleNewNote = useCallback(async () => {
-    if (!window.electron?.fs) return;
-
-    // The app will now use the default directory if one isn't already set
-    try {
-      // Create a unique filename
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const fileName = `Note ${timestamp}`;
-
-      const result = await window.electron.fs.createFile(fileName);
-
-      // Refresh files list
-      const newFiles = await window.electron.fs.getFiles();
-      setFiles(newFiles);
-
-      // Get the notes directory if it's not already set
-      if (!notesDirectory) {
-        const directory = await window.electron.fs.getNotesDirectory();
-        setNotesDirectory(directory);
-      }
-
-      // Open the new file
-      await handleFileSelect(result.filePath);
-    } catch (error) {
-      console.error('Failed to create new note:', error);
-    }
-  }, [notesDirectory, handleFileSelect]);
-
-  // Handle markdown content change
-  const handleNoteChange = useCallback((tabId: string, newContent: string, hashtags: string[]) => {
-    // Find the tab that changed
-    const tabToUpdate = tabs.find(tab => tab.id === tabId);
-
-    if (!tabToUpdate) return;
-
-    // Update the tab's content in state
-    setTabs(prevTabs => prevTabs.map(tab =>
-      tab.id === tabId ? { ...tab, content: newContent } : tab
-    ));
-
-    // Auto-save the content to the file
-    if (window.electron && tabToUpdate.filePath) {
-      // Add debouncing here to avoid too many saves
-      console.log("saved: { Hashtags", hashtags, "}");
-      autoSaveDebounced(tabToUpdate.filePath, newContent, hashtags);
-    }
-  }, [tabs]);
-
-  // Debounce function to limit the rate of auto-saving
-  const debounce = (fn: Function, ms = 1000) => {
-    let timeoutId: ReturnType<typeof setTimeout>;
-    return function (...args: any[]) {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => fn.apply(this, args), ms);
-    };
-  };
-  const [isInitialized, setIsInitialized] = useState(false);
-
-// Add this useEffect to ensure proper initialization
-useEffect(() => {
-  const initializeGraph = async () => {
-    if (graphJsonPath && window.electron?.fs) {
-      try {
-        // Read the current graph.json file on mount
-        const initialGraphJson = await window.electron.fs.readFile(graphJsonPath);
-        
-        // Set both the state and the ref
-        setLastGraphJson(initialGraphJson);
-        lastGraphJsonRef.current = initialGraphJson;
-        
-        console.log('Graph data initialized');
-        
-        // Mark as initialized
-        setIsInitialized(true);
-      } catch (error) {
-        console.error('Error initializing graph data:', error);
-      }
-    }
-  };
-  
-  initializeGraph();
-}, [graphJsonPath]); // Only run when graphJsonPath changes or on mount
-
-const hasGraphChanged = async (): Promise<boolean> => {
-  if (!graphJsonPath || !window.electron?.fs) return false;
- 
-  try {
-    // Read the current graph.json file
-    const currentGraphJson = await window.electron.fs.readFile(graphJsonPath);
-
-    // If we haven't stored the previous state yet, store it and return true
-    if (lastGraphJson === null) {
-      setLastGraphJson(currentGraphJson);
-      lastGraphJsonRef.current = currentGraphJson; // Update ref for immediate access
-      return true;
-    }
-
-    // Parse JSON to objects so we can examine the links
-    try {
-      // Compare with previous state - use ref for latest value
-      if (currentGraphJson !== lastGraphJsonRef.current) {
-        // Update both state and ref
-        setLastGraphJson(currentGraphJson);
-        lastGraphJsonRef.current = currentGraphJson; // Update ref immediately
-        
-        return true;
-      }
-    } catch (e) {
-      console.error('Error parsing graph JSON:', e);
-    }
-
-    // No change detected
-    return false;
-  } catch (error) {
-    console.error('Error checking if graph changed:', error);
-    return false;
-  }
-};
-  // Create a debounced version of the save function
-  const autoSaveDebounced = useCallback(
-    debounce(async (filePath: string, content: string, updateHashtags: string[]) => {
-      if (!window.electron?.fs) return;
-  
-      try {
-        // First save the file
-        await window.electron.fs.saveFile(filePath, content, updateHashtags);
-        console.log('Auto-saved file:', filePath);
-  
-        // Only check graph changes if initialized
-        if (isInitialized) {
-          // Check if the graph.json changed
-          const didGraphChange = await hasGraphChanged();
-  
-          if (didGraphChange) {
-            console.log('Graph data changed, refreshing visualization');
-            setGraphRefreshTrigger(prev => prev + 1);
-          } else {
-            console.log('Graph data unchanged, skipping refresh');
-          }
-        } else {
-          console.log('Graph not initialized yet, skipping graph check');
-        }
-      } catch (error) {
-        console.error('Error during save or sync:', error);
-      }
-    }, 200), // 200ms debounce time
-    [isInitialized] // Add isInitialized to dependencies
-  );
-
-  // Handle closing a tab
-  const handleCloseTab = useCallback((tabId: string) => {
-    setTabs(prevTabs => prevTabs.filter(tab => tab.id !== tabId));
-
-    // If closing the active tab, activate another tab if available
-    if (activeTab === tabId) {
-      const remainingTabs = tabs.filter(tab => tab.id !== tabId);
-      setActiveTab(remainingTabs.length > 0 ? remainingTabs[0].id : null);
-    }
-  }, [tabs, activeTab]);
-
-  // Get current tab content
-  const getCurrentTabContent = useCallback(() => {
-    if (!activeTab) return '';
-    const currentTab = tabs.find(tab => tab.id === activeTab);
-    return currentTab?.content || '';
-  }, [activeTab, tabs]);
+  }, [handleNewNote]);
 
   return (
     <div className="app">
