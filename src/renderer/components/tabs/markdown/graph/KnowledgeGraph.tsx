@@ -57,7 +57,7 @@ const KnowledgeGraph = ({ graphJsonPath, onChange, graphRefreshTrigger = 0 }: Kn
       );
       composer.addPass(bloomPass);
     }
-  }, [graphData]); // re-run when data is loaded
+  }, [graphData !== null]); // re-run when data is loaded
 
   return (
     <div className="knowledge-graph" ref={containerRef}>
