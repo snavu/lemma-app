@@ -8,9 +8,10 @@ import { FileInfo } from 'src/renderer/hooks/useFiles';
 interface KnowledgeGraphProps {
   graphJsonPath: string;
   graphRefreshTrigger?: number;
-  files?: FileInfo[]; // Add files prop
-  onFileSelect?: (filePath: string) => void; // Add onFileSelect prop
-  notesDirectory?: string; // Add notes directory path
+  files?: FileInfo[];
+  onFileSelect?: (filePath: string) => void;
+  notesDirectory?: string;
+  focusNodeId?: string; // New prop to receive active file name for highlighting
 }
 
 interface GraphData {
@@ -18,12 +19,12 @@ interface GraphData {
   links: Array<{ source: string; target: string;[key: string]: any }>;
 }
 
-// The component itself is the same, just wrapped with memo at the export
 const KnowledgeGraph = ({
   graphJsonPath,
   graphRefreshTrigger = 0,
   files = [],
   onFileSelect,
+  focusNodeId,
 }: KnowledgeGraphProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const fgRef = useRef<any>(null);
@@ -59,66 +60,66 @@ const KnowledgeGraph = ({
         setError('Graph path is not available');
         return;
       }
-  
+
       console.log('Refreshing graph data from:', graphJsonPath);
       const fileContent = await window.electron.fs.readFile(graphJsonPath);
       const data = JSON.parse(fileContent) as GraphData;
-  
+
       // Get the old data
       const oldNodes = graphData?.nodes || [];
       const oldLinks = graphData?.links || [];
       const newNodes = data.nodes || [];
       const newLinks = data.links || [];
-  
+
       // Find added nodes (in new data but not in old data)
-      const addedNodes = newNodes.filter(newNode => 
+      const addedNodes = newNodes.filter(newNode =>
         !oldNodes.some(oldNode => oldNode.id === newNode.id)
       );
-  
+
       // Find added links (in new data but not in old data)
-      const addedLinks = newLinks.filter(newLink => 
-        !oldLinks.some(oldLink => 
+      const addedLinks = newLinks.filter(newLink =>
+        !oldLinks.some(oldLink =>
           oldLink.source === newLink.source && oldLink.target === newLink.target
         )
       );
-  
+
       // Find removed nodes (in old data but not in new data)
       const removedNodeIds = oldNodes
         .filter(oldNode => !newNodes.some(newNode => newNode.id === oldNode.id))
         .map(node => node.id);
-  
+
       // Find removed links (in old data but not in new data)
       const removedLinkIndices = oldLinks
         .map((oldLink, index) => {
-          const exists = newLinks.some(newLink => 
+          const exists = newLinks.some(newLink =>
             newLink.source === oldLink.source && newLink.target === oldLink.target
           );
           return exists ? -1 : index;
         })
         .filter(index => index !== -1);
-  
+
       // Update the graph data with additions and removals
       setGraphData(prevData => {
         if (!prevData) return data; // If no previous data, just use the new data
-  
+
         // Keep nodes that weren't removed and add new ones
         const updatedNodes = prevData.nodes
           .filter(node => !removedNodeIds.includes(node.id))
           .concat(addedNodes);
-  
+
         // Keep links that weren't removed and add new ones
         const updatedLinks = prevData.links
           .filter((_, index) => !removedLinkIndices.includes(index))
           .concat(addedLinks);
-  
+
         return {
           nodes: updatedNodes,
           links: updatedLinks
         };
       });
-      
+
       console.log('Graph data refreshed with additions and removals');
-  
+
     } catch (err) {
       console.error('Error refreshing graph data:', err);
       setError(`Failed to refresh graph data: ${err}`);
@@ -147,8 +148,22 @@ const KnowledgeGraph = ({
     }
   }, [graphData !== null]); // re-run when data is loaded
 
+  // Find node by file name
+  const findNodeByFileName = (fileName: string) => {
+    if (!graphData || !graphData.nodes || !fileName) return null;
+
+    return graphData.nodes.find(node => {
+      // If node has name property, check if it matches the file name
+      // You might need to adjust this depending on how node names are formatted
+      if (node.name) {
+        return node.name.toLowerCase() === fileName.toLowerCase();
+      }
+
+    });
+  };
+
   // Function to find a file by its name
-  const findFileByName = (nodeName: string): string | undefined => {
+  const findFileByNodeName = (nodeName: string): string | undefined => {
     if (!files || !files.length) return undefined;
 
     const exactMatch = files.find(file => {
@@ -199,7 +214,7 @@ const KnowledgeGraph = ({
   const openFile = (nodeName: string) => {
     // If we have onFileSelect prop and node has a name property
     if (onFileSelect && nodeName) {
-      const filePath = findFileByName(nodeName);
+      const filePath = findFileByNodeName(nodeName);
 
       if (filePath) {
         console.log('Opening file:', filePath);
@@ -209,6 +224,22 @@ const KnowledgeGraph = ({
       }
     }
   }
+
+  // Effect to focus on node when focusNodeId changes
+  useEffect(() => {
+    if (!focusNodeId || !graphData) return;
+
+    // Find the node matching the focusNodeId
+    const nodeToFocus = findNodeByFileName(focusNodeId);
+
+    if (nodeToFocus) {
+      console.log('Focusing on node from file selection:', nodeToFocus);
+      setHighlightedNode(nodeToFocus.id);
+      setTimeout(() => {
+        focusOnNode(nodeToFocus);
+      }, 200);
+    }
+  }, [focusNodeId, graphData]);
 
   return (
     <div className="knowledge-graph" ref={containerRef}>
@@ -230,7 +261,7 @@ const KnowledgeGraph = ({
 
             // Focus the camera on the clicked node
             focusOnNode(node);
-            
+
             // Open the file associated with the node
             openFile(node.name);
 

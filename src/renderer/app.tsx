@@ -31,6 +31,7 @@ export const App = () => {
   const {
     tabs,
     activeTab,
+    activeFileName,
     setActiveTab,
     updateTabContent,
     handleFileSelect,
@@ -124,6 +125,7 @@ export const App = () => {
                 graphJsonPath={graphJsonPath}
                 files={files}
                 onFileSelect={handleFileSelect}
+                focusNodeId={activeFileName} 
               />
             )}
           </div>

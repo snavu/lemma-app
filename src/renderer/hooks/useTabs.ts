@@ -13,6 +13,7 @@ export interface TabInfo {
 export const useTabs = (files: FileInfo[]) => {
   const [tabs, setTabs] = useState<TabInfo[]>([]);
   const [activeTab, setActiveTab] = useState<string | null>(null);
+  const [activeFileName, setActiveFileName] = useState<string | null>(null); 
 
   // Handle file selection from sidebar
   const handleFileSelect = useCallback(async (filePath: string) => {
@@ -22,6 +23,7 @@ export const useTabs = (files: FileInfo[]) => {
     const existingTab = tabs.find(tab => tab.filePath === filePath);
     if (existingTab) {
       setActiveTab(existingTab.id);
+      setActiveFileName(existingTab.fileName); 
       return;
     }
 
@@ -39,10 +41,23 @@ export const useTabs = (files: FileInfo[]) => {
 
       setTabs(prevTabs => [...prevTabs, newTab]);
       setActiveTab(newTab.id);
+      setActiveFileName(fileName); // Set active file name when creating a new tab
     } catch (error) {
       console.error('Failed to open file:', error);
     }
   }, [tabs]);
+
+  // Effect to update activeFileName when activeTab changes
+  useEffect(() => {
+    if (activeTab) {
+      const currentTab = tabs.find(tab => tab.id === activeTab);
+      if (currentTab) {
+        setActiveFileName(currentTab.fileName);
+      }
+    } else {
+      setActiveFileName(null);
+    }
+  }, [activeTab, tabs]);
 
   // Handle closing a tab
   const handleCloseTab = useCallback((tabId: string) => {
@@ -51,7 +66,13 @@ export const useTabs = (files: FileInfo[]) => {
     // If closing the active tab, activate another tab if available
     if (activeTab === tabId) {
       const remainingTabs = tabs.filter(tab => tab.id !== tabId);
-      setActiveTab(remainingTabs.length > 0 ? remainingTabs[0].id : null);
+      if (remainingTabs.length > 0) {
+        setActiveTab(remainingTabs[0].id);
+        setActiveFileName(remainingTabs[0].fileName); // Update active file name
+      } else {
+        setActiveTab(null);
+        setActiveFileName(null);
+      }
     }
   }, [tabs, activeTab]);
 
@@ -69,7 +90,13 @@ export const useTabs = (files: FileInfo[]) => {
       // If active tab was deleted, switch to another tab
       if (activeTab && deletedFileTabs.some(tab => tab.id === activeTab)) {
         const remainingTabs = tabs.filter(tab => filePaths.has(tab.filePath));
-        setActiveTab(remainingTabs.length > 0 ? remainingTabs[0].id : null);
+        if (remainingTabs.length > 0) {
+          setActiveTab(remainingTabs[0].id);
+          setActiveFileName(remainingTabs[0].fileName); // Update active file name
+        } else {
+          setActiveTab(null);
+          setActiveFileName(null);
+        }
       }
     }
   }, [files, tabs, activeTab]);
@@ -91,6 +118,7 @@ export const useTabs = (files: FileInfo[]) => {
   return {
     tabs,
     activeTab,
+    activeFileName,
     setActiveTab,
     handleFileSelect,
     handleCloseTab,
