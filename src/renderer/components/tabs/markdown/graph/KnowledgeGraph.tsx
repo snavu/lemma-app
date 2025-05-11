@@ -54,6 +54,24 @@ const KnowledgeGraph = ({
     loadGraphData();
   }, [graphJsonPath]);
 
+  // Handle initial graph data loading - try to focus on active file when data first loads
+  useEffect(() => {
+    // This effect runs when graphData changes from null to populated
+    if (graphData && focusNodeId) {
+      const nodeToFocus = findNodeByFileName(focusNodeId);
+      if (nodeToFocus) {
+        console.log('Initial graph load - focusing on active file:', nodeToFocus);
+        setHighlightedNode(nodeToFocus.id);
+
+        // Use a longer delay for initial graph stabilization
+        setTimeout(() => {
+          focusOnNode(nodeToFocus);
+        }, 600);
+      }
+    }
+  }, [!!graphData]); // Only runs when graphData goes from falsy to truthy
+
+
   const refreshGraphData = async () => {
     try {
       if (!graphJsonPath) {
@@ -239,7 +257,7 @@ const KnowledgeGraph = ({
         focusOnNode(nodeToFocus);
       }, 200);
     }
-  }, [focusNodeId, graphData]);
+  }, [focusNodeId]);
 
   return (
     <div className="knowledge-graph" ref={containerRef}>
