@@ -38,7 +38,7 @@ const getTagElement = (tag: string): string => {
 export const upsertNote = async (notesDirectory: string, filePath: string, content: string, updateHashtags: string[]) => {
   const docId = getId(filePath, "file");
   // const dirId = getId(notesDirectory, "dir");
-  console.log("Updated hashtags:", updateHashtags); // Debugging line
+  // console.log("Updated hashtags:", updateHashtags); // Debugging line
   try {
     // Get the notes collection
     const collection = await client.getOrCreateCollection({
@@ -58,14 +58,33 @@ export const upsertNote = async (notesDirectory: string, filePath: string, conte
     });
 
     // Get document from database for debugging
-    const results = await collection.get({
-      ids: [docId],
-    });
-    console.log("Document successfully upserted:", results); // Output results
+    // const results = await collection.get({
+    //   ids: [docId],
+    // });
+    // console.log("Document successfully upserted:", filePath); // Output results
   } catch (error) {
     console.error("Error during ChromaDB operation:", error);
   }
 };
+
+// Deletes the document of the specified note
+export const deleteNote = async (notesDirectory: string, filePath?: string) => {
+  const docId = getId(filePath, "file");
+  try {
+    // Get the notes collection
+    const collection = await client.getOrCreateCollection({
+      name: "Notes",
+      embeddingFunction: embedFunc,
+    });
+
+    await collection.delete({
+      ids: [docId],
+      where: {"directory": notesDirectory}
+    });
+  } catch (error) {
+    console.error("Error during ChromaDB operation:", error);
+  }
+}
 
 // Queries all notes in the directory
 export const queryAllNotes = async (notesDirectory: string): Promise<Note[]> => {
@@ -79,7 +98,7 @@ export const queryAllNotes = async (notesDirectory: string): Promise<Note[]> => 
   const data = await collection.get({ where: {"directory": notesDirectory} });
 
   // Transform the queried results into a list of notes
-  const results = data.ids.map((id, index) => ({
+  const results = data.ids.map((id: string, index: number) => ({
     id: id,
     filePath: String(data.metadatas[index].filePath),
     content: data.documents[index],
@@ -101,7 +120,7 @@ export const queryNotes = async (searchQuery: string, notesDirectory: string): P
     whereDocument: {"$contains": searchQuery.toLowerCase()}
   });
 
-  const results = data.ids.map((id, index) => ({
+  const results = data.ids.map((id: string, index: number) => ({
     id: id,
     filePath: String(data.metadatas[index].filePath),
     content: data.documents[index],
