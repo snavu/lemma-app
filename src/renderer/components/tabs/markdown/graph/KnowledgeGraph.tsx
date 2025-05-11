@@ -29,6 +29,7 @@ const KnowledgeGraph = ({
   const fgRef = useRef<any>(null);
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [highlightedNode, setHighlightedNode] = useState<string | null>(null);
 
   const loadGraphData = async () => {
     try {
@@ -79,6 +80,43 @@ const KnowledgeGraph = ({
     if (exactMatch) return exactMatch.path;
   };
 
+  // Function to focus camera on a node
+  const focusOnNode = (node: any) => {
+    if (!fgRef.current) return;
+    
+    // Disable navigation controls temporarily
+    if (fgRef.current.controls) {
+      fgRef.current.controls().enabled = false;
+    }
+    
+    // Calculate distance ratio for positioning
+    const distance = 400;
+    const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
+    
+    // Calculate new position
+    const newPos = node.x || node.y || node.z
+      ? {
+          x: node.x * distRatio,
+          y: node.y * distRatio,
+          z: node.z * distRatio
+        }
+      : { x: 0, y: 0, z: distance }; // special case if node is in (0,0,0)
+    
+    // Animate camera to focus on node
+    fgRef.current.cameraPosition(
+      newPos,           // new position
+      node,             // lookAt ({ x, y, z })
+      3000              // ms transition duration
+    );
+    
+    // Re-enable navigation controls after animation completes
+    setTimeout(() => {
+      if (fgRef.current && fgRef.current.controls) {
+        fgRef.current.controls().enabled = true;
+      }
+    }, 3000);
+  };
+
   return (
     <div className="knowledge-graph" ref={containerRef}>
       {graphData && (
@@ -88,26 +126,44 @@ const KnowledgeGraph = ({
           width={containerRef.current?.clientWidth || window.innerWidth}
           height={containerRef.current?.clientHeight || window.innerHeight}
           backgroundColor="#020305"
-          nodeColor={() => "#4270fc"}
-          nodeRelSize={4}
           linkColor={() => "#bababa"}
           nodeResolution={16}
           nodeLabel={(node: any) => node.name || node.id}
           onNodeClick={(node: any) => {
             console.log('Node clicked:', node);
+            
+            // Set this node as highlighted
+            setHighlightedNode(node.id);
+            
+            // Focus the camera on the clicked node
+            focusOnNode(node);
 
-            // If we have onFileSelect prop and node has a name property
-            if (onFileSelect && node.name) {
-              const filePath = findFileByName(node.name);
+            // // If we have onFileSelect prop and node has a name property
+            // if (onFileSelect && node.name) {
+            //   const filePath = findFileByName(node.name);
 
-              if (filePath) {
-                console.log('Opening file:', filePath);
-                onFileSelect(filePath);
-              } else {
-                console.log('No matching file found for node:', node.name);
-              }
-            }
+            //   if (filePath) {
+            //     console.log('Opening file:', filePath);
+            //     onFileSelect(filePath);
+            //   } else {
+            //     console.log('No matching file found for node:', node.name);
+            //   }
+            // }
           }}
+          nodeThreeObject={(node: any) => {
+            // Create a sphere for the node
+            const material = new THREE.MeshLambertMaterial({
+              color: node.id === highlightedNode ? "#96b0ff" : "#4270fc",
+              transparent: true,
+              opacity: 0.9
+            });
+            
+            // Make highlighted nodes larger
+            const size = node.id === highlightedNode ? 6 : 4;
+            const geometry = new THREE.SphereGeometry(size);
+            return new THREE.Mesh(geometry, material);
+          }}
+          nodeThreeObjectExtend={false}
         />
       )}
       {!graphData && !error && (

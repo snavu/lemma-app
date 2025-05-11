@@ -71,7 +71,6 @@ export const InlineMarkdownTab = ({
         graphJsonPath={graphJsonPath}
         files={files}
         onFileSelect={onFileSelect}
-        notesDirectory={notesDirectory}
       />
     </div>
   );

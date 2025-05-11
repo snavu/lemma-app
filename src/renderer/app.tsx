@@ -101,7 +101,6 @@ export const App = () => {
               viewMode={viewMode}
               onFileSelect={handleFileSelect}
               graphJsonPath={graphJsonPath}
-              notesDirectory={notesDirectory}
               currentFilePath={getCurrentFilePath()}
               onChange={(content, hashtags) => handleNoteChange(activeTab, content, hashtags)}
               graphRefreshTrigger={graphRefreshTrigger}
