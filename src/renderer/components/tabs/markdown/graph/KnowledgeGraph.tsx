@@ -51,7 +51,86 @@ const KnowledgeGraph = ({
 
   useEffect(() => {
     loadGraphData();
-  }, [graphJsonPath, graphRefreshTrigger]);
+  }, [graphJsonPath]);
+
+  const refreshGraphData = async () => {
+    try {
+      if (!graphJsonPath) {
+        setError('Graph path is not available');
+        return;
+      }
+  
+      console.log('Refreshing graph data from:', graphJsonPath);
+      const fileContent = await window.electron.fs.readFile(graphJsonPath);
+      const data = JSON.parse(fileContent) as GraphData;
+  
+      // Get the old data
+      const oldNodes = graphData?.nodes || [];
+      const oldLinks = graphData?.links || [];
+      const newNodes = data.nodes || [];
+      const newLinks = data.links || [];
+  
+      // Find added nodes (in new data but not in old data)
+      const addedNodes = newNodes.filter(newNode => 
+        !oldNodes.some(oldNode => oldNode.id === newNode.id)
+      );
+  
+      // Find added links (in new data but not in old data)
+      const addedLinks = newLinks.filter(newLink => 
+        !oldLinks.some(oldLink => 
+          oldLink.source === newLink.source && oldLink.target === newLink.target
+        )
+      );
+  
+      // Find removed nodes (in old data but not in new data)
+      const removedNodeIds = oldNodes
+        .filter(oldNode => !newNodes.some(newNode => newNode.id === oldNode.id))
+        .map(node => node.id);
+  
+      // Find removed links (in old data but not in new data)
+      const removedLinkIndices = oldLinks
+        .map((oldLink, index) => {
+          const exists = newLinks.some(newLink => 
+            newLink.source === oldLink.source && newLink.target === oldLink.target
+          );
+          return exists ? -1 : index;
+        })
+        .filter(index => index !== -1);
+  
+      // Update the graph data with additions and removals
+      setGraphData(prevData => {
+        if (!prevData) return data; // If no previous data, just use the new data
+  
+        // Keep nodes that weren't removed and add new ones
+        const updatedNodes = prevData.nodes
+          .filter(node => !removedNodeIds.includes(node.id))
+          .concat(addedNodes);
+  
+        // Keep links that weren't removed and add new ones
+        const updatedLinks = prevData.links
+          .filter((_, index) => !removedLinkIndices.includes(index))
+          .concat(addedLinks);
+  
+        return {
+          nodes: updatedNodes,
+          links: updatedLinks
+        };
+      });
+      
+      console.log('Graph data refreshed with additions and removals');
+  
+    } catch (err) {
+      console.error('Error refreshing graph data:', err);
+      setError(`Failed to refresh graph data: ${err}`);
+    }
+  };
+
+  useEffect(() => {
+    if (graphRefreshTrigger) {
+      refreshGraphData();
+    }
+  }, [graphRefreshTrigger]);
+
 
   useEffect(() => {
     if (!fgRef.current) return;
@@ -83,32 +162,32 @@ const KnowledgeGraph = ({
   // Function to focus camera on a node
   const focusOnNode = (node: any) => {
     if (!fgRef.current) return;
-    
+
     // Disable navigation controls temporarily
     if (fgRef.current.controls) {
       fgRef.current.controls().enabled = false;
     }
-    
+
     // Calculate distance ratio for positioning
     const distance = 400;
     const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
-    
+
     // Calculate new position
     const newPos = node.x || node.y || node.z
       ? {
-          x: node.x * distRatio,
-          y: node.y * distRatio,
-          z: node.z * distRatio
-        }
+        x: node.x * distRatio,
+        y: node.y * distRatio,
+        z: node.z * distRatio
+      }
       : { x: 0, y: 0, z: distance }; // special case if node is in (0,0,0)
-    
+
     // Animate camera to focus on node
     fgRef.current.cameraPosition(
       newPos,           // new position
       node,             // lookAt ({ x, y, z })
       3000              // ms transition duration
     );
-    
+
     // Re-enable navigation controls after animation completes
     setTimeout(() => {
       if (fgRef.current && fgRef.current.controls) {
@@ -116,6 +195,20 @@ const KnowledgeGraph = ({
       }
     }, 3000);
   };
+
+  const openFile = (nodeName: string) => {
+    // If we have onFileSelect prop and node has a name property
+    if (onFileSelect && nodeName) {
+      const filePath = findFileByName(nodeName);
+
+      if (filePath) {
+        console.log('Opening file:', filePath);
+        onFileSelect(filePath);
+      } else {
+        console.log('No matching file found for node:', nodeName);
+      }
+    }
+  }
 
   return (
     <div className="knowledge-graph" ref={containerRef}>
@@ -131,24 +224,16 @@ const KnowledgeGraph = ({
           nodeLabel={(node: any) => node.name || node.id}
           onNodeClick={(node: any) => {
             console.log('Node clicked:', node);
-            
+
             // Set this node as highlighted
             setHighlightedNode(node.id);
-            
+
             // Focus the camera on the clicked node
             focusOnNode(node);
+            
+            // Open the file associated with the node
+            openFile(node.name);
 
-            // If we have onFileSelect prop and node has a name property
-            if (onFileSelect && node.name) {
-              const filePath = findFileByName(node.name);
-
-              if (filePath) {
-                console.log('Opening file:', filePath);
-                onFileSelect(filePath);
-              } else {
-                console.log('No matching file found for node:', node.name);
-              }
-            }
           }}
           nodeThreeObject={(node: any) => {
             // Create a sphere for the node
@@ -157,7 +242,7 @@ const KnowledgeGraph = ({
               transparent: true,
               opacity: 0.9
             });
-            
+
             // Make highlighted nodes larger
             const size = node.id === highlightedNode ? 6 : 4;
             const geometry = new THREE.SphereGeometry(size);
