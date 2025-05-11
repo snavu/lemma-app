@@ -13,17 +13,12 @@ import { all, createLowlight } from 'lowlight'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { TagExtension } from './extensions/TagExtension';
 import LinkExtension from './extensions/LinkExtension';
+import { FileInfo } from 'src/renderer/hooks/useFiles';
 
 // Add type for link click event
 interface LinkClickProps {
   href: string;
   event: MouseEvent;
-}
-
-interface FileInfo {
-  name: string;
-  path: string;
-  stats?: any;
 }
 
 interface EditorProps {

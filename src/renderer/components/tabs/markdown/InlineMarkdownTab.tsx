@@ -15,12 +15,23 @@ interface MarkdownTabProps {
   graphJsonPath: string | null;
   initialDoc: string;
   viewMode?: 'split' | 'editor' | 'preview';
+  notesDirectory?: string; // Add notes directory prop
   // onHashtagChange: (hashtags: string[]) => void;
   onChange?: (content: string, hashtags: string[], klinks: string[]) => void;
   graphRefreshTrigger?: number;
+  currentFilePath?: string; // Add current file path
 }
 
-export const InlineMarkdownTab = ({ initialDoc, onChange, files, onFileSelect, graphJsonPath, graphRefreshTrigger }: MarkdownTabProps) => {
+export const InlineMarkdownTab = ({ 
+  initialDoc, 
+  onChange, 
+  files, 
+  onFileSelect, 
+  graphJsonPath, 
+  graphRefreshTrigger,
+  notesDirectory,
+  currentFilePath
+}: MarkdownTabProps) => {
   const [doc, setDoc] = useState(initialDoc);
 
   const handleDocChange = useCallback((newDoc: string) => {
@@ -53,10 +64,14 @@ export const InlineMarkdownTab = ({ initialDoc, onChange, files, onFileSelect, g
         onFileSelect={onFileSelect}
         initialData={doc}
         onChange={handleDocChange}
+        currentFilePath={currentFilePath}
       />
       <KnowledgeGraph
         graphRefreshTrigger={graphRefreshTrigger}
         graphJsonPath={graphJsonPath}
+        files={files}
+        onFileSelect={onFileSelect}
+        notesDirectory={notesDirectory}
       />
     </div>
   );

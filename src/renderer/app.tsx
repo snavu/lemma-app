@@ -48,6 +48,13 @@ export const App = () => {
     triggerGraphRefresh
   );
 
+  // Get current file path for the active tab
+  const getCurrentFilePath = () => {
+    if (!activeTab) return undefined;
+    const currentTab = tabs.find(tab => tab.id === activeTab);
+    return currentTab?.filePath;
+  };
+
   // Set up new note listener from menu
   useEffect(() => {
     if (window.electron?.on) {
@@ -94,6 +101,8 @@ export const App = () => {
               viewMode={viewMode}
               onFileSelect={handleFileSelect}
               graphJsonPath={graphJsonPath}
+              notesDirectory={notesDirectory}
+              currentFilePath={getCurrentFilePath()}
               onChange={(content, hashtags) => handleNoteChange(activeTab, content, hashtags)}
               graphRefreshTrigger={graphRefreshTrigger}
             />
