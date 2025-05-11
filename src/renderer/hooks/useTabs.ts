@@ -74,13 +74,13 @@ export const useTabs = (files: FileInfo[]) => {
     }
   }, [files, tabs, activeTab]);
 
-  // Get current tab content
+  // Get current tab content (kept for backward compatibility)
   const getCurrentTabContent = useCallback(() => {
     if (!activeTab) return '';
     const currentTab = tabs.find(tab => tab.id === activeTab);
     return currentTab?.content || '';
   }, [activeTab, tabs]);
-
+  
   // Update tab content
   const updateTabContent = useCallback((tabId: string, content: string, hashtags: string[]) => {
     setTabs(prevTabs => prevTabs.map(tab =>

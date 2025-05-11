@@ -1,4 +1,3 @@
-// src/hooks/useNotesSynchronization.ts
 import { useCallback } from 'react';
 import { TabInfo } from './useTabs';
 
@@ -13,6 +12,7 @@ const debounce = (fn: Function, ms = 1000) => {
 
 export const useNotesSync = (
   tabs: TabInfo[],
+  updateTabContent: (tabId: string, content: string, hashtags: string[]) => void,
   isInitialized: boolean,
   hasGraphChanged: () => Promise<boolean>,
   triggerGraphRefresh: () => void
@@ -28,25 +28,29 @@ export const useNotesSync = (
     if (window.electron && tabToUpdate.filePath) {
       // Add debouncing here to avoid too many saves
       console.log("saved: { Hashtags", hashtags, "}");
-      autoSaveDebounced(tabToUpdate.filePath, newContent, hashtags);
+      autoSaveDebounced(tabId, tabToUpdate.filePath, newContent, hashtags);
     }
   }, [tabs, isInitialized, hasGraphChanged]);
 
+
   // Create a debounced version of the save function
   const autoSaveDebounced = useCallback(
-    debounce(async (filePath: string, content: string, updateHashtags: string[]) => {
+    debounce(async (tabId: string, filePath: string, content: string, updateHashtags: string[]) => {
       if (!window.electron?.fs) return;
-  
+
       try {
         // First save the file
         await window.electron.fs.saveFile(filePath, content, updateHashtags);
         console.log('Auto-saved file:', filePath);
-  
+
+        // Update the tab's content in state
+        updateTabContent(tabId, content, updateHashtags);
+
         // Only check graph changes if initialized
         if (isInitialized) {
           // Check if the graph.json changed
           const didGraphChange = await hasGraphChanged();
-  
+
           if (didGraphChange) {
             console.log('Graph data changed, refreshing visualization');
             triggerGraphRefresh();

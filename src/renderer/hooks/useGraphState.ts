@@ -1,4 +1,3 @@
-// src/hooks/useGraphState.ts
 import { useState, useEffect, useRef } from 'react';
 
 export const useGraphState = (graphJsonPath: string | null) => {

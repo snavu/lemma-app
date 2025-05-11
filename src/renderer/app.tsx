@@ -32,6 +32,7 @@ export const App = () => {
     tabs,
     activeTab,
     setActiveTab,
+    updateTabContent,
     handleFileSelect,
     handleCloseTab,
     getCurrentTabContent
@@ -46,6 +47,7 @@ export const App = () => {
 
   const { handleNoteChange } = useNotesSync(
     tabs,
+    updateTabContent,
     isInitialized,
     hasGraphChanged,
     triggerGraphRefresh
