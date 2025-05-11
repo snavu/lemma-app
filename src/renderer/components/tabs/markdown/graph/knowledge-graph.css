@@ -1,16 +1,19 @@
-
-.knowledge-graph{
+.knowledge-graph {
   position: relative;
   width: 50%;
+  min-width: 50%;
+  max-width: 50%;
   height: 100%;
   background-color: #1d2026;
+  flex: 1 0 50%; /* flex: grow shrink basis */
+  overflow: hidden;
 }
-
 .knowledge-graph canvas {
   display: block;
 }
 
 .knowledge-graph-loading,
+
 .knowledge-graph-error {
   width: 100%;
   height: 100%;

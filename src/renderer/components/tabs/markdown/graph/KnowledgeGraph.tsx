@@ -1,5 +1,5 @@
 import './knowledge-graph.css';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, memo } from 'react';
 import ForceGraph3D from 'react-force-graph-3d';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
 import * as THREE from 'three';
@@ -18,12 +18,12 @@ interface GraphData {
   links: Array<{ source: string; target: string;[key: string]: any }>;
 }
 
+// The component itself is the same, just wrapped with memo at the export
 const KnowledgeGraph = ({
   graphJsonPath,
   graphRefreshTrigger = 0,
   files = [],
   onFileSelect,
-  notesDirectory
 }: KnowledgeGraphProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const fgRef = useRef<any>(null);
@@ -138,17 +138,17 @@ const KnowledgeGraph = ({
             // Focus the camera on the clicked node
             focusOnNode(node);
 
-            // // If we have onFileSelect prop and node has a name property
-            // if (onFileSelect && node.name) {
-            //   const filePath = findFileByName(node.name);
+            // If we have onFileSelect prop and node has a name property
+            if (onFileSelect && node.name) {
+              const filePath = findFileByName(node.name);
 
-            //   if (filePath) {
-            //     console.log('Opening file:', filePath);
-            //     onFileSelect(filePath);
-            //   } else {
-            //     console.log('No matching file found for node:', node.name);
-            //   }
-            // }
+              if (filePath) {
+                console.log('Opening file:', filePath);
+                onFileSelect(filePath);
+              } else {
+                console.log('No matching file found for node:', node.name);
+              }
+            }
           }}
           nodeThreeObject={(node: any) => {
             // Create a sphere for the node
@@ -167,7 +167,7 @@ const KnowledgeGraph = ({
         />
       )}
       {!graphData && !error && (
-        <div className="knowledge-graph-loading">
+        <div className="knowledge-graph">
           <p>Loading graph data...</p>
         </div>
       )}
@@ -181,4 +181,5 @@ const KnowledgeGraph = ({
   );
 };
 
-export default KnowledgeGraph;
+// Use React.memo to prevent unnecessary re-renders
+export default memo(KnowledgeGraph);

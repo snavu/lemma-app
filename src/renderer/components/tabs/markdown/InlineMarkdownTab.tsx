@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import InlineMarkdownEditor from './editor/InlineMarkdownEditor';
-import KnowledgeGraph from './graph/KnowledgeGraph';
 import './inline-markdown-tab.css';
 
 interface FileInfo {
@@ -12,14 +11,10 @@ interface FileInfo {
 interface MarkdownTabProps {
   files: FileInfo[];
   onFileSelect: (filePath: string) => void;
-  graphJsonPath: string | null;
   initialDoc: string;
   viewMode?: 'split' | 'editor' | 'preview';
-  notesDirectory?: string; // Add notes directory prop
-  // onHashtagChange: (hashtags: string[]) => void;
   onChange?: (content: string, hashtags: string[], klinks: string[]) => void;
-  graphRefreshTrigger?: number;
-  currentFilePath?: string; // Add current file path
+  currentFilePath?: string;
 }
 
 export const InlineMarkdownTab = ({ 
@@ -27,9 +22,6 @@ export const InlineMarkdownTab = ({
   onChange, 
   files, 
   onFileSelect, 
-  graphJsonPath, 
-  graphRefreshTrigger,
-  notesDirectory,
   currentFilePath
 }: MarkdownTabProps) => {
   const [doc, setDoc] = useState(initialDoc);
@@ -65,12 +57,6 @@ export const InlineMarkdownTab = ({
         initialData={doc}
         onChange={handleDocChange}
         currentFilePath={currentFilePath}
-      />
-      <KnowledgeGraph
-        graphRefreshTrigger={graphRefreshTrigger}
-        graphJsonPath={graphJsonPath}
-        files={files}
-        onFileSelect={onFileSelect}
       />
     </div>
   );
