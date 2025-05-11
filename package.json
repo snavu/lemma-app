@@ -12,7 +12,7 @@
     "lint": "eslint --ext .ts,.tsx .",
     "python-setup": "node -e \"const { execSync } = require('child_process'); const { existsSync } = require('fs'); const isWin = process.platform === 'win32'; try { if (existsSync('venv')) { console.log('Virtual environment already exists, skipping creation.'); } else { try { execSync(isWin ? 'python -m venv venv' : 'python3 -m venv venv', {stdio: 'inherit'}); } catch (e) { try { execSync(!isWin ? 'python -m venv venv' : 'python3 -m venv venv', {stdio: 'inherit'}); } catch (e2) { console.error('Could not create virtual environment. Please ensure Python is installed correctly.'); process.exit(1); } } } const pip = isWin ? 'venv\\\\Scripts\\\\pip' : 'venv/bin/pip'; try { execSync(pip + ' install chromadb', { stdio: 'inherit' }); } catch (pipError) { console.error('Failed to install packages with pip. Trying pip3...'); const pip3 = isWin ? 'venv\\\\Scripts\\\\pip3' : 'venv/bin/pip3'; try { execSync(pip3 + ' install chromadb', { stdio: 'inherit' }); } catch (pip3Error) { console.error('Package installation failed. You may need to run this command with administrator/sudo privileges.'); process.exit(1); } } } catch (mainError) { console.error('Unexpected error:', mainError); process.exit(1); }\"",
     "postinstall": "npm run python-setup",
-    "test": "jest"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "keywords": [],
   "author": {
@@ -42,6 +42,7 @@
     "eslint": "^8.57.1",
     "eslint-plugin-import": "^2.31.0",
     "jest": "^29.7.0",
+    "jest-environment-node-single-context": "^29.4.0",
     "ts-jest": "^29.3.2",
     "ts-node": "^10.9.2",
     "typescript": "~4.5.4",
@@ -55,7 +56,9 @@
     "@codemirror/state": "^6.5.2",
     "@codemirror/theme-one-dark": "^6.1.2",
     "@codemirror/view": "^6.36.5",
+    "@huggingface/transformers": "^3.5.1",
     "@lezer/highlight": "^1.2.1",
+    "@rollup/plugin-commonjs": "^28.0.3",
     "@tiptap/core": "^2.1.13",
     "@tiptap/extension-bubble-menu": "^2.1.13",
     "@tiptap/extension-code-block": "^2.1.13",
@@ -66,12 +69,15 @@
     "@tiptap/extension-task-list": "^2.1.13",
     "@tiptap/react": "^2.1.13",
     "@tiptap/starter-kit": "^2.1.13",
-    "chromadb": "^2.2.0",
+    "chromadb": "^2.4.3",
     "chromadb-default-embed": "^2.14.0",
     "electron-squirrel-startup": "^1.0.1",
     "github-markdown-css": "^5.8.1",
     "highlight.js": "^11.11.1",
     "lowlight": "^3.3.0",
+    "onnxruntime-common": "^1.23.0-dev.20250429-a9a3ad2e0c",
+    "onnxruntime-node": "^1.14.0",
+    "onnxruntime-web": "^1.14.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-resizable-box": "^2.1.0",
@@ -82,6 +88,13 @@
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
+    "sharp": "^0.34.1",
     "tiptap-markdown": "^0.8.2"
+  },
+  "overrides": {
+    "sharp": "^0.34.1",
+    "chromadb-default-embed": "^2.14.0",
+    "onnxruntime-node": "^1.14.0",
+    "onnxruntime-web": "^1.14.0"
   }
 }
