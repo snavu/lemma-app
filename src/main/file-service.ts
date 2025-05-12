@@ -1,10 +1,9 @@
 import { app } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
-import { upsertNote } from './database';
 
-// Private variable for notes directory
-let notesDirectory: string | null = null;
+
+export let notesDirectory: string | null = null;
 
 // Configuration functions
 const configFilePath = (): string => {
@@ -174,10 +173,6 @@ export const readFile = (filePath: string): string => {
 export const saveFile = async (filePath: string, content: string, updateHashtags: string[]): Promise<{ success: boolean }> => {
   try {
     fs.writeFileSync(filePath, content);
-    // Update vector database on new file content
-    if (notesDirectory) {
-      await upsertNote(notesDirectory, filePath, content, updateHashtags);
-    }
     return { success: true };
   } catch (error) {
     console.error('Error saving file:', error);
