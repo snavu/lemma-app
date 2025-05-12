@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import { upsertNote, queryNotes, queryNotesByTag, deleteNote } from '../../src/main/database';
+import { DbClient } from '../../src/main/database';
 
 describe('queryNotes()', () => {
   // Get content of test files
@@ -8,29 +8,29 @@ describe('queryNotes()', () => {
   const file2 = fs.readFileSync(path.join(process.cwd(), 'tests/fixtures/circuits.md'), 'utf8');
   const notesDir = '/tests';
 
+  const database = new DbClient();
+
   it('full text search 1', async () => {
     // Insert test notes into database
-    await upsertNote(notesDir, 'computer.md', String(file1), []);
-    await upsertNote(notesDir, 'circuits.md', String(file2), []);
+    await database.upsertNote(notesDir, 'computer.md', String(file1), []);
+    await database.upsertNote(notesDir, 'circuits.md', String(file2), []);
 
     // Query the note by keyword
-    const data = await queryNotes('cpu socket', notesDir);
+    const data = await database.queryNotes(notesDir, 'cpu socket');
     expect(data[0].filePath).toBe('computer.md');
 
-    await deleteNote(notesDir, 'computer.md');
-    await deleteNote(notesDir, 'circuits.md');
+    await database.deleteNote(notesDir);
   });
 
   it('full text search 2', async () => {
     // Insert test notes into database
-    await upsertNote(notesDir, 'computer.md', String(file1), []);
-    await upsertNote(notesDir, 'circuits.md', String(file2), []);
+    await database.upsertNote(notesDir, 'computer.md', String(file1), []);
+    await database.upsertNote(notesDir, 'circuits.md', String(file2), []);
 
     // Query the note by keyword
-    const data = await queryNotes('kirchhoff', notesDir);
+    const data = await database.queryNotes(notesDir, 'kirchhoff');
     expect(data[0].filePath).toBe('circuits.md');
 
-    await deleteNote(notesDir, 'computer.md');
-    await deleteNote(notesDir, 'circuits.md');
+    await database.deleteNote(notesDir);
   });
 });
