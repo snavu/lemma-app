@@ -1,6 +1,6 @@
 # Ohm's Law and Kirchhoff's Laws
 
-## Ohm's Law
+## Ohm's Law #ohms-law
 
 Ohm's Law defines the relationship between **voltage (V)**, **current (I)**, and **resistance (R)**:
 
@@ -13,13 +13,13 @@ Where:
 
 ## Kirchhoff's Laws
 
-### 1. Kirchhoff's Current Law (KCL)
+### 1. Kirchhoff's Current Law (KCL) #kirchhoff-1
 
 The total current entering a junction equals the total current leaving it.
 
 > ∑I_in = ∑I_out
 
-### 2. Kirchhoff's Voltage Law (KVL)
+### 2. Kirchhoff's Voltage Law (KVL) #kirchhoff-2
 
 The sum of all voltages around a closed loop is zero.
 

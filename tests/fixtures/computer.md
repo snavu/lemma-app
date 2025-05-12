@@ -4,12 +4,12 @@ Building your own computer can be a rewarding experience. Here's a quick guide t
 
 ## Parts You Will Need
 
-1. **CPU (Central Processing Unit)**
-2. **Motherboard**
-3. **RAM (Random Access Memory)**
-4. **Storage (SSD or HDD)**
-5. **Power Supply Unit (PSU)**
-6. **Graphics Card (GPU)** – optional depending on use
+1. **CPU (Central Processing Unit)** #cpu
+2. **Motherboard** #motherboard
+3. **RAM (Random Access Memory)** #ram
+4. **Storage (SSD or HDD)** #storage
+5. **Power Supply Unit (PSU)** #psu
+6. **Graphics Card (GPU)** – optional depending on use #gpu
 7. **Case**
 8. **Cooling System** – air or liquid cooling
 9. **Operating System**
