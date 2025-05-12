@@ -234,7 +234,7 @@ const setupIpcHandlers = (): void => {
     try {
       fs.writeFileSync(filePath, content);
       // Update vector database on new file content
-      await database.upsertNote(notesDirectory, filePath, content, updateHashtags);
+      await database.upsertNotes(notesDirectory, filePath, content);
       return { success: true };
     } catch (error) {
       console.error('Error saving file:', error);
