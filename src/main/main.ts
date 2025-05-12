@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { ChildProcess, spawn, spawnSync } from 'child_process';
-import { upsertNote, queryAllNotes, queryNotesByTag, queryNotes } from './database';
+import { DbClient } from './database';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -12,6 +12,7 @@ if (require('electron-squirrel-startup')) {
 let mainWindow: BrowserWindow | null = null;
 let notesDirectory: string | null = null;
 let chromaProcess: null | ChildProcess;
+let database: DbClient;
 
 // Starts up the ChromaDB by executing `chroma run --path lemma-db`
 const startChromaDb = (): void => {
@@ -241,7 +242,7 @@ const setupIpcHandlers = (): void => {
     try {
       fs.writeFileSync(filePath, content);
       // Update vector database on new file content
-      await upsertNote(notesDirectory, filePath, content, updateHashtags);
+      await database.upsertNotes(notesDirectory, filePath, content);
       return { success: true };
     } catch (error) {
       console.error('Error saving file:', error);
@@ -386,6 +387,7 @@ app.on('ready', () => {
   createWindow();
   createAppMenu();
   setupIpcHandlers();
+  database = new DbClient();
 });
 
 app.on('window-all-closed', () => {
