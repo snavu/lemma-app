@@ -207,11 +207,11 @@ const saveConfigSettings = (): void => {
 const setupIpcHandlers = (): void => {
 
   ipcMain.handle('tag-search-query', async (_, searchQuery, notesDirectory) => {
-    return queryNotesByTag(searchQuery, notesDirectory);
+    return database.queryNotesByTag(searchQuery, notesDirectory);
   });
 
   ipcMain.handle('keyword-search-query', async (_, searchQuery, notesDirectory) => {
-    return queryNotes(searchQuery, notesDirectory);
+    return database.queryNotes(searchQuery, notesDirectory);
   });
 
   ipcMain.handle('open-external', async (_, url) => {
