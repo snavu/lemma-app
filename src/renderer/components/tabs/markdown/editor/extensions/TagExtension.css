@@ -1,0 +1,39 @@
+/* Tag widget styling, similar to Wiki link */
+.tag-widget {
+  color: var(--text-accent, #0366d6); /* Using accent color for text */
+  background-color: rgba(3, 102, 214, 0.08); /* Light blue background */
+  padding: 2px 8px; /* Slightly more horizontal padding than links */
+  border-radius: 12px; /* More rounded corners for a "tag" feel */
+  cursor: default; /* Default cursor, as tags are not primarily links here */
+  font-weight: 500;
+  display: inline-block;
+  transition: all 0.15s ease;
+  border: 1px solid rgba(3, 102, 214, 0.2);
+  text-decoration: none;
+  margin: 0 2px;
+  white-space: nowrap;     /* Prevent wrapping */
+  user-select: none;       /* Prevent text selection of the widget itself */
+  position: relative; /* For potential z-index or pseudo-elements */
+}
+
+.tag-widget:hover {
+  background-color: rgba(3, 102, 214, 0.15);
+  border-color: rgba(3, 102, 214, 0.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* No active state for tags unless they become clickable for a specific action */
+/* .tag-widget:active {
+  background-color: rgba(3, 102, 214, 0.2);
+  transform: translateY(1px);
+} */
+
+.tag-widget:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(3, 102, 214, 0.3); /* Focus style from links */
+}
+
+/* This class is used to hide the original text, usually not styled directly */
+.tag-hidden-text {
+  /* display: none; is set inline by the extension */
+}
