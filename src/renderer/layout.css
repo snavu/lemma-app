@@ -76,7 +76,7 @@
 
 /* Sidebar */
 .sidebar {
-  width: 220px;
+  width: 240px;
   background-color: var(--background-secondary);
   overflow-y: auto;
   border-right: 1px solid rgba(255, 255, 255, 0.1);

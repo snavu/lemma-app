@@ -5,6 +5,27 @@ import './layout.css';
 import EmptyState from './components/emptystate/EmptyState';
 import { TabBar } from './components/tabs/tab-bar/TabBar';
 import { InlineMarkdownTab } from './components/tabs/markdown/InlineMarkdownTab';
+
+interface FileInfo {
+  name: string;
+  path: string;
+  stats?: any;
+}
+
+interface TabInfo {
+  id: string;
+  filePath: string;
+  fileName: string;
+  content: string;
+  hashtags: string[];
+}
+
+interface SearchResult {
+  id: string,
+  filePath: string,
+  content: string,
+  hashtags: string[]
+};
 import { useFiles } from './hooks/useFiles';
 import { useTabs } from './hooks/useTabs';
 import { useGraphState } from './hooks/useGraphState';
@@ -15,6 +36,11 @@ import KnowledgeGraph from './components/tabs/markdown/graph/KnowledgeGraph';
 const MemoizedKnowledgeGraph = memo(KnowledgeGraph);
 
 export const App = () => {
+  // State for searchResult UI
+  const [searchResult, setSearchResult] = useState<boolean>(false); // closing and opening UI
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [searchInput, setSearchInput] = useState<string>(''); // For knowing what the input to display
+
   // View mode
   const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
 
@@ -74,6 +100,18 @@ export const App = () => {
     }
   }, [handleNewNote]);
 
+  // Handle querying hashtags
+  const handleSearch = async (searchQuery: string) => {
+    try {
+      const queryResults = searchQuery.startsWith('#', 0) ?
+        await window.electron.db.queryDBTags(searchQuery.slice(1), notesDirectory) //
+        : await window.electron.db.queryDBKeyWords(searchQuery, notesDirectory);
+      searchQuery === "" ? setResults([]) : setResults(queryResults);
+    } catch (err) {
+      console.error("Search error:", err);
+    }
+  };
+
   return (
     <div className="app">
       <div className="header">
@@ -87,10 +125,15 @@ export const App = () => {
           onSelectDirectory={handleSelectDirectory}
           notesDirectory={notesDirectory}
           onDeleteFile={handleDeleteFile}
-          getCurrentTabContent={getCurrentTabContent}
           activeTab={activeTab}
-          tabArray={tabs}
-          changeTab={setActiveTab}
+          setSearchresult={setSearchResult}
+          handleFileSelect={handleFileSelect}
+          results={results}
+          searchInput={searchInput}
+          handleSearch={handleSearch}
+          setSearchInput={setSearchInput}
+          searchResult={searchResult}
+          setResults={setResults}
         />
         <div className="main-content-wrapper">
           <TabBar
@@ -117,7 +160,7 @@ export const App = () => {
                 <EmptyState onCreateNote={handleNewNote} />
               )}
             </div>
-            
+
             {/* Knowledge graph section*/}
             {activeTab && (
               <MemoizedKnowledgeGraph
@@ -125,7 +168,7 @@ export const App = () => {
                 graphJsonPath={graphJsonPath}
                 files={files}
                 onFileSelect={handleFileSelect}
-                focusNodeId={activeFileName} 
+                focusNodeId={activeFileName}
               />
             )}
           </div>

@@ -1,5 +1,8 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
 import * as path from 'path';
+import * as fs from 'fs';
+import { ChildProcess, spawn, spawnSync } from 'child_process';
+import { DbClient } from './database';
 import * as fileService from './file-service';
 import * as chromaService from './chroma-service';
 import * as graphLoader from './graph-loader';
@@ -10,6 +13,7 @@ if (require('electron-squirrel-startup')) {
 }
 
 let mainWindow: BrowserWindow | null = null;
+let database: DbClient;
 
 const createWindow = (): void => {
   // Create the browser window
@@ -170,7 +174,15 @@ const selectNotesDirectory = async (): Promise<string | null> => {
 
 // Set up IPC handlers for main process communication with renderer
 const setupIpcHandlers = (): void => {
-  // External URL handling
+
+  ipcMain.handle('tag-search-query', async (_, searchQuery, notesDirectory) => {
+    return database.queryNotesByTag(searchQuery, notesDirectory);
+  });
+
+  ipcMain.handle('keyword-search-query', async (_, searchQuery, notesDirectory) => {
+    return database.queryNotes(searchQuery, notesDirectory);
+  });
+
   ipcMain.handle('open-external', async (_, url) => {
     return await shell.openExternal(url);
   });
@@ -184,10 +196,10 @@ const setupIpcHandlers = (): void => {
   ipcMain.handle('save-file', async (_, { filePath, content, updateHashtags }) => {
     const result = await fileService.saveFile(filePath, content, updateHashtags);
     if (result.success) {
-      // Update the graph for this file
       const filename = path.basename(filePath);
       await graphLoader.updateFileInGraph(filename);
-    }
+      await database.upsertNotes(fileService.notesDirectory, filePath, content);
+    }      
     return result;
   });
   
@@ -252,6 +264,7 @@ app.on('ready', () => {
   createWindow();
   createAppMenu();
   setupIpcHandlers();
+  database = new DbClient();
 });
 
 app.on('window-all-closed', () => {

@@ -7,6 +7,13 @@ export default defineConfig({
       input: {
         main: './src/main/main.ts',
       },
+      external: [
+        'onnxruntime-node',
+        'onnxruntime-web',
+        'onnxruntime-common',
+        'sharp',
+        /^node:/,
+      ],
     },
   },
 });
