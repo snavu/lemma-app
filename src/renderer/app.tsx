@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { Header } from './components/header/page';
 import { Sidebar } from './components/sidebar/Sidebar';
 import './layout.css';
@@ -26,16 +26,16 @@ interface SearchResult {
   content: string,
   hashtags: string[]
 };
+import { useFiles } from './hooks/useFiles';
+import { useTabs } from './hooks/useTabs';
+import { useGraphState } from './hooks/useGraphState';
+import { useNotesSync } from './hooks/useNotesSync';
+import KnowledgeGraph from './components/tabs/markdown/graph/KnowledgeGraph';
+
+// Memoize the KnowledgeGraph component to prevent unnecessary re-renders
+const MemoizedKnowledgeGraph = memo(KnowledgeGraph);
 
 export const App = () => {
-  // State for files and directories
-  const [notesDirectory, setNotesDirectory] = useState<string | null>(null);
-  const [files, setFiles] = useState<FileInfo[]>([]);
-
-  // State for tabs system
-  const [tabs, setTabs] = useState<TabInfo[]>([]);
-  const [activeTab, setActiveTab] = useState<string | null>(null);
-
   // State for searchResult UI
   const [searchResult, setSearchResult] = useState<boolean>(false); // closing and opening UI
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -44,55 +44,48 @@ export const App = () => {
   // View mode
   const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
 
-  // Check for default directory on initial load
-  useEffect(() => {
-    const checkForDefaultDirectory = async () => {
-      if (window.electron?.fs) {
-        try {
-          const directory = await window.electron.fs.getNotesDirectory();
-          if (directory) {
-            setNotesDirectory(directory);
-          }
-        } catch (error) {
-          console.error('Failed to get default notes directory:', error);
-        }
-      }
-    };
+  // Use custom hooks 
+  const {
+    files,
+    notesDirectory,
+    graphJsonPath,
+    handleSelectDirectory,
+    handleDeleteFile,
+    handleNewNote
+  } = useFiles();
 
-    checkForDefaultDirectory();
-  }, []);
+  const {
+    tabs,
+    activeTab,
+    activeFileName,
+    setActiveTab,
+    updateTabContent,
+    handleFileSelect,
+    handleCloseTab,
+    getCurrentTabContent
+  } = useTabs(files);
 
-  // Load files when directory is selected
-  useEffect(() => {
-    const loadFiles = async () => {
-      if (notesDirectory && window.electron?.fs) {
-        try {
-          const files = await window.electron.fs.getFiles();
-          setFiles(files);
-        } catch (error) {
-          console.error('Failed to load files:', error);
-        }
-      }
-    };
+  const {
+    graphRefreshTrigger,
+    isInitialized,
+    hasGraphChanged,
+    triggerGraphRefresh
+  } = useGraphState(graphJsonPath);
 
-    if (notesDirectory) {
-      loadFiles();
-    }
-  }, [notesDirectory]);
+  const { handleNoteChange } = useNotesSync(
+    tabs,
+    updateTabContent,
+    isInitialized,
+    hasGraphChanged,
+    triggerGraphRefresh
+  );
 
-
-  // Set up directory selection listener
-  useEffect(() => {
-    if (window.electron?.on) {
-      const removeListener = window.electron.on.notesDirectorySelected((directory) => {
-        setNotesDirectory(directory);
-      });
-
-      return () => {
-        removeListener();
-      };
-    }
-  }, []);
+  // Get current file path for the active tab
+  const getCurrentFilePath = () => {
+    if (!activeTab) return undefined;
+    const currentTab = tabs.find(tab => tab.id === activeTab);
+    return currentTab?.filePath;
+  };
 
   // Set up new note listener from menu
   useEffect(() => {
@@ -105,171 +98,19 @@ export const App = () => {
         removeListener();
       };
     }
-  }, []);
-
-  // Handle selecting notes directory
-  const handleSelectDirectory = useCallback(async () => {
-    if (window.electron?.fs) {
-      await window.electron.fs.selectDirectory();
-    }
-  }, []);
+  }, [handleNewNote]);
 
   // Handle querying hashtags
   const handleSearch = async (searchQuery: string) => {
     try {
-      const queryResults = searchQuery.startsWith('#', 0) ? 
-                            await window.electron.db.queryDBTags(searchQuery.slice(1), notesDirectory) //
-                            : await window.electron.db.queryDBKeyWords(searchQuery, notesDirectory);
+      const queryResults = searchQuery.startsWith('#', 0) ?
+        await window.electron.db.queryDBTags(searchQuery.slice(1), notesDirectory) //
+        : await window.electron.db.queryDBKeyWords(searchQuery, notesDirectory);
       searchQuery === "" ? setResults([]) : setResults(queryResults);
     } catch (err) {
       console.error("Search error:", err);
     }
   };
-
-  // Handle file selection from sidebar
-  const handleFileSelect = useCallback(async (filePath: string) => {
-    if (!window.electron?.fs) return;
-
-    // Check if file is already open in a tab
-    const existingTab = tabs.find(tab => tab.filePath === filePath);
-    if (existingTab) {
-      setActiveTab(existingTab.id);
-      return;
-    }
-
-    try {
-      const content = await window.electron.fs.readFile(filePath);
-      const fileName = filePath.split(/[\\/]/).pop() || 'Untitled';
-
-      const newTab: TabInfo = {
-        id: `tab-${Date.now()}`,
-        filePath,
-        fileName,
-        content,
-        hashtags: [],
-      };
-
-      setTabs(prevTabs => [...prevTabs, newTab]);
-      setActiveTab(newTab.id);
-    } catch (error) {
-      console.error('Failed to open file:', error);
-    }
-  }, [tabs]);
-
-  // Handle file deletion
-  const handleDeleteFile = useCallback(async (filePath: string) => {
-    if (!window.electron?.fs) return;
-
-    try {
-      // Delete the file
-      await window.electron.fs.deleteFile(filePath);
-
-      // Refresh the files list
-      const updatedFiles = await window.electron.fs.getFiles();
-      setFiles(updatedFiles);
-
-      // If the file is open in a tab, close it
-      const tabToClose = tabs.find(tab => tab.filePath === filePath);
-      if (tabToClose) {
-        handleCloseTab(tabToClose.id);
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Failed to delete file:', error);
-      return false;
-    }
-  }, [tabs]);
-
-  // Handle creating a new note
-  const handleNewNote = useCallback(async () => {
-    if (!window.electron?.fs) return;
-
-    // The app will now use the default directory if one isn't already set
-    try {
-      // Create a unique filename
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const fileName = `Note ${timestamp}.md`;
-
-      const result = await window.electron.fs.createFile(fileName);
-
-      // Refresh files list
-      const newFiles = await window.electron.fs.getFiles();
-      setFiles(newFiles);
-
-      // Get the notes directory if it's not already set
-      if (!notesDirectory) {
-        const directory = await window.electron.fs.getNotesDirectory();
-        setNotesDirectory(directory);
-      }
-
-      // Open the new file
-      await handleFileSelect(result.filePath);
-    } catch (error) {
-      console.error('Failed to create new note:', error);
-    }
-  }, [notesDirectory, handleFileSelect]);
-
-  // Handle markdown content change
-  const handleNoteChange = useCallback((tabId: string, newContent: string, hashtags: string[]) => {
-    // Find the tab that changed
-    const tabToUpdate = tabs.find(tab => tab.id === tabId);
-
-    if (!tabToUpdate) return;
-
-    // Update the tab's content in state
-    setTabs(prevTabs => prevTabs.map(tab =>
-      tab.id === tabId ? { ...tab, content: newContent } : tab
-    ));
-
-    // Auto-save the content to the file
-    if (window.electron && tabToUpdate.filePath) {
-      // Add debouncing here to avoid too many saves
-      // console.log("saved: ", hashtags);
-      autoSaveDebounced(tabToUpdate.filePath, newContent, hashtags);
-    }
-  }, [tabs]);
-
-  // Debounce function to limit the rate of auto-saving
-  const debounce = (fn: Function, ms = 1000) => {
-    let timeoutId: ReturnType<typeof setTimeout>;
-    return function (...args: any[]) {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => fn.apply(this, args), ms);
-    };
-  };
-
-  // Create a debounced version of the save function
-  const autoSaveDebounced = useCallback(
-    debounce((filePath: string, content: string, updateHashtags: string[]) => {
-      window.electron?.fs.saveFile(filePath, content, updateHashtags)
-        .then(() => {
-          console.log('Auto-saved file:', filePath);
-        })
-        .catch(error => {
-          console.error('Failed to auto-save file:', error);
-        });
-    }, 200), // 200ms debounce time
-    []
-  );
-
-  // Handle closing a tab
-  const handleCloseTab = useCallback((tabId: string) => {
-    setTabs(prevTabs => prevTabs.filter(tab => tab.id !== tabId));
-
-    // If closing the active tab, activate another tab if available
-    if (activeTab === tabId) {
-      const remainingTabs = tabs.filter(tab => tab.id !== tabId);
-      setActiveTab(remainingTabs.length > 0 ? remainingTabs[0].id : null);
-    }
-  }, [tabs, activeTab]);
-
-  // Get current tab content
-  const getCurrentTabContent = useCallback(() => {
-    if (!activeTab) return '';
-    const currentTab = tabs.find(tab => tab.id === activeTab);
-    return currentTab?.content || '';
-  }, [activeTab, tabs]);
 
   return (
     <div className="app">
@@ -285,7 +126,7 @@ export const App = () => {
           notesDirectory={notesDirectory}
           onDeleteFile={handleDeleteFile}
           activeTab={activeTab}
-          setSearchresult={setSearchResult} 
+          setSearchresult={setSearchResult}
           handleFileSelect={handleFileSelect}
           results={results}
           searchInput={searchInput}
@@ -294,22 +135,43 @@ export const App = () => {
           searchResult={searchResult}
           setResults={setResults}
         />
-        <div className="main-content">
+        <div className="main-content-wrapper">
           <TabBar
             tabs={tabs}
             activeTab={activeTab}
             onTabSelect={setActiveTab}
             onTabClose={handleCloseTab}
           />
-          {activeTab && (
-            <InlineMarkdownTab
-              key={activeTab}
-              initialDoc={getCurrentTabContent()}
-              viewMode={viewMode}
-              onChange={(content, hashtags) => handleNoteChange(activeTab, content, hashtags)}
-            />
-          )}
-          {!activeTab && <EmptyState onCreateNote={handleNewNote} />}
+          {/* Split content area to separate editor and graph */}
+          <div className="split-content-area">
+            {/* Editor section */}
+            <div className={activeTab ? "editor-section" : "full-width-section"}>
+              {activeTab ? (
+                <InlineMarkdownTab
+                  files={files}
+                  key={activeTab}
+                  initialDoc={getCurrentTabContent()}
+                  viewMode={viewMode}
+                  onFileSelect={handleFileSelect}
+                  currentFilePath={getCurrentFilePath()}
+                  onChange={(content, hashtags) => handleNoteChange(activeTab, content, hashtags)}
+                />
+              ) : (
+                <EmptyState onCreateNote={handleNewNote} />
+              )}
+            </div>
+
+            {/* Knowledge graph section*/}
+            {activeTab && (
+              <MemoizedKnowledgeGraph
+                graphRefreshTrigger={graphRefreshTrigger}
+                graphJsonPath={graphJsonPath}
+                files={files}
+                onFileSelect={handleFileSelect}
+                focusNodeId={activeFileName}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>

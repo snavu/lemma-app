@@ -29,6 +29,12 @@ contextBridge.exposeInMainWorld('electron', {
     createFile: (fileName: string) => ipcRenderer.invoke('create-file', fileName),
     deleteFile: (filePath: string) => ipcRenderer.invoke('delete-file', filePath),
     getNotesDirectory: () => ipcRenderer.invoke('get-notes-directory'),
+    getGeneratedFolderPath: () => ipcRenderer.invoke('get-generated-folder-path'),
+    getGraphJsonPath: () => ipcRenderer.invoke('get-graph-json-path'),
+    getGeneratedGraphJsonPath: () => ipcRenderer.invoke('get-generated-graph-json-path'),
+  },
+  graph: {
+    syncGraph: () => ipcRenderer.invoke('sync-graph'),
   },
   windowControls: {
     minimize: () => ipcRenderer.send('window-control', 'minimize'),

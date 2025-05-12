@@ -3,6 +3,9 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { ChildProcess, spawn, spawnSync } from 'child_process';
 import { DbClient } from './database';
+import * as fileService from './file-service';
+import * as chromaService from './chroma-service';
+import * as graphLoader from './graph-loader';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -10,64 +13,23 @@ if (require('electron-squirrel-startup')) {
 }
 
 let mainWindow: BrowserWindow | null = null;
-let notesDirectory: string | null = null;
-let chromaProcess: null | ChildProcess;
 let database: DbClient;
-
-// Starts up the ChromaDB by executing `chroma run --path lemma-db`
-const startChromaDb = (): void => {
-  const venvPath = path.join(process.cwd(), 'venv');
-  const chromaRunCommand = process.platform === 'win32'
-    ? path.join(venvPath, 'Scripts', 'chroma.exe')
-    : path.join(venvPath, 'bin', 'chroma');
-
-  const dbPath = path.join(process.cwd(), 'lemma-db');
-
-  console.log('Starting ChromaDB server...');
-  // Run `chroma run --path lemma-db`
-  chromaProcess = spawn(chromaRunCommand, ['run', '--path', dbPath], {
-    cwd: process.cwd(),
-    stdio: 'inherit',
-    detached: true,
-    windowsHide: true
-  });
-
-  chromaProcess.on('error', (err) => {
-    console.error('Failed to start Chroma:', err.message);
-  });
-
-  console.log("Started ChromaDB server with PID:", chromaProcess.pid);
-};
-
-const endChromaDb = (): void => {
-  if (chromaProcess && !isNaN(chromaProcess.pid) && !chromaProcess.killed) {
-    if (process.platform === 'win32') {
-      chromaProcess.kill('SIGTERM'); // Kill only the main process
-    }
-    else {
-      process.kill(-chromaProcess.pid); // Kill the whole process group
-    }
-    console.log('Closed ChromaDB server with PID:', chromaProcess.pid);
-    chromaProcess = undefined;
-  }
-};
 
 const createWindow = (): void => {
   // Create the browser window
   mainWindow = new BrowserWindow({
-    width: 1200,
+    width: 1600,
     height: 900,
     frame: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      devTools: false 
     },
   });
 
   // Load the index.html file
-  // In development mode, we'll load from localhost
-  // In production mode, we'll load from the dist folder
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools(); // Open DevTools in development
@@ -76,36 +38,48 @@ const createWindow = (): void => {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
-  // Set up default notes directory and load settings
-  setupDefaultNotesDirectory();
-  loadConfigSettings();
+  // Initialize file system and notify renderer
+  initializeFileSystem();
 };
 
-// Create a default notes directory if none exists
-const setupDefaultNotesDirectory = (): void => {
-  if (notesDirectory === null) {
-    // Create a 'Notes' folder in the user's documents directory
-    const documentsPath = app.getPath('documents');
-    const defaultNotesPath = path.join(documentsPath, 'My Notes');
-
-    // Create the directory if it doesn't exist
-    if (!fs.existsSync(defaultNotesPath)) {
-      try {
-        fs.mkdirSync(defaultNotesPath, { recursive: true });
-        console.log(`Created default notes directory: ${defaultNotesPath}`);
-      } catch (error) {
-        console.error('Error creating default notes directory:', error);
-        return;
-      }
-    }
-
-    // Set the notes directory
-    notesDirectory = defaultNotesPath;
-    saveConfigSettings();
-
+// Initialize the file system configuration
+const initializeFileSystem = (): void => {
+  // First try to load existing settings
+  const notesDir = fileService.loadConfigSettings();
+  
+  // If no directory is set after loading config, set up the default one
+  if (!notesDir) {
+    const newDir = fileService.setupDefaultNotesDirectory();
+    
     // Notify renderer about the default directory if window is ready
+    if (mainWindow && newDir) {
+      mainWindow.webContents.send('notes-directory-selected', newDir);
+      
+      // Sync graph with files in the directory
+      graphLoader.syncGraphWithFiles().then(success => {
+        if (success) {
+          console.log('Graph successfully synced with files');
+        } else {
+          console.error('Failed to sync graph with files');
+        }
+      });
+    }
+  } else {
+    // If directory exists from config, ensure it has the proper structure
+    fileService.ensureNotesDirectoryStructure(notesDir);
+    
+    // Notify renderer about the directory
     if (mainWindow) {
-      mainWindow.webContents.send('notes-directory-selected', notesDirectory);
+      mainWindow.webContents.send('notes-directory-selected', notesDir);
+      
+      // Sync graph with files in the directory
+      graphLoader.syncGraphWithFiles().then(success => {
+        if (success) {
+          console.log('Graph successfully synced with files');
+        } else {
+          console.error('Failed to sync graph with files');
+        }
+      });
     }
   }
 };
@@ -167,43 +141,38 @@ const createAppMenu = () => {
   Menu.setApplicationMenu(menu);
 };
 
-// Configuration functions
-const configFilePath = (): string => {
-  return path.join(app.getPath('userData'), 'config.json');
-};
+// Select notes directory
+const selectNotesDirectory = async (): Promise<string | null> => {
+  if (!mainWindow) return null;
 
-const loadConfigSettings = (): void => {
-  try {
-    if (fs.existsSync(configFilePath())) {
-      const config = JSON.parse(fs.readFileSync(configFilePath(), 'utf8'));
-      notesDirectory = config.notesDirectory || null;
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory'],
+    title: 'Select Notes Directory'
+  });
 
-      if (notesDirectory && mainWindow) {
-        mainWindow.webContents.send('notes-directory-selected', notesDirectory);
+  if (!result.canceled && result.filePaths.length > 0) {
+    const directory = result.filePaths[0];
+    fileService.setNotesDirectory(directory);
+
+    // Notify renderer about the selected directory
+    mainWindow.webContents.send('notes-directory-selected', directory);
+    
+    // Sync graph with files in the new directory
+    graphLoader.syncGraphWithFiles().then(success => {
+      if (success) {
+        console.log('Graph successfully synced with files in new directory');
+      } else {
+        console.error('Failed to sync graph with files in new directory');
       }
-    }
+    });
 
-    // If no directory is set after loading config, set up the default one
-    if (notesDirectory === null) {
-      setupDefaultNotesDirectory();
-    }
-  } catch (error) {
-    console.error('Error loading config:', error);
-    // Set up default directory if there was an error loading config
-    setupDefaultNotesDirectory();
+    return directory;
   }
+
+  return null;
 };
 
-const saveConfigSettings = (): void => {
-  try {
-    const config = { notesDirectory };
-    fs.writeFileSync(configFilePath(), JSON.stringify(config, null, 2));
-  } catch (error) {
-    console.error('Error saving config:', error);
-  }
-};
-
-// Set up IPC handlers
+// Set up IPC handlers for main process communication with renderer
 const setupIpcHandlers = (): void => {
 
   ipcMain.handle('tag-search-query', async (_, searchQuery, notesDirectory) => {
@@ -217,95 +186,57 @@ const setupIpcHandlers = (): void => {
   ipcMain.handle('open-external', async (_, url) => {
     return await shell.openExternal(url);
   });
-  // Select notes directory
-  ipcMain.handle('select-notes-directory', async () => {
-    return selectNotesDirectory();
-  });
-
-  // Get files from notes directory
-  ipcMain.handle('get-files', async () => {
-    return getFilesFromDirectory();
-  });
-
-  // Read file content
-  ipcMain.handle('read-file', async (_, filePath) => {
-    try {
-      return fs.readFileSync(filePath, 'utf8');
-    } catch (error) {
-      console.error('Error reading file:', error);
-      throw error;
-    }
-  });
-
-  // Save file content
+  
+  // File system operations
+  ipcMain.handle('select-notes-directory', selectNotesDirectory);
+  ipcMain.handle('get-files', fileService.getFilesFromDirectory);
+  ipcMain.handle('read-file', (_, filePath) => fileService.readFile(filePath));
+  
+  // Modified save-file handler to update the graph
   ipcMain.handle('save-file', async (_, { filePath, content, updateHashtags }) => {
-    try {
-      fs.writeFileSync(filePath, content);
-      // Update vector database on new file content
-      await database.upsertNotes(notesDirectory, filePath, content);
-      return { success: true };
-    } catch (error) {
-      console.error('Error saving file:', error);
-      throw error;
-    }
+    const result = await fileService.saveFile(filePath, content, updateHashtags);
+    if (result.success) {
+      const filename = path.basename(filePath);
+      await graphLoader.updateFileInGraph(filename);
+      await database.upsertNotes(fileService.notesDirectory, filePath, content);
+    }      
+    return result;
   });
-
-  // Create new file
+  
+  // Modified create-file handler to update the graph
   ipcMain.handle('create-file', async (_, fileName) => {
-    // Ensure we have a notes directory
-    if (!notesDirectory) {
-      setupDefaultNotesDirectory();
-
-      if (!notesDirectory) {
-        throw new Error('Failed to create or find a notes directory');
-      }
+    const result = fileService.createFile(fileName);
+    if (result.success) {
+      // Add the new file to the graph
+      await graphLoader.updateFileInGraph(fileName);
     }
-
-    const filePath = path.join(notesDirectory, fileName);
-
-    // Check if file already exists
-    if (fs.existsSync(filePath)) {
-      throw new Error('File already exists');
+    return result;
+  });
+  
+  // Modified delete-file handler to update the graph
+  ipcMain.handle('delete-file', (_, filePath) => {
+    const result = fileService.deleteFile(filePath);
+    if (result.success) {
+      // Remove the file from the graph
+      const filename = path.basename(filePath);
+      graphLoader.removeFileFromGraph(filename);
     }
-
-    try {
-      // Create empty file
-      fs.writeFileSync(filePath, '# ' + path.basename(fileName, '.md'));
-      return { success: true, filePath };
-    } catch (error) {
-      console.error('Error creating file:', error);
-      throw error;
-    }
+    return result;
+  });
+  
+  ipcMain.handle('get-notes-directory', fileService.getNotesDirectory);
+  
+  // Graph file path operations
+  ipcMain.handle('get-graph-json-path', fileService.getGraphJsonPath);
+  ipcMain.handle('get-generated-graph-json-path', fileService.getGeneratedGraphJsonPath);
+  ipcMain.handle('get-generated-folder-path', fileService.getGeneratedFolderPath);
+  
+  // New graph-related handlers
+  ipcMain.handle('sync-graph', async () => {
+    return await graphLoader.syncGraphWithFiles();
   });
 
-  // Delete a file
-  ipcMain.handle('delete-file', async (_, filePath) => {
-    try {
-      // Confirm the file exists
-      if (!fs.existsSync(filePath)) {
-        throw new Error('File does not exist');
-      }
-
-      // Make sure the file is within the notes directory (security check)
-      if (!filePath.startsWith(notesDirectory!)) {
-        throw new Error('Cannot delete files outside of the notes directory');
-      }
-
-      // Delete the file
-      fs.unlinkSync(filePath);
-      return { success: true };
-    } catch (error) {
-      console.error('Error deleting file:', error);
-      throw error;
-    }
-  });
-
-  // Get current notes directory
-  ipcMain.handle('get-notes-directory', () => {
-    return notesDirectory;
-  });
-
-  // Handle window control messages
+  // Window control messages
   ipcMain.on('window-control', (_, command) => {
     if (!mainWindow) return;
 
@@ -327,63 +258,9 @@ const setupIpcHandlers = (): void => {
   });
 };
 
-// Select notes directory
-const selectNotesDirectory = async (): Promise<string | null> => {
-  if (!mainWindow) return null;
-
-  const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ['openDirectory'],
-    title: 'Select Notes Directory'
-  });
-
-  if (!result.canceled && result.filePaths.length > 0) {
-    notesDirectory = result.filePaths[0];
-    saveConfigSettings();
-
-    // Notify renderer about the selected directory
-    mainWindow.webContents.send('notes-directory-selected', notesDirectory);
-
-    return notesDirectory;
-  }
-
-  return null;
-};
-
-// Get markdown files from directory
-const getFilesFromDirectory = async (): Promise<{ name: string; path: string; stats: any }[]> => {
-  if (!notesDirectory) {
-    setupDefaultNotesDirectory();
-    if (!notesDirectory) {
-      return [];
-    }
-  }
-
-  try {
-    const fileNames = fs.readdirSync(notesDirectory);
-
-    const files = fileNames
-      .filter(fileName => fileName.toLowerCase().endsWith('.md'))
-      .map(fileName => {
-        const filePath = path.join(notesDirectory!, fileName);
-        const stats = fs.statSync(filePath);
-        return {
-          name: fileName,
-          path: filePath,
-          stats
-        };
-      })
-      .sort((a, b) => b.stats.mtime.getTime() - a.stats.mtime.getTime()); // Sort by last modified time
-
-    return files;
-  } catch (error) {
-    console.error('Error reading directory:', error);
-    return [];
-  }
-};
-
-// Initialize app
+// App lifecycle events
 app.on('ready', () => {
-  startChromaDb();
+  chromaService.startChromaDb();
   createWindow();
   createAppMenu();
   setupIpcHandlers();
@@ -393,21 +270,20 @@ app.on('ready', () => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
-  }
-  else {
-    endChromaDb();
+  } else {
+    chromaService.endChromaDb();
   }
 });
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    if (!chromaProcess) {
-      startChromaDb();
+    if (!chromaService.isChromaRunning()) {
+      chromaService.startChromaDb();
     }
     createWindow();
   }
 });
 
 app.on('before-quit', () => {
-  endChromaDb();
+  chromaService.endChromaDb();
 });

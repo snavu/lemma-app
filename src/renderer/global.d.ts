@@ -20,6 +20,12 @@ interface Window {
       createFile: (fileName: string) => Promise<{ success: boolean; filePath: string }>;
       deleteFile: (filePath: string) => Promise<{ success: boolean }>;
       getNotesDirectory: () => Promise<string | null>;
+      getGeneratedFolderPath: () => Promise<string | null>;
+      getGraphJsonPath: () => Promise<string | null>;
+      getGeneratedGraphJsonPath: () => Promise<string | null>;
+    };
+    graph: {
+      syncGraph: () => Promise<boolean>;
     };
     on: {
       notesDirectorySelected: (callback: (directory: string) => void) => () => void;
