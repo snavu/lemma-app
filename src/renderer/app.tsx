@@ -5,7 +5,6 @@ import './layout.css';
 import EmptyState from './components/emptystate/EmptyState';
 import { TabBar } from './components/tabs/tab-bar/TabBar';
 import { InlineMarkdownTab } from './components/tabs/markdown/InlineMarkdownTab';
-//import React from 'react';
 
 interface FileInfo {
   name: string;
@@ -21,6 +20,13 @@ interface TabInfo {
   hashtags: string[];
 }
 
+interface SearchResult {
+  id: string,
+  filePath: string,
+  content: string,
+  hashtags: string[]
+};
+
 export const App = () => {
   // State for files and directories
   const [notesDirectory, setNotesDirectory] = useState<string | null>(null);
@@ -29,6 +35,11 @@ export const App = () => {
   // State for tabs system
   const [tabs, setTabs] = useState<TabInfo[]>([]);
   const [activeTab, setActiveTab] = useState<string | null>(null);
+
+  // State for searchResult UI
+  const [searchResult, setSearchResult] = useState<boolean>(false); // closing and opening UI
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [searchInput, setSearchInput] = useState<string>(''); // For knowing what the input to display
 
   // View mode
   const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
@@ -69,6 +80,7 @@ export const App = () => {
     }
   }, [notesDirectory]);
 
+
   // Set up directory selection listener
   useEffect(() => {
     if (window.electron?.on) {
@@ -101,6 +113,18 @@ export const App = () => {
       await window.electron.fs.selectDirectory();
     }
   }, []);
+
+  // Handle querying hashtags
+  const handleSearch = async (searchQuery: string) => {
+    try {
+      const queryResults = searchQuery.startsWith('#', 0) ? 
+                            await window.electron.db.queryDBTags(searchQuery.slice(1), notesDirectory) //
+                            : await window.electron.db.queryDBKeyWords(searchQuery, notesDirectory);
+      searchQuery === "" ? setResults([]) : setResults(queryResults);
+    } catch (err) {
+      console.error("Search error:", err);
+    }
+  };
 
   // Handle file selection from sidebar
   const handleFileSelect = useCallback(async (filePath: string) => {
@@ -201,7 +225,7 @@ export const App = () => {
     // Auto-save the content to the file
     if (window.electron && tabToUpdate.filePath) {
       // Add debouncing here to avoid too many saves
-      console.log("saved: ", hashtags);
+      // console.log("saved: ", hashtags);
       autoSaveDebounced(tabToUpdate.filePath, newContent, hashtags);
     }
   }, [tabs]);
@@ -221,7 +245,6 @@ export const App = () => {
       window.electron?.fs.saveFile(filePath, content, updateHashtags)
         .then(() => {
           console.log('Auto-saved file:', filePath);
-
         })
         .catch(error => {
           console.error('Failed to auto-save file:', error);
@@ -261,10 +284,15 @@ export const App = () => {
           onSelectDirectory={handleSelectDirectory}
           notesDirectory={notesDirectory}
           onDeleteFile={handleDeleteFile}
-          getCurrentTabContent={getCurrentTabContent}
           activeTab={activeTab}
-          tabArray={tabs}
-          changeTab={setActiveTab}
+          setSearchresult={setSearchResult} 
+          handleFileSelect={handleFileSelect}
+          results={results}
+          searchInput={searchInput}
+          handleSearch={handleSearch}
+          setSearchInput={setSearchInput}
+          searchResult={searchResult}
+          setResults={setResults}
         />
         <div className="main-content">
           <TabBar

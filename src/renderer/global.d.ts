@@ -25,5 +25,9 @@ interface Window {
       notesDirectorySelected: (callback: (directory: string) => void) => () => void;
       newNote: (callback: () => void) => () => void;
     };
+    db: {
+      queryDBTags: (searchQuery: string, notesDirectory: string) => Promise<Note[]>;
+      queryDBKeyWords: (searchQuery: string, notesDirectory: string) => Promise<Note[]>;
+    };
   };
 }

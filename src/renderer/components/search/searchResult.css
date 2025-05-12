@@ -1,0 +1,34 @@
+.search-container {
+    background-color: var(--background-secondary);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-left: 9px;
+}
+
+.close-button {
+    background-color: transparent;
+}
+
+.search-result {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.select-button {
+    display: block;
+    border: none;
+    background: transparent;
+    padding: 10px 0 10px 0;
+    width: 100%;
+    text-align: left;
+    color: var(--text-muted);
+    font-size: 15px;
+}
+
+.select-button:hover {
+    background-color: var(--interactive-hover);
+    color: var(--text-normal);
+}
