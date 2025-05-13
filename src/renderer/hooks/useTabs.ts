@@ -41,7 +41,6 @@ export const useTabs = (files: FileInfo[]) => {
 
       setTabs(prevTabs => [...prevTabs, newTab]);
       setActiveTab(newTab.id);
-      setActiveFileName(fileName); // Set active file name when creating a new tab
     } catch (error) {
       console.error('Failed to open file:', error);
     }
@@ -57,6 +56,7 @@ export const useTabs = (files: FileInfo[]) => {
     } else {
       setActiveFileName(null);
     }
+    console.log('Active file name updated:', activeFileName);
   }, [activeTab, tabs]);
 
   // Handle closing a tab

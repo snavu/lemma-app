@@ -185,7 +185,7 @@ export const App = () => {
                 graphJsonPath={graphJsonPath}
                 files={files}
                 onFileSelect={handleFileSelect}
-                focusNodeId={activeFileName}
+                focusNodeName={activeFileName}
               />
             )}
           </div>

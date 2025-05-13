@@ -11,7 +11,7 @@ interface KnowledgeGraphProps {
   files?: FileInfo[];
   onFileSelect?: (filePath: string) => void;
   notesDirectory?: string;
-  focusNodeId?: string; // Prop to receive active file name for highlighting
+  focusNodeName?: string; // Prop to receive active file name for highlighting
 }
 
 interface GraphData {
@@ -24,7 +24,7 @@ const KnowledgeGraph = ({
   graphRefreshTrigger = 0,
   files = [],
   onFileSelect,
-  focusNodeId,
+  focusNodeName,
 }: KnowledgeGraphProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const fgRef = useRef<any>(null);
@@ -55,13 +55,13 @@ const KnowledgeGraph = ({
   // Handle initial graph data loading - try to focus on active file when data first loads
   useEffect(() => {
     // This effect runs when graphData changes from null to populated
-    if (graphData && focusNodeId) {
-      const nodeToFocus = findNodeByFileName(focusNodeId);
+    if (graphData && focusNodeName) {
+      console.log('Graph data loaded, focusing on node:', focusNodeName);
+      const nodeToFocus = findNodeByFileName(focusNodeName);
       if (nodeToFocus) {
-        setHighlightedNode(nodeToFocus.id);
-
         // Use a longer delay for initial graph stabilization
         setTimeout(() => {
+          setHighlightedNode(nodeToFocus.id);
           focusOnNode(nodeToFocus);
         }, 600);
       }
@@ -174,9 +174,11 @@ const KnowledgeGraph = ({
 
     return graphData.nodes.find(node => {
       // If node has name property, check if it matches the file name
-      // You might need to adjust this depending on how node names are formatted
       if (node.name) {
-        return node.name.toLowerCase() === fileName.toLowerCase();
+        return node.name === fileName;
+      }
+      else {
+        return null;
       }
 
     });
@@ -191,7 +193,12 @@ const KnowledgeGraph = ({
       return fileName === `${nodeName.toLowerCase()}`;
     });
 
-    if (exactMatch) return exactMatch.path;
+    if (exactMatch) {
+      return exactMatch.path;
+    }
+    else {
+      return null;
+    }
   };
 
   // Function to focus camera on a node
@@ -245,20 +252,19 @@ const KnowledgeGraph = ({
     }
   }
 
-  // Effect to focus on node when focusNodeId changes
+  // Effect to focus on node when focusNodeName changes
   useEffect(() => {
-    if (!focusNodeId || !graphData) return;
-
-    // Find the node matching the focusNodeId
-    const nodeToFocus = findNodeByFileName(focusNodeId);
-
+    if (!focusNodeName || !graphData) return;
+    console.log('Focus node ID changed:', focusNodeName);
+    // Find the node matching the focusNodeName
+    const nodeToFocus = findNodeByFileName(focusNodeName);
     if (nodeToFocus) {
-      setHighlightedNode(nodeToFocus.id);
       setTimeout(() => {
+        setHighlightedNode(nodeToFocus.id);
         focusOnNode(nodeToFocus);
       }, 200);
     }
-  }, [focusNodeId]);
+  }, [focusNodeName]);
 
   return (
     <div className="knowledge-graph" ref={containerRef}>
