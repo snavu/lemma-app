@@ -40,6 +40,10 @@ export const useFiles = () => {
         try {
           const files = await window.electron.fs.getFiles();
           setFiles(files);
+          const path = await window.electron.fs.getGraphJsonPath();
+          if (path) {
+            setGraphJsonPath(path);
+          }
         } catch (error) {
           console.error('Failed to load files:', error);
         }
