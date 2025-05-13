@@ -44,7 +44,7 @@ export const SearchResults: React.FC<SearchResultProps> = ({
             if (searchInput.startsWith('#', 0)) {
                 document.querySelectorAll(`span.tag-widget.ProseMirror-widget[contenteditable="false"][data-tag-name="${word.slice(1)}"]`).forEach(elem => {
                     if (elem.textContent.includes(searchInput)) {
-                        hashtagResults.push(elem);
+                        hashtagResults.push(elem.closest('p') || elem);
                     }
                 });
                 setRes(hashtagResults);
@@ -61,7 +61,6 @@ export const SearchResults: React.FC<SearchResultProps> = ({
 
     // helper function for jumping to the appropriate keyword or hashtag
     const scrollToCurrentResult = () => {
-        console.log("True")
         const container = document.querySelector('.editor-content-area') as HTMLElement;
         const targetRect = res[currentIndex].getBoundingClientRect();
         const containerRect = container.getBoundingClientRect();
