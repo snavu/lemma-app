@@ -60,7 +60,7 @@ const initializeFileSystem = (): void => {
       graphLoader.syncGraphWithFiles().then(success => {
         if (success) {
           console.log('Graph successfully synced with files');
-
+          console.log('Syncing user with AGI...');
           // Now sync user with AGI
           userAgiSync.syncUserWithAgi().then(agiSuccess => {
             if (agiSuccess) {
@@ -87,6 +87,16 @@ const initializeFileSystem = (): void => {
       graphLoader.syncGraphWithFiles().then(success => {
         if (success) {
           console.log('Graph successfully synced with files');
+          console.log('Syncing user with AGI...');
+          // Now sync user with AGI
+          userAgiSync.syncUserWithAgi().then(agiSuccess => {
+            if (agiSuccess) {
+              console.log('User successfully synced with AGI');
+
+            } else {
+              console.error('Failed to sync user with AGI');
+            }
+          });
         } else {
           console.error('Failed to sync graph with files');
         }
