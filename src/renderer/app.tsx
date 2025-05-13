@@ -67,7 +67,6 @@ export const App = () => {
 
   const {
     graphRefreshTrigger,
-    isInitialized,
     hasGraphChanged,
     triggerGraphRefresh
   } = useGraphState(graphJsonPath);
@@ -75,7 +74,6 @@ export const App = () => {
   const { handleNoteChange } = useNotesSync(
     tabs,
     updateTabContent,
-    isInitialized,
     hasGraphChanged,
     triggerGraphRefresh
   );

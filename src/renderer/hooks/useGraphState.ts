@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from 'react';
 export const useGraphState = (graphJsonPath: string | null) => {
   const [graphRefreshTrigger, setGraphRefreshTrigger] = useState<number>(0);
   const [lastGraphJson, setLastGraphJson] = useState<string | null>(null);
-  const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const lastGraphJsonRef = useRef<string | null>(null);
 
   // Initialize graph state
@@ -20,8 +19,6 @@ export const useGraphState = (graphJsonPath: string | null) => {
           
           console.log('Graph data initialized');
           
-          // Mark as initialized
-          setIsInitialized(true);
         } catch (error) {
           console.error('Error initializing graph data:', error);
         }
@@ -69,7 +66,6 @@ export const useGraphState = (graphJsonPath: string | null) => {
 
   return {
     graphRefreshTrigger,
-    isInitialized,
     hasGraphChanged,
     triggerGraphRefresh
   };

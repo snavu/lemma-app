@@ -56,7 +56,6 @@ export const useTabs = (files: FileInfo[]) => {
     } else {
       setActiveFileName(null);
     }
-    console.log('Active file name updated:', activeFileName);
   }, [activeTab, tabs]);
 
   // Handle closing a tab
