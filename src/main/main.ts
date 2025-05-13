@@ -62,14 +62,14 @@ const initializeFileSystem = (): void => {
           console.log('Graph successfully synced with files');
 
           // Now sync user with AGI
-          userAgiSync.syncUserWithAgi().then(agiSuccess => {
-            if (agiSuccess) {
-              console.log('User successfully synced with AGI');
+          // userAgiSync.syncUserWithAgi().then(agiSuccess => {
+          //   if (agiSuccess) {
+          //     console.log('User successfully synced with AGI');
 
-            } else {
-              console.error('Failed to sync user with AGI');
-            }
-          });
+          //   } else {
+          //     console.error('Failed to sync user with AGI');
+          //   }
+          // });
         } else {
           console.error('Failed to sync graph with files');
         }
@@ -213,7 +213,7 @@ const setupIpcHandlers = (): void => {
       // Update the database with the new content
       await database.upsertNotes(fileService.notesDirectory, filePath, content);
       // update the file in AGI
-      await userAgiSync.updateFileInAgi(filename);
+      // await userAgiSync.updateFileInAgi(filename);
     }
     return result;
   });
@@ -225,7 +225,7 @@ const setupIpcHandlers = (): void => {
       // Add the new file to the graph
       await graphLoader.updateFileInGraph(fileName);
       // Add the new file to AGI
-      await userAgiSync.updateFileInAgi(fileName);
+      // await userAgiSync.updateFileInAgi(fileName);
     }
     return result;
   });

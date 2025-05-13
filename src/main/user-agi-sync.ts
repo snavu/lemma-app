@@ -21,36 +21,36 @@ export const chunk = async (filename: string, content: string, type: string): Pr
       console.error('Generated directory not set');
       return false;
     }
-    
+
     console.log(`Chunking file: ${filename}, type: ${type}`);
-    
+
     // Process the content into chunks for AI processing
     // Simple chunking by splitting on paragraphs (double newlines)
     const paragraphs = content.split('\n\n').filter(p => p.trim().length > 0);
-    
+
     // For each significant paragraph, create a chunk file
     for (let i = 0; i < paragraphs.length; i++) {
       const paragraph = paragraphs[i].trim();
       if (paragraph.length < 10) continue; // Skip very short paragraphs
-      
+
       // Create a chunk file name
-      const chunkFilename = `generated_${filename.split('.')[0]}_chunk${i+1}.md`;
+      const chunkFilename = `generated_${filename.split('.')[0]}_chunk${i + 1}.md`;
       const chunkPath = path.join(generatedDir, chunkFilename);
-      
+
       // Create chunk content with metadata
       const chunkContent = `---
 source: ${filename}
-chunk_index: ${i+1}
+chunk_index: ${i + 1}
 total_chunks: ${paragraphs.length}
 type: ${type}
 ---
 
 ${paragraph}`;
-      
+
       // Write the chunk file
       fs.writeFileSync(chunkPath, chunkContent);
     }
-    
+
     return true;
   } catch (error) {
     console.error('Error chunking file:', error);
@@ -68,22 +68,22 @@ const copyFileToAgi = async (filename: string): Promise<boolean> => {
       console.error('Notes directory not set');
       return false;
     }
-    
+
     const generatedDir = fileService.getGeneratedFolderPath();
     if (!generatedDir) {
       console.error('Generated directory not set');
       return false;
     }
-    
+
     const sourcePath = path.join(notesDir, filename);
     const destPath = path.join(generatedDir, filename);
-    
+
     // Read the source file
     const content = fileService.readFile(sourcePath);
-    
+
     // Write to the destination file
     fs.writeFileSync(destPath, content);
-    
+
     return true;
   } catch (error) {
     console.error(`Error copying file ${filename} to AGI directory:`, error);
@@ -102,7 +102,7 @@ const createNodeInAgiGraph = (filename: string, linkedFiles: string[], type: str
       console.error('AGI graph path not set');
       return false;
     }
-    
+
     // Read the AGI graph.json
     let graphData: { nodes: any[], links: any[] };
     try {
@@ -113,69 +113,69 @@ const createNodeInAgiGraph = (filename: string, linkedFiles: string[], type: str
       // Initialize empty graph if file doesn't exist or is invalid
       graphData = { nodes: [], links: [] };
     }
-    
+
     // Check if node already exists
     const existingNode = graphData.nodes.find(node => node.name === filename);
     if (existingNode) {
       // Update existing node's links
       return updateLinksInAgiGraph(existingNode.id, linkedFiles, type);
     }
-    
+
     // Calculate new node ID
     const newId = graphData.nodes.length > 0
       ? Math.max(...graphData.nodes.map(node => node.id)) + 1
       : 0;
-    
+
     // Create new node
     const newNode = {
       id: newId,
       name: filename,
       type: type
     };
-    
+
     // Add node to graph
     graphData.nodes.push(newNode);
-    
+
     // Create links to connected files
     for (const linkedFile of linkedFiles) {
       // Find target node
       let targetNode = graphData.nodes.find(node => node.name === linkedFile);
-      
+
       if (!targetNode) {
         // Create target node if it doesn't exist
         const targetId = graphData.nodes.length > 0
           ? Math.max(...graphData.nodes.map(node => node.id)) + 1
           : 0;
-        
+
         targetNode = {
           id: targetId,
           name: linkedFile,
           type: type
         };
-        
+
         graphData.nodes.push(targetNode);
       }
-      
+
       // Create link
       const newLink = {
         source: newId,
         target: targetNode.id,
         type: type
       };
-      
+
       // Check if link already exists
       const existingLink = graphData.links.find(
         link => link.source === newId && link.target === targetNode.id
       );
-      
+
       if (!existingLink) {
         graphData.links.push(newLink);
       }
     }
-    
+
     // Write the updated graph data
     fs.writeFileSync(agiGraphPath, JSON.stringify(graphData, null, 2));
-    
+
     return true;
   } catch (error) {
     console.error('Error creating node in AGI graph:', error);
@@ -194,7 +194,7 @@ const updateLinksInAgiGraph = (nodeId: number, linkedFiles: string[], type: stri
       console.error('AGI graph path not set');
       return false;
     }
-    
+
     // Read the AGI graph.json
     let graphData: { nodes: any[], links: any[] };
     try {
@@ -204,46 +204,46 @@ const updateLinksInAgiGraph = (nodeId: number, linkedFiles: string[], type: stri
       console.error('Error reading AGI graph.json:', error);
       return false;
     }
-    
+
     // Get all current links where this node is the source
     const currentLinks = graphData.links.filter(link => link.source === nodeId);
     const currentTargets = currentLinks.map(link => {
       const targetNode = graphData.nodes.find(n => n.id === link.target);
       return targetNode ? targetNode.name : null;
     }).filter(name => name !== null) as string[];
-    
+
     // Add new links
     for (const linkedFile of linkedFiles) {
       if (!currentTargets.includes(linkedFile)) {
         // Find target node
         let targetNode = graphData.nodes.find(node => node.name === linkedFile);
-        
+
         if (!targetNode) {
           // Create target node if it doesn't exist
           const targetId = graphData.nodes.length > 0
             ? Math.max(...graphData.nodes.map(node => node.id)) + 1
             : 0;
-          
+
           targetNode = {
             id: targetId,
             name: linkedFile,
             type: type
           };
-          
+
           graphData.nodes.push(targetNode);
         }
-        
+
         // Create link
         const newLink = {
           source: nodeId,
           target: targetNode.id,
           type: type
         };
-        
+
         graphData.links.push(newLink);
       }
     }
-    
+
     // Remove deleted links
     for (const currentTarget of currentTargets) {
       if (!linkedFiles.includes(currentTarget)) {
@@ -252,17 +252,17 @@ const updateLinksInAgiGraph = (nodeId: number, linkedFiles: string[], type: stri
           const linkIndex = graphData.links.findIndex(
             link => link.source === nodeId && link.target === targetNode.id
           );
-          
+
           if (linkIndex !== -1) {
             graphData.links.splice(linkIndex, 1);
           }
         }
       }
     }
-    
+
     // Write the updated graph data
     fs.writeFileSync(agiGraphPath, JSON.stringify(graphData, null, 2));
-    
+
     return true;
   } catch (error) {
     console.error('Error updating links in AGI graph:', error);
@@ -281,7 +281,7 @@ const deleteNodeFromAgiGraph = (filename: string): boolean => {
       console.error('AGI graph path not set');
       return false;
     }
-    
+
     // Read the AGI graph.json
     let graphData: { nodes: any[], links: any[] };
     try {
@@ -291,27 +291,27 @@ const deleteNodeFromAgiGraph = (filename: string): boolean => {
       console.error('Error reading AGI graph.json:', error);
       return false;
     }
-    
+
     // Find the node
     const node = graphData.nodes.find(node => node.name === filename);
     if (!node) {
       return true; // Node doesn't exist, nothing to delete
     }
-    
+
     // Delete node
     const nodeIndex = graphData.nodes.findIndex(n => n.id === node.id);
     if (nodeIndex !== -1) {
       graphData.nodes.splice(nodeIndex, 1);
     }
-    
+
     // Delete all links where this node is source OR target
     graphData.links = graphData.links.filter(
       link => link.source !== node.id && link.target !== node.id
     );
-    
+
     // Write the updated graph data
     fs.writeFileSync(agiGraphPath, JSON.stringify(graphData, null, 2));
-    
+
     return true;
   } catch (error) {
     console.error('Error deleting node from AGI graph:', error);
@@ -330,18 +330,18 @@ export const syncUserWithAgi = async (): Promise<boolean> => {
       console.error('Notes directory not set');
       return false;
     }
-    
+
     // Get generated directory
     const generatedDir = fileService.getGeneratedFolderPath();
     if (!generatedDir) {
       console.error('Generated directory not set');
       return false;
     }
-    
+
     // Step 1: Get all user filenames
     const userFiles = await fileService.getFilesFromDirectory();
     const userFilenames = userFiles.map(file => file.name);
-    
+
     // Step 2: Get all AGI filenames (without "generated_" prefix)
     const agiFilenames: string[] = [];
     try {
@@ -355,36 +355,36 @@ export const syncUserWithAgi = async (): Promise<boolean> => {
       console.error('Error reading AGI directory:', error);
       return false;
     }
-    
+
     // Step 3: For each user filename not in AGI directory
     for (const filename of userFilenames) {
       if (!agiFilenames.includes(filename)) {
         console.log(`Syncing user file to AGI: ${filename}`);
-        
+
         // Copy file to AGI directory
         const copied = await copyFileToAgi(filename);
         if (!copied) continue;
-        
+
         // Read file content
         const filePath = path.join(notesDir, filename);
         const content = fileService.readFile(filePath);
-        
+
         // Parse file links
         const linkedFiles = parseFileLinks(content, userFilenames);
-        
+
         // Create node in AGI graph
         createNodeInAgiGraph(filename, linkedFiles, 'assisted');
-        
+
         // Chunk the file
         await chunk(filename, content, 'assisted');
       }
     }
-    
+
     // Step 4: For each AGI filename not in user directory, delete AGI files
     for (const filename of agiFilenames) {
       if (!userFilenames.includes(filename)) {
         console.log(`Removing AGI file not in user directory: ${filename}`);
-        
+
         // Delete file from AGI directory
         const filePath = path.join(generatedDir, filename);
         try {
@@ -392,10 +392,10 @@ export const syncUserWithAgi = async (): Promise<boolean> => {
         } catch (error) {
           console.error(`Error deleting file ${filename} from AGI directory:`, error);
         }
-        
+
         // Delete the node from AGI graph
         deleteNodeFromAgiGraph(filename);
-        
+
         // Also delete any generated files related to this filename
         try {
           const generatedFiles = fs.readdirSync(generatedDir);
@@ -411,7 +411,7 @@ export const syncUserWithAgi = async (): Promise<boolean> => {
         }
       }
     }
-    
+
     return true;
   } catch (error) {
     console.error('Error syncing user with AGI:', error);
@@ -430,14 +430,14 @@ export const updateFileInAgi = async (filename: string): Promise<boolean> => {
       console.error('Notes directory not set');
       return false;
     }
-    
+
     // Get generated directory
     const generatedDir = fileService.getGeneratedFolderPath();
     if (!generatedDir) {
       console.error('Generated directory not set');
       return false;
     }
-    
+
     // Check if the file exists in the user directory
     const userFilePath = path.join(notesDir, filename);
     if (!fs.existsSync(userFilePath)) {
@@ -447,10 +447,10 @@ export const updateFileInAgi = async (filename: string): Promise<boolean> => {
         fs.unlinkSync(agiFilePath);
         console.log(`Deleted file from AGI directory: ${filename}`);
       }
-      
+
       // Delete the node from AGI graph
       deleteNodeFromAgiGraph(filename);
-      
+
       // Also delete any generated files related to this filename
       try {
         const generatedFiles = fs.readdirSync(generatedDir);
@@ -464,30 +464,30 @@ export const updateFileInAgi = async (filename: string): Promise<boolean> => {
       } catch (error) {
         console.error(`Error deleting related generated files for ${filename}:`, error);
       }
-      
+
       return true;
     }
-    
+
     // Copy the file to AGI directory
     const copied = await copyFileToAgi(filename);
     if (!copied) return false;
-    
+
     // Read the file content
     const content = fileService.readFile(userFilePath);
-    
+
     // Get all user filenames to validate links
     const userFiles = await fileService.getFilesFromDirectory();
     const userFilenames = userFiles.map(file => file.name);
-    
+
     // Parse file links
     const linkedFiles = parseFileLinks(content, userFilenames);
-    
+
     // Update the node in AGI graph
     createNodeInAgiGraph(filename, linkedFiles, 'assisted');
-    
+
     // Chunk the file
     await chunk(filename, content, 'assisted');
-    
+
     return true;
   } catch (error) {
     console.error('Error updating file in AGI:', error);
@@ -506,17 +506,17 @@ export const removeFileFromAgi = (filename: string): boolean => {
       console.error('Generated directory not set');
       return false;
     }
-    
+
     // Delete the file from AGI directory
     const agiFilePath = path.join(generatedDir, filename);
     if (fs.existsSync(agiFilePath)) {
       fs.unlinkSync(agiFilePath);
       console.log(`Deleted file from AGI directory: ${filename}`);
     }
-    
+
     // Delete the node from AGI graph
     deleteNodeFromAgiGraph(filename);
-    
+
     // Also delete any generated files related to this filename
     try {
       const generatedFiles = fs.readdirSync(generatedDir);
@@ -530,7 +530,7 @@ export const removeFileFromAgi = (filename: string): boolean => {
     } catch (error) {
       console.error(`Error deleting related generated files for ${filename}:`, error);
     }
-    
+
     return true;
   } catch (error) {
     console.error('Error removing file from AGI:', error);
