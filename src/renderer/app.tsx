@@ -121,7 +121,7 @@ export const App = () => {
         <Sidebar
           files={files}
           onFileSelect={handleFileSelect}
-          onNewNote={handleNewNote}
+          onNewNote={async () => handleFileSelect(await handleNewNote())}
           onSelectDirectory={handleSelectDirectory}
           notesDirectory={notesDirectory}
           onDeleteFile={handleDeleteFile}
