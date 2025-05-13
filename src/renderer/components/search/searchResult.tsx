@@ -42,11 +42,12 @@ export const SearchResults: React.FC<SearchResultProps> = ({
         // need a timeout for the dom to load
         setTimeout(() => {
             if (searchInput.startsWith('#', 0)) {
-                document.querySelectorAll(`span.tag-node[contenteditable="false"][data-tag="${word.slice(1)}"][tagname="${word.slice(1)}"]`).forEach(elem => {
+                document.querySelectorAll(`span.tag-widget.ProseMirror-widget[contenteditable="false"][data-tag-name="${word.slice(1)}"]`).forEach(elem => {
                     if (elem.textContent.includes(searchInput)) {
                         hashtagResults.push(elem);
                     }
                 });
+                console.log(hashtagResults);
                 setRes(hashtagResults);
             } else {
                 document.querySelectorAll("p").forEach(elem => {

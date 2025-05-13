@@ -25,7 +25,7 @@ const createWindow = (): void => {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      devTools: false 
+      devTools: true 
     },
   });
 
@@ -175,12 +175,12 @@ const selectNotesDirectory = async (): Promise<string | null> => {
 // Set up IPC handlers for main process communication with renderer
 const setupIpcHandlers = (): void => {
 
-  ipcMain.handle('tag-search-query', async (_, searchQuery, notesDirectory) => {
-    return database.queryNotesByTag(searchQuery, notesDirectory);
+  ipcMain.handle('tag-search-query', async (_, notesDirectory, searchQuery) => {
+    return database.queryNotesByTag(notesDirectory, searchQuery);
   });
 
-  ipcMain.handle('keyword-search-query', async (_, searchQuery, notesDirectory) => {
-    return database.queryNotes(searchQuery, notesDirectory);
+  ipcMain.handle('keyword-search-query', async (_, notesDirectory, searchQuery) => {
+    return database.queryNotes(notesDirectory, searchQuery);
   });
 
   ipcMain.handle('open-external', async (_, url) => {
