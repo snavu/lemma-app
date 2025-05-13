@@ -100,7 +100,7 @@ export const useFiles = () => {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const fileName = `Note ${timestamp}`;
 
-      const result = await window.electron.fs.createFile(fileName);
+      const result = await window.electron.fs.createFile(fileName + ".md");
 
       // Refresh files list
       const newFiles = await window.electron.fs.getFiles();
