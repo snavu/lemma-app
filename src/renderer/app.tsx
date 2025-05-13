@@ -103,9 +103,8 @@ export const App = () => {
   // Handle querying hashtags
   const handleSearch = async (searchQuery: string) => {
     try {
-      console.log("query")
       const queryResults = searchQuery.startsWith('#', 0) ?
-        await window.electron.db.queryDBTags(searchQuery.slice(1), notesDirectory) //
+        await window.electron.db.queryDBTags(searchQuery.slice(1), notesDirectory)
         : await window.electron.db.queryDBKeyWords(searchQuery, notesDirectory);
       searchQuery === "" ? setResults([]) : setResults(queryResults);
     } catch (err) {

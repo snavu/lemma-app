@@ -47,7 +47,6 @@ export const SearchResults: React.FC<SearchResultProps> = ({
                         hashtagResults.push(elem);
                     }
                 });
-                console.log(hashtagResults);
                 setRes(hashtagResults);
             } else {
                 document.querySelectorAll("p").forEach(elem => {
@@ -62,6 +61,7 @@ export const SearchResults: React.FC<SearchResultProps> = ({
 
     // helper function for jumping to the appropriate keyword or hashtag
     const scrollToCurrentResult = () => {
+        console.log("True")
         const container = document.querySelector('.editor-content-area') as HTMLElement;
         const targetRect = res[currentIndex].getBoundingClientRect();
         const containerRect = container.getBoundingClientRect();

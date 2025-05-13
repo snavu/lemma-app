@@ -175,11 +175,11 @@ const selectNotesDirectory = async (): Promise<string | null> => {
 // Set up IPC handlers for main process communication with renderer
 const setupIpcHandlers = (): void => {
 
-  ipcMain.handle('tag-search-query', async (_, notesDirectory, searchQuery) => {
+  ipcMain.handle('tag-search-query', async (_, searchQuery, notesDirectory) => {
     return database.queryNotesByTag(notesDirectory, searchQuery);
   });
 
-  ipcMain.handle('keyword-search-query', async (_, notesDirectory, searchQuery) => {
+  ipcMain.handle('keyword-search-query', async (_, searchQuery, notesDirectory) => {
     return database.queryNotes(notesDirectory, searchQuery);
   });
 
