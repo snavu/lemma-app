@@ -227,7 +227,7 @@ const KnowledgeGraph = ({
     fgRef.current.cameraPosition(
       newPos,           // new position
       node,             // lookAt ({ x, y, z })
-      3000              // ms transition duration
+      2000              // ms transition duration
     );
 
     // Re-enable navigation controls after animation completes
@@ -235,7 +235,7 @@ const KnowledgeGraph = ({
       if (fgRef.current && fgRef.current.controls) {
         fgRef.current.controls().enabled = true;
       }
-    }, 3000);
+    }, 2000);
   };
 
   const openFile = (nodeName: string) => {
