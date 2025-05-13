@@ -37,7 +37,23 @@ const startChromaDb = (): void  => {
   chromaProcess.unref();
 };
 
+const endChromaDb = (): void => {
+  try {
+    const { pid } = JSON.parse(fs.readFileSync(tempFile, 'utf8'));
+    process.kill(pid, 'SIGTERM');
+    fs.unlinkSync(tempFile);
+    process.stdout.write(`Closed ChromaDB server with PID: ${pid}\n`);
+  } catch (err) {
+    console.warn('Failed to clean up child process:', err);
+  }
+};
+
 module.exports = async () => {
   startChromaDb();
+  // Terminate ChromaDB server if Ctrl+C
+  process.once('SIGINT', () => {
+    endChromaDb();
+    process.exit(0);
+  });
   await sleep(2000);
 };
