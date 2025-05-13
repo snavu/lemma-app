@@ -11,7 +11,7 @@ interface KnowledgeGraphProps {
   files?: FileInfo[];
   onFileSelect?: (filePath: string) => void;
   notesDirectory?: string;
-  focusNodeId?: string; // New prop to receive active file name for highlighting
+  focusNodeId?: string; // Prop to receive active file name for highlighting
 }
 
 interface GraphData {
@@ -39,10 +39,8 @@ const KnowledgeGraph = ({
         return;
       }
 
-      console.log('Loading graph data from:', graphJsonPath);
       const fileContent = await window.electron.fs.readFile(graphJsonPath);
       const data = JSON.parse(fileContent) as GraphData;
-      console.log('Graph data loaded:', data);
       setGraphData(data);
     } catch (err) {
       console.error('Error loading graph data:', err);
@@ -60,7 +58,6 @@ const KnowledgeGraph = ({
     if (graphData && focusNodeId) {
       const nodeToFocus = findNodeByFileName(focusNodeId);
       if (nodeToFocus) {
-        console.log('Initial graph load - focusing on active file:', nodeToFocus);
         setHighlightedNode(nodeToFocus.id);
 
         // Use a longer delay for initial graph stabilization
@@ -79,9 +76,14 @@ const KnowledgeGraph = ({
         return;
       }
 
-      console.log('Refreshing graph data from:', graphJsonPath);
       const fileContent = await window.electron.fs.readFile(graphJsonPath);
       const data = JSON.parse(fileContent) as GraphData;
+
+      if (!graphData || !graphData.nodes || graphData.nodes.length === 0) {
+        console.log('Setting initial graph data');
+        setGraphData(data);
+        return;
+      }
 
       // Get the old data
       const oldNodes = graphData?.nodes || [];
@@ -251,7 +253,6 @@ const KnowledgeGraph = ({
     const nodeToFocus = findNodeByFileName(focusNodeId);
 
     if (nodeToFocus) {
-      console.log('Focusing on node from file selection:', nodeToFocus);
       setHighlightedNode(nodeToFocus.id);
       setTimeout(() => {
         focusOnNode(nodeToFocus);
@@ -272,7 +273,6 @@ const KnowledgeGraph = ({
           nodeResolution={16}
           nodeLabel={(node: any) => node.name || node.id}
           onNodeClick={(node: any) => {
-            console.log('Node clicked:', node);
 
             // Set this node as highlighted
             setHighlightedNode(node.id);
