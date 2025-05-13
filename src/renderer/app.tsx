@@ -112,6 +112,23 @@ export const App = () => {
     }
   };
 
+  const handleDeleteFileSync = async (filePath: string) => {
+    const success = await handleDeleteFile(filePath);
+    if (success) {
+      triggerGraphRefresh();
+    }
+    return success;
+  };
+
+  // Wrap the new note handler to trigger graph refresh after creation
+  const handleNewNoteSync = async () => {
+    const newFilePath = await handleNewNote()
+    if (newFilePath) {
+      triggerGraphRefresh();
+    }
+    return newFilePath;
+  };
+
   return (
     <div className="app">
       <div className="header">
@@ -121,10 +138,10 @@ export const App = () => {
         <Sidebar
           files={files}
           onFileSelect={handleFileSelect}
-          onNewNote={async () => handleFileSelect(await handleNewNote())}
+          onNewNote={async () => handleFileSelect(await handleNewNoteSync())}
           onSelectDirectory={handleSelectDirectory}
           notesDirectory={notesDirectory}
-          onDeleteFile={handleDeleteFile}
+          onDeleteFile={handleDeleteFileSync}
           activeTab={activeTab}
           setSearchresult={setSearchResult}
           handleFileSelect={handleFileSelect}
