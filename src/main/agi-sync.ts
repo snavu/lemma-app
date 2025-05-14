@@ -530,7 +530,11 @@ export const syncAgi = async (): Promise<boolean> => {
         createNodeInAgiGraph(filename, linkedFiles, 'assisted');
 
         // Chunk the file
-        await chunk(filename, content, 'assisted');
+        const result = await chunk(filename, content, 'assisted');
+        if(!result) {
+          console.error(`Error chunking file: ${filename}`);
+          return false;
+        }
       }
     }
 

@@ -303,8 +303,10 @@ const setupIpcHandlers = (): void => {
     const success = await userAgiSync.syncAgi();
     if (success) {
       console.log('User successfully synced with AGI');
+      return true;
     } else {
       console.error('Failed to sync user with AGI');
+      return false;
     }
   });
 

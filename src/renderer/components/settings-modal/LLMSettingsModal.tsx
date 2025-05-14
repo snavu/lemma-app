@@ -89,11 +89,12 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
       });
 
       const agiResult = await window.electron.config.setAgiConfig(experimentalAgi);
-      await window.electron.config.syncAgi();
-      
+
+      syncAgi();
+
       if (llmResult && agiResult) {
         toast.success('Settings saved successfully!');
-        
+
         // Close modal after slight delay
         setTimeout(() => {
           setIsSaving(false);
@@ -110,16 +111,31 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
     }
   };
 
+  const syncAgi = async () => {
+    try {
+      const result = await window.electron.config.syncAgi();
+      if (result) {
+        toast.success('AGI settings synced successfully!');
+      }
+      else {
+        toast.error('Failed to sync AGI settings');
+      }
+
+    } catch (error) {
+      toast.error('Failed to sync AGI settings');
+    }
+  }
+
   if (!isOpen) return null;
 
   return (
     <>
-      <div 
-        className={`modal-overlay ${isClosing ? 'closing' : ''}`} 
+      <div
+        className={`modal-overlay ${isClosing ? 'closing' : ''}`}
         onClick={handleClose}
       >
-        <div 
-          className={`llm-settings-modal ${isClosing ? 'closing' : ''}`} 
+        <div
+          className={`llm-settings-modal ${isClosing ? 'closing' : ''}`}
           onClick={e => e.stopPropagation()}
         >
           <div className="modal-header">
