@@ -7,8 +7,8 @@ import * as fileService from './file-service';
 import * as chromaService from './chroma-service';
 import * as graphLoader from './graph-loader';
 import * as userAgiSync from './user-agi-sync';
-import { config } from './config-service';
-import inferenceService from './inference';
+import { Config } from './config-service';
+import { InferenceService } from './inference';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -17,6 +17,8 @@ if (require('electron-squirrel-startup')) {
 
 let mainWindow: BrowserWindow | null = null;
 let database: DbClient;
+export let config: Config;
+export let inferenceService: InferenceService;
 
 const createWindow = (): void => {
   // Create the browser window
@@ -40,16 +42,13 @@ const createWindow = (): void => {
     // When running in production, load from the dist folder
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
-
-  // Initialize file system and notify renderer
-  initializeFileSystem();
 };
 
 // Initialize the file system configuration
 const initializeFileSystem = (): void => {
   // First try to load existing settings
   const notesDir = config.getNotesDirectory();
-
+  console.log('1:', notesDir);
   // If no directory is set after loading config, set up the default one
   if (!notesDir) {
     const newDir = fileService.setupDefaultNotesDirectory();
@@ -255,16 +254,19 @@ const setupIpcHandlers = (): void => {
     return result;
   });
 
-  ipcMain.handle('get-notes-directory', config.getNotesDirectory);
 
   // Graph file path operations
   ipcMain.handle('get-graph-json-path', fileService.getGraphJsonPath);
   ipcMain.handle('get-generated-graph-json-path', fileService.getGeneratedGraphJsonPath);
   ipcMain.handle('get-generated-folder-path', fileService.getGeneratedFolderPath);
 
-  // New graph-related handlers
   ipcMain.handle('sync-graph', async () => {
     return await graphLoader.syncGraphWithFiles();
+  });
+
+  // Config operations
+  ipcMain.handle('get-notes-directory', () => {
+    return config.getNotesDirectory()
   });
 
   ipcMain.handle('get-llm-config', () => {
@@ -303,10 +305,13 @@ const setupIpcHandlers = (): void => {
 // App lifecycle events
 app.on('ready', () => {
   chromaService.startChromaDb();
+  database = new DbClient();
+  config = new Config();
+  inferenceService = new InferenceService();
   createWindow();
   createAppMenu();
   setupIpcHandlers();
-  database = new DbClient();
+  initializeFileSystem();
 });
 
 app.on('window-all-closed', () => {

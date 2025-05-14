@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import * as fileService from './file-service';
+import { app } from 'electron';
 
 export interface llmConfig {
   endpoint: string;
@@ -11,7 +11,7 @@ export interface llmConfig {
 /**
  * Configuration service for managing app settings
  */
-export class ConfigService {
+export class Config {
   private config: {
     notesDirectory?: string;
     llm: llmConfig;
@@ -25,11 +25,7 @@ export class ConfigService {
    * Get the path to the config file
    */
   private getConfigPath(): string | null {
-    const notesDir = fileService.notesDirectory;
-    if (!notesDir) {
-      return null;
-    }
-    return path.join(notesDir, 'config.json');
+    return path.join(app.getPath('documents'), 'LEMMA Notes', 'config.json');
   }
 
   /**
@@ -70,7 +66,6 @@ export class ConfigService {
   getNotesDirectory() {
     // Refresh config from disk
     this.config = this.loadConfig();
-
     return this.config.notesDirectory || null;
   }
   /**
@@ -141,9 +136,3 @@ export class ConfigService {
     }
   }
 }
-
-// Create singleton instance
-export const config = new ConfigService();
-
-// Export default instance
-export default config;

@@ -16,7 +16,7 @@ export const useFiles = () => {
     const checkForDefaultDirectory = async () => {
       if (window.electron?.fs) {
         try {
-          const directory = await window.electron.fs.getNotesDirectory();
+          const directory = await window.electron.config.getNotesDirectory();
           if (directory) {
             setNotesDirectory(directory);
             const path = await window.electron.fs.getGraphJsonPath();
@@ -112,7 +112,7 @@ export const useFiles = () => {
 
       // Get the notes directory if it's not already set
       if (!notesDirectory) {
-        const directory = await window.electron.fs.getNotesDirectory();
+        const directory = await window.electron.config.getNotesDirectory();
         setNotesDirectory(directory);
       }
 

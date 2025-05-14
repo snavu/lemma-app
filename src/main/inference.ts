@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import config from "./config-service";
+import { config } from "./main";
 import { llmConfig } from "./config-service";
 /**
  * Simple inference service using OpenAI SDK
@@ -106,8 +106,3 @@ The JSON structure should be:
     });
   }
 }
-
-// Create a singleton instance
-const inferenceService = new InferenceService();
-
-export default inferenceService;

@@ -2,7 +2,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as fileService from './file-service';
 import * as graphService from './graph-service';
-import inferenceService from './inference';
+import { inferenceService } from './main';
+import { config } from './main';
 
 /**
  * Updates a parent note with links to all its chunk files
@@ -10,7 +11,7 @@ import inferenceService from './inference';
 const updateParentWithChunkLinks = async (parentFilename: string, chunkFilenames: string[]): Promise<boolean> => {
   try {
     // Get directories
-    const notesDir = fileService.getNotesDirectory();
+    const notesDir = config.getNotesDirectory();
     const generatedDir = fileService.getGeneratedFolderPath();
 
     if (!notesDir || !generatedDir) {
@@ -113,12 +114,12 @@ const cleanupChunkFiles = (filename: string): void => {
 const extractLinkedReferences = (content: string): string[] => {
   const linkedRefs: string[] = [];
   const regex = /\[\[(.*?)\]\]/g;
-  
+
   let match;
   while ((match = regex.exec(content)) !== null) {
     linkedRefs.push(match[1]);
   }
-  
+
   return linkedRefs;
 };
 
@@ -133,9 +134,9 @@ export const chunk = async (filename: string, content: string, type: string): Pr
       console.error('Generated directory not set');
       return false;
     }
-    
+
     console.log(`Chunking file: ${filename}, type: ${type}`);
-    
+
     // Remove the existing chunks section if present
     let cleanedContent = content;
     const chunksHeader = "## Chunks";
@@ -143,35 +144,35 @@ export const chunk = async (filename: string, content: string, type: string): Pr
     if (chunksIndex !== -1) {
       cleanedContent = content.substring(0, chunksIndex).trim();
     }
-    
+
     // Call LLM to determine logical chunks
     const chunkResults = await inferenceService.getChunks(cleanedContent, filename);
-    
+
     if (!chunkResults || !chunkResults.chunks || chunkResults.chunks.length === 0) {
       console.error('Failed to get chunk recommendations from LLM');
       return false;
     }
-    
+
     // Create files for each chunk
     const chunkFilenames: string[] = [];
-    
+
     for (let i = 0; i < chunkResults.chunks.length; i++) {
       const chunk = chunkResults.chunks[i];
-      
+
       // Create a safe filename
       const baseFilename = filename.split('.')[0];
       const safeTitle = chunk.title
         .replace(/[^\w\s]/g, '') // Remove special chars
         .replace(/\s+/g, '_') // Replace spaces with underscores
         .substring(0, 30); // Limit length
-      
-      const chunkFilename = `generated_${baseFilename}_${safeTitle}_chunk${i+1}.md`;
+
+      const chunkFilename = `generated_${baseFilename}_${safeTitle}_chunk${i + 1}.md`;
       const chunkPath = path.join(generatedDir, chunkFilename);
-      
+
       // Create chunk content with metadata
       const chunkContent = `---
 source: ${filename}
-chunk_index: ${i+1}
+chunk_index: ${i + 1}
 total_chunks: ${chunkResults.chunks.length}
 type: ${type}
 chunk_title: "${chunk.title}"
@@ -181,29 +182,29 @@ ${chunk.content}
 
 ---
 Parent note: [[${filename.replace('.md', '')}]]`;
-      
+
       // Write the chunk file
       fs.writeFileSync(chunkPath, chunkContent);
-      
+
       // Extract linked references to add to graph
       const linkedRefs = extractLinkedReferences(chunk.content);
       const linkedFiles = [
         filename, // Link to parent
         ...linkedRefs.map(ref => `${ref}.md`) // Links to referenced files
       ];
-      
+
       // Add to graph
       createNodeInAgiGraph(chunkFilename, linkedFiles, 'generated');
-      
+
       // Track this chunk filename
       chunkFilenames.push(chunkFilename);
     }
-    
+
     // Update the parent note with links to all chunks
     if (chunkFilenames.length > 0) {
       await updateParentWithChunkLinks(filename, chunkFilenames);
     }
-    
+
     return true;
   } catch (error) {
     console.error('Error chunking file:', error);
@@ -216,7 +217,7 @@ Parent note: [[${filename.replace('.md', '')}]]`;
  */
 const copyFileToAgi = async (filename: string): Promise<boolean> => {
   try {
-    const notesDir = fileService.getNotesDirectory();
+    const notesDir = config.getNotesDirectory();
     if (!notesDir) {
       console.error('Notes directory not set');
       return false;
@@ -478,7 +479,7 @@ const deleteNodeFromAgiGraph = (filename: string): boolean => {
 export const syncUserWithAgi = async (): Promise<boolean> => {
   try {
     // Get notes directory
-    const notesDir = fileService.getNotesDirectory();
+    const notesDir = config.getNotesDirectory();
     if (!notesDir) {
       console.error('Notes directory not set');
       return false;
@@ -578,7 +579,7 @@ export const syncUserWithAgi = async (): Promise<boolean> => {
 export const updateFileInAgi = async (filename: string): Promise<boolean> => {
   try {
     // Get notes directory
-    const notesDir = fileService.getNotesDirectory();
+    const notesDir = config.getNotesDirectory();
     if (!notesDir) {
       console.error('Notes directory not set');
       return false;

@@ -1,7 +1,7 @@
 import { app } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
-import config from './config-service';
+import { config } from './main';
 
 export let notesDirectory: string | null = null;
 

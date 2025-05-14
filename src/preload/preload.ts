@@ -28,7 +28,6 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.invoke('save-file', { filePath, content, updateHashtags }),
     createFile: (fileName: string) => ipcRenderer.invoke('create-file', fileName),
     deleteFile: (filePath: string) => ipcRenderer.invoke('delete-file', filePath),
-    getNotesDirectory: () => ipcRenderer.invoke('get-notes-directory'),
     getGeneratedFolderPath: () => ipcRenderer.invoke('get-generated-folder-path'),
     getGraphJsonPath: () => ipcRenderer.invoke('get-graph-json-path'),
     getGeneratedGraphJsonPath: () => ipcRenderer.invoke('get-generated-graph-json-path'),
@@ -61,6 +60,7 @@ contextBridge.exposeInMainWorld('electron', {
   },
   // Config operations
   config: {
+    getNotesDirectory: () => ipcRenderer.invoke('get-notes-directory'),
     getLLMConfig: () => ipcRenderer.invoke('get-llm-config'),
     setLLMConfig: (llmConfig: any) => ipcRenderer.invoke('set-llm-config', llmConfig),
   },

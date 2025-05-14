@@ -19,7 +19,6 @@ interface Window {
       saveFile: (filePath: string, content: string, updateHashtags: string[]) => Promise<{ success: boolean }>;
       createFile: (fileName: string) => Promise<{ success: boolean; filePath: string }>;
       deleteFile: (filePath: string) => Promise<{ success: boolean }>;
-      getNotesDirectory: () => Promise<string | null>;
       getGeneratedFolderPath: () => Promise<string | null>;
       getGraphJsonPath: () => Promise<string | null>;
       getGeneratedGraphJsonPath: () => Promise<string | null>;
@@ -36,6 +35,7 @@ interface Window {
       queryDBKeyWords: (searchQuery: string, notesDirectory: string) => Promise<Note[]>;
     };
     config: {
+      getNotesDirectory: () => Promise<string | null>;
       getLLMConfig: () => Promise<any>;
       setLLMConfig: (llmConfig: any) => Promise<void>;
     };
