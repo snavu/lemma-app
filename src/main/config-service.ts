@@ -16,8 +16,11 @@ export class Config {
     notesDirectory?: string;
     llm: llmConfig;
   };
+  
+  private configPath: string | null;
 
   constructor() {
+    this.configPath = this.getConfigPath();
     this.config = this.loadConfig();
   }
 
@@ -33,15 +36,20 @@ export class Config {
    */
   private loadConfig() {
     try {
-      const configPath = this.getConfigPath();
-      if (configPath && fs.existsSync(configPath)) {
-        const data = fs.readFileSync(configPath, 'utf8');
+      if (this.configPath && fs.existsSync(this.configPath)) {
+        const data = fs.readFileSync(this.configPath, 'utf8');
         return JSON.parse(data);
       }
     } catch (error) {
       console.error('Error loading config:', error);
     }
-    return {};
+    return {
+      llm: {
+        endpoint: 'https://api.deepseek.com',
+        apiKey: '',
+        model: 'deepseek-chat'
+      }
+    };
   }
 
   /**
@@ -49,11 +57,16 @@ export class Config {
    */
   private saveConfig() {
     try {
-      const configPath = this.getConfigPath();
-      if (configPath) {
-        fs.writeFileSync(configPath, JSON.stringify(this.config, null, 2));
+      if (this.configPath) {
+        // Ensure directory exists
+        const configDir = path.dirname(this.configPath);
+        if (!fs.existsSync(configDir)) {
+          fs.mkdirSync(configDir, { recursive: true });
+        }
+        
+        fs.writeFileSync(this.configPath, JSON.stringify(this.config, null, 2));
       } else {
-        console.error('Cannot save config: Notes directory not set');
+        console.error('Cannot save config: Config path not available');
       }
     } catch (error) {
       console.error('Error saving config:', error);
@@ -64,28 +77,22 @@ export class Config {
    * Get the note path configuration
    */
   getNotesDirectory() {
-    // Refresh config from disk
-    this.config = this.loadConfig();
     return this.config.notesDirectory || null;
   }
+  
   /**
    * Set the notes directory
    */
   setNotesDirectory(directory: string) {
-    // Refresh config from disk
-    this.config = this.loadConfig();
-
     this.config.notesDirectory = directory;
     this.saveConfig();
+    return this.config.notesDirectory;
   }
 
   /**
    * Get the entire LLM configuration
    */
   getLLMConfig() {
-    // Refresh config from disk
-    this.config = this.loadConfig();
-
     return this.config.llm || {
       endpoint: 'https://api.deepseek.com',
       apiKey: '',
@@ -96,28 +103,25 @@ export class Config {
   /**
    * Update the LLM configuration
    */
-  setLLMConfig(llmConfig: any) {
-    // Refresh config from disk
-    this.config = this.loadConfig();
-
+  setLLMConfig(llmConfig: Partial<llmConfig>) {
     this.config.llm = {
       ...this.getLLMConfig(),
       ...llmConfig
     };
     this.saveConfig();
+    return this.config.llm;
   }
 
   /**
    * Initialize the config file if it doesn't exist
    */
   ensureConfigFile() {
-    const configPath = this.getConfigPath();
-    if (!configPath) {
-      console.error('Cannot initialize config: Notes directory not set');
+    if (!this.configPath) {
+      console.error('Cannot initialize config: Config path not available');
       return;
     }
 
-    if (!fs.existsSync(configPath)) {
+    if (!fs.existsSync(this.configPath)) {
       // Create default config
       const defaultConfig = {
         llm: {
@@ -128,11 +132,28 @@ export class Config {
       };
 
       try {
-        fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2));
-        console.log(`Created default config file at ${configPath}`);
+        // Ensure directory exists
+        const configDir = path.dirname(this.configPath);
+        if (!fs.existsSync(configDir)) {
+          fs.mkdirSync(configDir, { recursive: true });
+        }
+        
+        fs.writeFileSync(this.configPath, JSON.stringify(defaultConfig, null, 2));
+        console.log(`Created default config file at ${this.configPath}`);
+        
+        // Update in-memory config
+        this.config = defaultConfig;
       } catch (error) {
         console.error('Error creating config file:', error);
       }
     }
+  }
+  
+  /**
+   * Reload configuration from disk
+   */
+  reloadConfig() {
+    this.config = this.loadConfig();
+    return this.config;
   }
 }

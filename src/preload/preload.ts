@@ -2,6 +2,7 @@
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 
 import { contextBridge, ipcRenderer, shell } from 'electron';
+import { llmConfig } from 'src/main/config-service';
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
@@ -62,6 +63,6 @@ contextBridge.exposeInMainWorld('electron', {
   config: {
     getNotesDirectory: () => ipcRenderer.invoke('get-notes-directory'),
     getLLMConfig: () => ipcRenderer.invoke('get-llm-config'),
-    setLLMConfig: (llmConfig: any) => ipcRenderer.invoke('set-llm-config', llmConfig),
+    setLLMConfig: (llmConfig: llmConfig) => ipcRenderer.invoke('set-llm-config', llmConfig),
   },
 });

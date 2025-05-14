@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { toast } from 'sonner';
 import './llm-settings-modal.css';
 
 interface LLMSettingsModalProps {
@@ -6,12 +7,16 @@ interface LLMSettingsModalProps {
   onClose: () => void;
 }
 
+interface LLMConfig {
+  endpoint: string;
+  apiKey: string;
+  model: string;
+}
+
 const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) => {
   const [endpoint, setEndpoint] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('');
-  const [orgId, setOrgId] = useState('');
-  const [status, setStatus] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const closeTimeoutRef = useRef<number | null>(null);
@@ -71,7 +76,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
       setModel(llmConfig.model);
     } catch (error) {
       console.error('Error loading LLM settings:', error);
-      setStatus('Error loading settings');
+      toast.error('Failed to load settings');
     }
   };
 
@@ -79,25 +84,28 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
   const saveSettings = async () => {
     try {
       setIsSaving(true);
-      setStatus('Saving...');
 
-      await window.electron.config.setLLMConfig({
+      const result = await window.electron.config.setLLMConfig({
         endpoint,
         apiKey,
         model,
       });
-
-      setStatus('Settings saved successfully!');
-
-      // Clear status after 3 seconds
-      setTimeout(() => {
-        setStatus('');
+      
+      if (result) {
+        toast.success('Settings saved successfully!');
+        
+        // Close modal after slight delay
+        setTimeout(() => {
+          setIsSaving(false);
+          handleClose();
+        }, 500);
+      } else {
+        toast.error('Failed to save settings');
         setIsSaving(false);
-        handleClose();
-      }, 1500);
+      }
     } catch (error) {
       console.error('Error saving LLM settings:', error);
-      setStatus('Error saving settings');
+      toast.error(error instanceof Error ? error.message : 'Unknown error saving settings');
       setIsSaving(false);
     }
   };
@@ -105,84 +113,83 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
   if (!isOpen) return null;
 
   return (
-    <div 
-      className={`modal-overlay ${isClosing ? 'closing' : ''}`} 
-      onClick={handleClose}
-    >
+    <>
       <div 
-        className={`llm-settings-modal ${isClosing ? 'closing' : ''}`} 
-        onClick={e => e.stopPropagation()}
+        className={`modal-overlay ${isClosing ? 'closing' : ''}`} 
+        onClick={handleClose}
       >
-        <div className="modal-header">
-          <h2>AI Model Settings</h2>
-          <button className="close-button" onClick={handleClose}>×</button>
-        </div>
-
-        <div className="modal-body">
-          <div className="form-group">
-            <label htmlFor="endpoint">API Endpoint</label>
-            <input
-              id="endpoint"
-              type="text"
-              value={endpoint}
-              onChange={(e) => setEndpoint(e.target.value)}
-              placeholder="https://api.openai.com"
-            />
-            <p className="help-text">The base URL for the API service</p>
+        <div 
+          className={`llm-settings-modal ${isClosing ? 'closing' : ''}`} 
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="modal-header">
+            <h2>AI Model Settings</h2>
+            <button className="close-button" onClick={handleClose}>×</button>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="apiKey">API Key</label>
-            <input
-              id="apiKey"
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Enter your API key"
-            />
-            <p className="help-text">Your API key for authentication</p>
+          <div className="modal-body">
+            <div className="form-group">
+              <label htmlFor="endpoint">API Endpoint</label>
+              <input
+                id="endpoint"
+                type="text"
+                value={endpoint}
+                onChange={(e) => setEndpoint(e.target.value)}
+                placeholder="https://api.openai.com"
+              />
+              <p className="help-text">The base URL for the API service</p>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="apiKey">API Key</label>
+              <input
+                id="apiKey"
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="Enter your API key"
+              />
+              <p className="help-text">Your API key for authentication</p>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="model">Model</label>
+              <select
+                id="model"
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+              >
+                {getModelOptions().map((modelOption) => (
+                  <option key={modelOption} value={modelOption}>
+                    {modelOption}
+                  </option>
+                ))}
+              </select>
+              <p className="help-text">The AI model to use for inference</p>
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="model">Model</label>
-            <select
-              id="model"
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-            >
-              {getModelOptions().map((modelOption) => (
-                <option key={modelOption} value={modelOption}>
-                  {modelOption}
-                </option>
-              ))}
-            </select>
-            <p className="help-text">The AI model to use for inference</p>
-          </div>
-
-        
-        </div>
-
-        <div className="modal-footer">
-          {status && <p className="status-message">{status}</p>}
-          <div className="modal-buttons">
-            <button
-              className="cancel-button"
-              onClick={handleClose}
-              disabled={isSaving}
-            >
-              Cancel
-            </button>
-            <button
-              className={`save-button ${isSaving ? 'is-saving' : ''}`}
-              onClick={saveSettings}
-              disabled={isSaving}
-            >
-              {isSaving ? 'Saving...' : 'Save'}
-            </button>
+          <div className="modal-footer">
+            <div className="modal-buttons">
+              <button
+                className="cancel-button"
+                onClick={handleClose}
+                disabled={isSaving}
+              >
+                Cancel
+              </button>
+              <button
+                className={`save-button ${isSaving ? 'is-saving' : ''}`}
+                onClick={saveSettings}
+                disabled={isSaving}
+              >
+                {isSaving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

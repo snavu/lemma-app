@@ -100,6 +100,7 @@
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
     "sharp": "^0.34.1",
+    "sonner": "^2.0.3",
     "three": "^0.176.0",
     "three-stdlib": "^2.36.0",
     "tippy.js": "^6.3.7",

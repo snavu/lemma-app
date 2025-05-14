@@ -48,7 +48,6 @@ const createWindow = (): void => {
 const initializeFileSystem = (): void => {
   // First try to load existing settings
   const notesDir = config.getNotesDirectory();
-  console.log('1:', notesDir);
   // If no directory is set after loading config, set up the default one
   if (!notesDir) {
     const newDir = fileService.setupDefaultNotesDirectory();
@@ -274,6 +273,7 @@ const setupIpcHandlers = (): void => {
   });
 
   ipcMain.handle('set-llm-config', (_, llmConfig) => {
+    console.log('Setting LLM config:', llmConfig);
     const result = config.setLLMConfig(llmConfig);
     // Update the inference service with new config if you have one
     inferenceService.updateConfig(llmConfig);

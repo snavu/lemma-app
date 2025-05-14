@@ -36,8 +36,8 @@ interface Window {
     };
     config: {
       getNotesDirectory: () => Promise<string | null>;
-      getLLMConfig: () => Promise<any>;
-      setLLMConfig: (llmConfig: any) => Promise<void>;
+      getLLMConfig: () => Promise<llmConfig>;
+      setLLMConfig: (llmConfig: llmConfig) => Promise<llmConfig>;
     };
   };
 }
