@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { app } from 'electron';
+import { notesDirectory } from './file-service';
 
 export interface llmConfig {
   endpoint: string;

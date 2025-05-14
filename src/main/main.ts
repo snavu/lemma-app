@@ -170,7 +170,6 @@ const createAppMenu = () => {
 // Select notes directory
 const selectNotesDirectory = async (): Promise<string | null> => {
   if (!mainWindow) return null;
-
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openDirectory'],
     title: 'Select Notes Directory'
@@ -178,8 +177,8 @@ const selectNotesDirectory = async (): Promise<string | null> => {
 
   if (!result.canceled && result.filePaths.length > 0) {
     const directory = result.filePaths[0];
+    fileService.setNotesDirectory(directory);
     config.setNotesDirectory(directory);
-
     // Notify renderer about the selected directory
     mainWindow.webContents.send('notes-directory-selected', directory);
 
@@ -214,7 +213,7 @@ const setupIpcHandlers = (): void => {
   });
 
   // File system operations
-  ipcMain.handle('select-notes-directory', selectNotesDirectory);
+  ipcMain.handle('select-notes-directory', () => selectNotesDirectory());
   ipcMain.handle('get-files', fileService.getFilesFromDirectory);
   ipcMain.handle('read-file', (_, filePath) => fileService.readFile(filePath));
 

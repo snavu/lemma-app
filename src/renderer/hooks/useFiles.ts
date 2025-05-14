@@ -37,6 +37,7 @@ export const useFiles = () => {
   useEffect(() => {
     const loadFiles = async () => {
       if (notesDirectory && window.electron?.fs) {
+        console.log('Loading files from directory:', notesDirectory);
         try {
           const files = await window.electron.fs.getFiles();
           setFiles(files);
@@ -51,6 +52,7 @@ export const useFiles = () => {
     };
 
     if (notesDirectory) {
+      console.log( 'Loading files from directory:', notesDirectory);
       loadFiles();
     }
   }, [notesDirectory]);

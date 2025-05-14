@@ -5,6 +5,10 @@ import { config } from './main';
 
 export let notesDirectory: string | null = null;
 
+export const setNotesDirectory = (directory: string): void => {
+  notesDirectory = directory;
+}
+
 // Create a default notes directory if none exists
 export const setupDefaultNotesDirectory = (): string | null => {
   if (notesDirectory === null) {
