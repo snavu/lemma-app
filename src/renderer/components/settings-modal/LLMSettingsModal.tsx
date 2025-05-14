@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import './llm-settings-modal.css';
 
 interface LLMSettingsModalProps {
@@ -13,6 +13,8 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
   const [orgId, setOrgId] = useState('');
   const [status, setStatus] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const closeTimeoutRef = useRef<number | null>(null);
 
   // Common models for different providers
   const modelOptions = {
@@ -21,6 +23,24 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
     'Anthropic': ['claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'],
     'Custom': ['custom']
   };
+
+  // Handle close with animation
+  const handleClose = () => {
+    setIsClosing(true);
+    closeTimeoutRef.current = window.setTimeout(() => {
+      setIsClosing(false);
+      onClose();
+    }, 200); // Match this to the CSS animation duration
+  };
+
+  // Cleanup timeout when component unmounts
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Detect provider from endpoint
   const detectProvider = (endpoint: string) => {
@@ -73,7 +93,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
       setTimeout(() => {
         setStatus('');
         setIsSaving(false);
-        onClose();
+        handleClose();
       }, 1500);
     } catch (error) {
       console.error('Error saving LLM settings:', error);
@@ -85,11 +105,17 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="llm-settings-modal" onClick={e => e.stopPropagation()}>
+    <div 
+      className={`modal-overlay ${isClosing ? 'closing' : ''}`} 
+      onClick={handleClose}
+    >
+      <div 
+        className={`llm-settings-modal ${isClosing ? 'closing' : ''}`} 
+        onClick={e => e.stopPropagation()}
+      >
         <div className="modal-header">
           <h2>AI Model Settings</h2>
-          <button className="close-button" onClick={onClose}>×</button>
+          <button className="close-button" onClick={handleClose}>×</button>
         </div>
 
         <div className="modal-body">
@@ -133,17 +159,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
             <p className="help-text">The AI model to use for inference</p>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="orgId">Organization ID (optional)</label>
-            <input
-              id="orgId"
-              type="text"
-              value={orgId}
-              onChange={(e) => setOrgId(e.target.value)}
-              placeholder="Optional organization ID"
-            />
-            <p className="help-text">Only required for some providers</p>
-          </div>
+        
         </div>
 
         <div className="modal-footer">
@@ -151,13 +167,13 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
           <div className="modal-buttons">
             <button
               className="cancel-button"
-              onClick={onClose}
+              onClick={handleClose}
               disabled={isSaving}
             >
               Cancel
             </button>
             <button
-              className="save-button"
+              className={`save-button ${isSaving ? 'is-saving' : ''}`}
               onClick={saveSettings}
               disabled={isSaving}
             >
