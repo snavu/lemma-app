@@ -90,10 +90,12 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
 
       const agiResult = await window.electron.config.setAgiConfig(experimentalAgi);
 
-      syncAgi();
-
       if (llmResult && agiResult) {
         toast.success('Settings saved successfully!');
+
+        if (experimentalAgi) {
+          syncAgi();
+        }
 
         // Close modal after slight delay
         setTimeout(() => {
@@ -112,18 +114,14 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
   };
 
   const syncAgi = async () => {
-    try {
-      const result = await window.electron.config.syncAgi();
-      if (result) {
-        toast.success('AGI settings synced successfully!');
-      }
-      else {
-        toast.error('Failed to sync AGI settings');
-      }
 
-    } catch (error) {
-      toast.error('Failed to sync AGI settings');
-    }
+    const result = Promise.resolve(window.electron.config.syncAgi());
+    toast.promise(result, {
+      loading: 'Syncing AGI...',
+      success: 'AGI synced successfully!',
+      error: 'Failed to sync AGI'
+    });
+
   }
 
   if (!isOpen) return null;
