@@ -2,6 +2,7 @@ import * as fileService from './file-service';
 import * as graphService from './graph-service';
 import * as fs from 'fs';
 import * as path from 'path';
+import { config } from './main';
 
 /**
  * Synchronizes the graph.json with the actual files in the notes directory
@@ -12,7 +13,7 @@ import * as path from 'path';
 export const syncGraphWithFiles = async (): Promise<boolean> => {
   try {
     // Get notes directory
-    const notesDir = fileService.getNotesDirectory();
+    const notesDir = config.getNotesDirectory();
     if (!notesDir) {
       console.error('Notes directory not set');
       return false;
@@ -97,7 +98,7 @@ export const syncGraphWithFiles = async (): Promise<boolean> => {
 export const updateFileInGraph = async (filename: string): Promise<boolean> => {
   try {
     // Get notes directory
-    const notesDir = fileService.getNotesDirectory();
+    const notesDir = config.getNotesDirectory();
     if (!notesDir) {
       console.error('Notes directory not set');
       return false;

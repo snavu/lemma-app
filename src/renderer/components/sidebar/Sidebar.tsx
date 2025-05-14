@@ -2,6 +2,7 @@ import React, { useState, useCallback, ReactNode } from 'react';
 import { ContextMenu } from '../context-menu/ContextMenu';
 import './sidebar.css';
 import { SearchResults } from '../search/searchResult';
+import LLMSettingsModal from '../settings-modal/LLMSettingsModal';
 
 interface FileInfo {
   name: string;
@@ -72,6 +73,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     filePath: '',
   });
 
+  // State for LLM settings modal
+  const [isLLMSettingsOpen, setIsLLMSettingsOpen] = useState(false);
+
   // Handler for right-click on a file
   const handleContextMenu = useCallback(
     (e: React.MouseEvent, filePath: string) => {
@@ -97,7 +101,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (!filePath) return;
 
     try {
-
       // Call the parent component's delete handler
       const success = await onDeleteFile(filePath);
       
@@ -109,6 +112,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
       alert('Failed to delete file. Please try again.');
     }
   }, [contextMenu, onDeleteFile]);
+
+  // Open LLM settings modal
+  const openLLMSettings = () => {
+    setIsLLMSettingsOpen(true);
+  };
+
+  // Close LLM settings modal
+  const closeLLMSettings = () => {
+    setIsLLMSettingsOpen(false);
+  };
 
   // Icons for the sidebar
   const NewNoteIcon = () => (
@@ -137,6 +150,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="11" cy="11" r="8"></circle>
       <line x1="16" y1="16" x2="20" y2="20" />
+    </svg>
+  );
+
+  const AISettingsIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
     </svg>
   );
 
@@ -171,21 +191,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </svg>
   );
 
-  
-
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        <h3>Notes</h3>
         <div className="sidebar-actions">
           <button onClick={onNewNote} title="New Note">
-            <NewNoteIcon /> New
+            <NewNoteIcon /> 
           </button>
           <button onClick={onSelectDirectory} title="Select Notes Directory">
-            <FolderIcon /> Folder
+            <FolderIcon /> 
           </button>
-          <button onClick={() => setSearchresult(true)}title="Search">
+          <button onClick={() => setSearchresult(true)} title="Search">
             <SearchIcon />
+          </button>
+          <button onClick={openLLMSettings} title="AI Settings">
+            <AISettingsIcon />
           </button>
         </div>
       </div>
@@ -275,6 +295,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           setSearchInput={setSearchInput}
           setResults={setResults}
       />}
+
+      {/* LLM Settings Modal */}
+      <LLMSettingsModal 
+        isOpen={isLLMSettingsOpen} 
+        onClose={closeLLMSettings} 
+      />
     </div>
   );
 };

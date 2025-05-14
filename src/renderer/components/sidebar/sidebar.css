@@ -67,7 +67,7 @@
 
 .sidebar-actions {
   display: flex;
-  /* gap: 8px; */
+  gap: 8px;
 }
 
 .sidebar-actions button {
@@ -80,7 +80,12 @@
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   transition: all 0.15s ease;
+}
+
+.sidebar-actions button svg {
+  margin-right: 4px;
 }
 
 .sidebar-actions button:hover {

@@ -31,6 +31,7 @@ import { useTabs } from './hooks/useTabs';
 import { useGraphState } from './hooks/useGraphState';
 import { useNotesSync } from './hooks/useNotesSync';
 import KnowledgeGraph from './components/tabs/markdown/graph/KnowledgeGraph';
+import ToastProvider from './components/toast/ToastProvider';
 
 // Memoize the KnowledgeGraph component to prevent unnecessary re-renders
 const MemoizedKnowledgeGraph = memo(KnowledgeGraph);
@@ -188,7 +189,9 @@ export const App = () => {
             )}
           </div>
         </div>
+        <ToastProvider/>
       </div>
+
     </div>
   );
 };
