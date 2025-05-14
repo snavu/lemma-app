@@ -7,16 +7,11 @@ interface LLMSettingsModalProps {
   onClose: () => void;
 }
 
-interface LLMConfig {
-  endpoint: string;
-  apiKey: string;
-  model: string;
-}
-
 const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) => {
   const [endpoint, setEndpoint] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('');
+  const [experimentalAgi, setExperimentalAgi] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const closeTimeoutRef = useRef<number | null>(null);
@@ -71,9 +66,11 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
   const loadSettings = async () => {
     try {
       const llmConfig = await window.electron.config.getLLMConfig();
+      const agiConfig = await window.electron.config.getAgiConfig();
       setEndpoint(llmConfig.endpoint);
       setApiKey(llmConfig.apiKey);
       setModel(llmConfig.model);
+      setExperimentalAgi(agiConfig.enabled || false);
     } catch (error) {
       console.error('Error loading LLM settings:', error);
       toast.error('Failed to load settings');
@@ -85,13 +82,16 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
     try {
       setIsSaving(true);
 
-      const result = await window.electron.config.setLLMConfig({
+      const llmResult = await window.electron.config.setLLMConfig({
         endpoint,
         apiKey,
         model,
       });
+
+      const agiResult = await window.electron.config.setAgiConfig(experimentalAgi);
+      await window.electron.config.syncAgi();
       
-      if (result) {
+      if (llmResult && agiResult) {
         toast.success('Settings saved successfully!');
         
         // Close modal after slight delay
@@ -166,6 +166,25 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                 ))}
               </select>
               <p className="help-text">The AI model to use for inference</p>
+            </div>
+
+            <div className="form-group toggle-group">
+              <div className="toggle-header">
+                <label htmlFor="experimentalAgi">Experimental AGI</label>
+                <label className="toggle-switch">
+                  <input
+                    id="experimentalAgi"
+                    type="checkbox"
+                    checked={experimentalAgi}
+                    onChange={(e) => {
+                      const newValue = e.target.checked;
+                      setExperimentalAgi(newValue);
+                    }}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+              <p className="help-text">Enable experimental AGI features (may be unstable)</p>
             </div>
           </div>
 

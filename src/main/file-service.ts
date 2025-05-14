@@ -68,7 +68,10 @@ export const ensureNotesDirectoryStructure = (directory: string): void => {
           endpoint: 'https://api.deepseek.com',
           apiKey: '',
           model: 'deepseek-chat'
-        }
+        },
+        agi: {
+          enabled: false,
+        },
       };
       fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2));
       console.log(`Created config.json file in ${directory}`);

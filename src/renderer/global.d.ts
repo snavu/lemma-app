@@ -38,6 +38,9 @@ interface Window {
       getNotesDirectory: () => Promise<string | null>;
       getLLMConfig: () => Promise<llmConfig>;
       setLLMConfig: (llmConfig: llmConfig) => Promise<llmConfig>;
+      getAgiConfig: () => Promise<agiConfig>;
+      setAgiConfig: (toggle: boolean) => Promise<agiConfig>;
+      syncAgi: () => Promise<boolean>;
     };
   };
 }

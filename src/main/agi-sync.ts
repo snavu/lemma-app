@@ -476,7 +476,7 @@ const deleteNodeFromAgiGraph = (filename: string): boolean => {
 /**
  * Sync user notes with AGI notes
  */
-export const syncUserWithAgi = async (): Promise<boolean> => {
+export const syncAgi = async (): Promise<boolean> => {
   try {
     // Get notes directory
     const notesDir = config.getNotesDirectory();

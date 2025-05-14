@@ -64,5 +64,9 @@ contextBridge.exposeInMainWorld('electron', {
     getNotesDirectory: () => ipcRenderer.invoke('get-notes-directory'),
     getLLMConfig: () => ipcRenderer.invoke('get-llm-config'),
     setLLMConfig: (llmConfig: llmConfig) => ipcRenderer.invoke('set-llm-config', llmConfig),
+    getAgiConfig: () => ipcRenderer.invoke('get-agi-config'),
+    setAgiConfig: (toggle: boolean) => ipcRenderer.invoke('set-agi-config', toggle),
+    syncAgi: () => ipcRenderer.invoke('sync-agi'),
   },
+
 });

@@ -8,6 +8,10 @@ export interface llmConfig {
   model: string;
 }
 
+export interface agiConfig {
+  enabled: boolean;
+}
+
 /**
  * Configuration service for managing app settings
  */
@@ -15,8 +19,9 @@ export class Config {
   private config: {
     notesDirectory?: string;
     llm: llmConfig;
+    agi: agiConfig;
   };
-  
+
   private configPath: string | null;
 
   constructor() {
@@ -63,7 +68,7 @@ export class Config {
         if (!fs.existsSync(configDir)) {
           fs.mkdirSync(configDir, { recursive: true });
         }
-        
+
         fs.writeFileSync(this.configPath, JSON.stringify(this.config, null, 2));
       } else {
         console.error('Cannot save config: Config path not available');
@@ -79,7 +84,7 @@ export class Config {
   getNotesDirectory() {
     return this.config.notesDirectory || null;
   }
-  
+
   /**
    * Set the notes directory
    */
@@ -113,6 +118,22 @@ export class Config {
   }
 
   /**
+   * Get the AGI configuration
+   */
+  getAgiConfig() {
+    return this.config.agi || false;
+  }
+
+  /**
+   * Set the AGI configuration
+   */
+  setAgiConfig(toggle: boolean) {
+    this.config.agi = { enabled: toggle };
+    this.saveConfig();
+    return this.config.agi;
+  }
+
+  /**
    * Initialize the config file if it doesn't exist
    */
   ensureConfigFile() {
@@ -128,6 +149,9 @@ export class Config {
           endpoint: 'https://api.deepseek.com',
           apiKey: '',
           model: 'deepseek-chat'
+        },
+        agi: {
+          enabled: false
         }
       };
 
@@ -137,10 +161,10 @@ export class Config {
         if (!fs.existsSync(configDir)) {
           fs.mkdirSync(configDir, { recursive: true });
         }
-        
+
         fs.writeFileSync(this.configPath, JSON.stringify(defaultConfig, null, 2));
         console.log(`Created default config file at ${this.configPath}`);
-        
+
         // Update in-memory config
         this.config = defaultConfig;
       } catch (error) {
@@ -148,7 +172,7 @@ export class Config {
       }
     }
   }
-  
+
   /**
    * Reload configuration from disk
    */

@@ -6,7 +6,7 @@ import { DbClient } from './database';
 import * as fileService from './file-service';
 import * as chromaService from './chroma-service';
 import * as graphLoader from './graph-loader';
-import * as userAgiSync from './user-agi-sync';
+import * as userAgiSync from './agi-sync';
 import { Config } from './config-service';
 import { InferenceService } from './inference';
 
@@ -48,6 +48,7 @@ const createWindow = (): void => {
 const initializeFileSystem = (): void => {
   // First try to load existing settings
   const notesDir = config.getNotesDirectory();
+
   // If no directory is set after loading config, set up the default one
   if (!notesDir) {
     const newDir = fileService.setupDefaultNotesDirectory();
@@ -60,16 +61,18 @@ const initializeFileSystem = (): void => {
       graphLoader.syncGraphWithFiles().then(success => {
         if (success) {
           console.log('Graph successfully synced with files');
-          console.log('Syncing user with AGI...');
-          // Now sync user with AGI
-          userAgiSync.syncUserWithAgi().then(agiSuccess => {
-            if (agiSuccess) {
-              console.log('User successfully synced with AGI');
 
-            } else {
-              console.error('Failed to sync user with AGI');
-            }
-          });
+          // Only sync with AGI if experimental AGI is enabled
+          if (config.getAgiConfig()) {
+            console.log('Syncing user with AGI...');
+            userAgiSync.syncAgi().then(agiSuccess => {
+              if (agiSuccess) {
+                console.log('User successfully synced with AGI');
+              } else {
+                console.error('Failed to sync user with AGI');
+              }
+            });
+          }
         } else {
           console.error('Failed to sync graph with files');
         }
@@ -87,16 +90,18 @@ const initializeFileSystem = (): void => {
       graphLoader.syncGraphWithFiles().then(success => {
         if (success) {
           console.log('Graph successfully synced with files');
-          console.log('Syncing user with AGI...');
-          // Now sync user with AGI
-          userAgiSync.syncUserWithAgi().then(agiSuccess => {
-            if (agiSuccess) {
-              console.log('User successfully synced with AGI');
 
-            } else {
-              console.error('Failed to sync user with AGI');
-            }
-          });
+          // Only sync with AGI if experimental AGI is enabled
+          if (config.getAgiConfig()) {
+            console.log('Syncing user with AGI...');
+            userAgiSync.syncAgi().then(agiSuccess => {
+              if (agiSuccess) {
+                console.log('User successfully synced with AGI');
+              } else {
+                console.error('Failed to sync user with AGI');
+              }
+            });
+          }
         } else {
           console.error('Failed to sync graph with files');
         }
@@ -223,7 +228,9 @@ const setupIpcHandlers = (): void => {
       // Update the database with the new content
       await database.upsertNotes(fileService.notesDirectory, filePath, content);
       // update the file in AGI
-      await userAgiSync.updateFileInAgi(filename);
+      if (config.getAgiConfig()) {
+        await userAgiSync.updateFileInAgi(filename);
+      }
     }
     return result;
   });
@@ -235,7 +242,9 @@ const setupIpcHandlers = (): void => {
       // Add the new file to the graph
       await graphLoader.updateFileInGraph(fileName);
       // Add the new file to AGI
-      await userAgiSync.updateFileInAgi(fileName);
+      if (config.getAgiConfig()) {
+        await userAgiSync.updateFileInAgi(fileName);
+      }
     }
     return result;
   });
@@ -278,6 +287,25 @@ const setupIpcHandlers = (): void => {
     // Update the inference service with new config if you have one
     inferenceService.updateConfig(llmConfig);
     return result;
+  });
+
+  ipcMain.handle('get-agi-config', () => {
+    return config.getAgiConfig();
+  });
+
+  ipcMain.handle('set-agi-config', (_, toggle) => {
+    const result = config.setAgiConfig(toggle);
+    return result;
+  });
+
+  ipcMain.handle('sync-agi', async () => {
+    // Sync user with AGI
+    const success = await userAgiSync.syncAgi();
+    if (success) {
+      console.log('User successfully synced with AGI');
+    } else {
+      console.error('Failed to sync user with AGI');
+    }
   });
 
   // Window control messages
