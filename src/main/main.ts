@@ -7,6 +7,8 @@ import * as fileService from './file-service';
 import * as chromaService from './chroma-service';
 import * as graphLoader from './graph-loader';
 import * as userAgiSync from './user-agi-sync';
+import { config } from './config-service';
+import inferenceService from './inference';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -46,7 +48,7 @@ const createWindow = (): void => {
 // Initialize the file system configuration
 const initializeFileSystem = (): void => {
   // First try to load existing settings
-  const notesDir = fileService.loadConfigSettings();
+  const notesDir = config.getNotesDirectory();
 
   // If no directory is set after loading config, set up the default one
   if (!notesDir) {
@@ -173,7 +175,7 @@ const selectNotesDirectory = async (): Promise<string | null> => {
 
   if (!result.canceled && result.filePaths.length > 0) {
     const directory = result.filePaths[0];
-    fileService.setNotesDirectory(directory);
+    config.setNotesDirectory(directory);
 
     // Notify renderer about the selected directory
     mainWindow.webContents.send('notes-directory-selected', directory);
@@ -253,7 +255,7 @@ const setupIpcHandlers = (): void => {
     return result;
   });
 
-  ipcMain.handle('get-notes-directory', fileService.getNotesDirectory);
+  ipcMain.handle('get-notes-directory', config.getNotesDirectory);
 
   // Graph file path operations
   ipcMain.handle('get-graph-json-path', fileService.getGraphJsonPath);
@@ -263,6 +265,17 @@ const setupIpcHandlers = (): void => {
   // New graph-related handlers
   ipcMain.handle('sync-graph', async () => {
     return await graphLoader.syncGraphWithFiles();
+  });
+
+  ipcMain.handle('get-llm-config', () => {
+    return config.getLLMConfig();
+  });
+
+  ipcMain.handle('set-llm-config', (_, llmConfig) => {
+    const result = config.setLLMConfig(llmConfig);
+    // Update the inference service with new config if you have one
+    inferenceService.updateConfig(llmConfig);
+    return result;
   });
 
   // Window control messages

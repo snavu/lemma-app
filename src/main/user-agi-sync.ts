@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as fileService from './file-service';
 import * as graphService from './graph-service';
+import inferenceService from './inference';
 
 /**
  * Updates a parent note with links to all its chunk files
@@ -107,7 +108,22 @@ const cleanupChunkFiles = (filename: string): void => {
 };
 
 /**
- * Chunk a file for AI processing and create bi-directional links
+ * Helper function to extract linked references from content
+ */
+const extractLinkedReferences = (content: string): string[] => {
+  const linkedRefs: string[] = [];
+  const regex = /\[\[(.*?)\]\]/g;
+  
+  let match;
+  while ((match = regex.exec(content)) !== null) {
+    linkedRefs.push(match[1]);
+  }
+  
+  return linkedRefs;
+};
+
+/**
+ * Call the LLM API to get semantic chunking recommendations
  */
 export const chunk = async (filename: string, content: string, type: string): Promise<boolean> => {
   try {
@@ -117,261 +133,77 @@ export const chunk = async (filename: string, content: string, type: string): Pr
       console.error('Generated directory not set');
       return false;
     }
-
+    
     console.log(`Chunking file: ${filename}, type: ${type}`);
-
+    
     // Remove the existing chunks section if present
-    const lines = content.split('\n');
-    let contentLines: string[] = [];
-    let inChunksSection = false;
-
-    for (const line of lines) {
-      if (line.startsWith('## Chunks')) {
-        inChunksSection = true;
-        continue;
-      }
-
-      if (!inChunksSection) {
-        contentLines.push(line);
-      }
+    let cleanedContent = content;
+    const chunksHeader = "## Chunks";
+    const chunksIndex = content.indexOf(chunksHeader);
+    if (chunksIndex !== -1) {
+      cleanedContent = content.substring(0, chunksIndex).trim();
     }
-
-    // Define section interface for hierarchical structure
-    interface Section {
-      title: string;
-      level: number;
-      headerLine: string;
-      startLine: number;
-      endLine: number;
-      parent: Section | null;
-      children: Section[];
+    
+    // Call LLM to determine logical chunks
+    const chunkResults = await inferenceService.getChunks(cleanedContent, filename);
+    
+    if (!chunkResults || !chunkResults.chunks || chunkResults.chunks.length === 0) {
+      console.error('Failed to get chunk recommendations from LLM');
+      return false;
     }
-
-    // Parse the document structure to identify sections
-    let documentTitle = '';
-    let rootSection: Section | null = null;
-
-    // First pass: identify the document title (h1)
-    for (let i = 0; i < contentLines.length; i++) {
-      const line = contentLines[i];
-      if (line.startsWith('# ')) {
-        documentTitle = line.replace(/^# /, '');
-        rootSection = {
-          title: documentTitle,
-          level: 1,
-          headerLine: line,
-          startLine: i,
-          endLine: contentLines.length - 1,
-          parent: null,
-          children: []
-        };
-        break;
-      }
-    }
-
-    // If no h1 found, create a default root section
-    if (!rootSection) {
-      rootSection = {
-        title: 'Document',
-        level: 0,
-        headerLine: '',
-        startLine: 0,
-        endLine: contentLines.length - 1,
-        parent: null,
-        children: []
-      };
-    }
-
-    // Second pass: build section hierarchy
-    const sectionStack: Section[] = [rootSection];
-
-    for (let i = 0; i < contentLines.length; i++) {
-      const line = contentLines[i];
-
-      if (line.startsWith('#')) {
-        const level = line.match(/^#+/)?.[0].length || 0;
-        const title = line.replace(/^#+\s+/, '');
-
-        // Skip if this is the root h1 we already processed
-        if (level === 1 && title === documentTitle) {
-          continue;
-        }
-
-        // Pop sections from stack until we find a parent with lower level
-        while (
-          sectionStack.length > 0 &&
-          sectionStack[sectionStack.length - 1].level >= level
-        ) {
-          const poppedSection = sectionStack.pop();
-          if (poppedSection) {
-            poppedSection.endLine = i - 1;
-          }
-        }
-
-        // Create new section with the current top of stack as parent
-        const parent = sectionStack[sectionStack.length - 1] || rootSection;
-        const newSection: Section = {
-          title,
-          level,
-          headerLine: line,
-          startLine: i,
-          endLine: contentLines.length - 1, // Will be updated when another section starts/ends
-          parent,
-          children: []
-        };
-
-        // Add as child to parent
-        parent.children.push(newSection);
-
-        // Push to stack
-        sectionStack.push(newSection);
-      }
-    }
-
-    // Finalize end lines for sections still in stack
-    while (sectionStack.length > 0) {
-      const section = sectionStack.pop();
-      if (section) {
-        section.endLine = contentLines.length - 1;
-      }
-    }
-
-    // Create self-contained chunks based on the section hierarchy
-    interface Chunk {
-      title: string;
-      content: string[];
-    }
-
-    const chunks: Chunk[] = [];
-
-    // Helper function to build the context path for a section
-    const buildContextPath = (section: Section): string[] => {
-      const path: string[] = [];
-      let current: Section | null = section;
-
-      while (current && current.level > 0) {
-        // Add to the beginning of path to maintain correct order
-        path.unshift(current.headerLine);
-        current = current.parent;
-      }
-
-      return path;
-    };
-
-    // Helper function to extract linked references from content
-    const extractLinkedReferences = (content: string[]): string[] => {
-      const linkedRefs: string[] = [];
-      const regex = /\[\[(.*?)\]\]/g;
-
-      content.forEach(line => {
-        let match;
-        while ((match = regex.exec(line)) !== null) {
-          linkedRefs.push(match[1]);
-        }
-      });
-
-      return linkedRefs;
-    };
-
-    // Process a section to create a chunk
-    const processSection = (section: Section) => {
-      // Skip the root section
-      if (section.level <= 1) {
-        // Process all children
-        section.children.forEach(child => processSection(child));
-        return;
-      }
-
-      // Create chunks for level 2 and 3 headers
-      if (section.level <= 3) {
-        // Build the context path (headers)
-        const contextPath = buildContextPath(section);
-
-        // Extract the content for this section
-        const sectionContent = contentLines.slice(section.startLine, section.endLine + 1);
-
-        // Build complete chunk content with context
-        const chunkContent = [
-          ...contextPath.slice(0, -1), // All parent headers except the current one
-          '',  // Empty line for readability
-          ...sectionContent // The section itself with its header
-        ];
-
-        chunks.push({
-          title: section.title,
-          content: chunkContent
-        });
-      }
-
-      // Process all children regardless of whether this section created a chunk
-      section.children.forEach(child => processSection(child));
-    };
-
-    // Start processing from root
-    if (rootSection) {
-      processSection(rootSection);
-    }
-
-    // If no chunks were created (no h2/h3 headers), create one for the whole document
-    if (chunks.length === 0) {
-      chunks.push({
-        title: documentTitle || 'Document',
-        content: contentLines
-      });
-    }
-
+    
     // Create files for each chunk
     const chunkFilenames: string[] = [];
-
-    for (let i = 0; i < chunks.length; i++) {
-      const chunk = chunks[i];
-
+    
+    for (let i = 0; i < chunkResults.chunks.length; i++) {
+      const chunk = chunkResults.chunks[i];
+      
       // Create a safe filename
       const baseFilename = filename.split('.')[0];
       const safeTitle = chunk.title
         .replace(/[^\w\s]/g, '') // Remove special chars
         .replace(/\s+/g, '_') // Replace spaces with underscores
         .substring(0, 30); // Limit length
-
-      const chunkFilename = `generated_${baseFilename}_${safeTitle}_chunk${i + 1}.md`;
+      
+      const chunkFilename = `generated_${baseFilename}_${safeTitle}_chunk${i+1}.md`;
       const chunkPath = path.join(generatedDir, chunkFilename);
+      
+      // Create chunk content with metadata
+      const chunkContent = `---
+source: ${filename}
+chunk_index: ${i+1}
+total_chunks: ${chunkResults.chunks.length}
+type: ${type}
+chunk_title: "${chunk.title}"
+---
 
+${chunk.content}
+
+---
+Parent note: [[${filename.replace('.md', '')}]]`;
+      
+      // Write the chunk file
+      fs.writeFileSync(chunkPath, chunkContent);
+      
       // Extract linked references to add to graph
       const linkedRefs = extractLinkedReferences(chunk.content);
       const linkedFiles = [
         filename, // Link to parent
         ...linkedRefs.map(ref => `${ref}.md`) // Links to referenced files
       ];
-
-      // Create chunk content with metadata
-      const chunkContent = `---
-source: ${filename}
-chunk_index: ${i + 1}
-total_chunks: ${chunks.length}
-type: ${type}
-chunk_title: "${chunk.title}"
----
-
-${chunk.content.join('\n')}
-
----
-Parent note: [[${filename.replace('.md', '')}]]`;
-
-      // Write the chunk file
-      fs.writeFileSync(chunkPath, chunkContent);
-
+      
       // Add to graph
       createNodeInAgiGraph(chunkFilename, linkedFiles, 'generated');
-
+      
       // Track this chunk filename
       chunkFilenames.push(chunkFilename);
     }
-
+    
     // Update the parent note with links to all chunks
     if (chunkFilenames.length > 0) {
       await updateParentWithChunkLinks(filename, chunkFilenames);
     }
-
+    
     return true;
   } catch (error) {
     console.error('Error chunking file:', error);

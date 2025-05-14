@@ -55,8 +55,13 @@ contextBridge.exposeInMainWorld('electron', {
       };
     }
   },
-  db: { 
+  db: {
     queryDBTags: (searchQuery: string, notesDirectory: string) => ipcRenderer.invoke('tag-search-query', searchQuery, notesDirectory),
     queryDBKeyWords: (searchQuery: string, notesDirectory: string) => ipcRenderer.invoke('keyword-search-query', searchQuery, notesDirectory),
+  },
+  // Config operations
+  config: {
+    getLLMConfig: () => ipcRenderer.invoke('get-llm-config'),
+    setLLMConfig: (llmConfig: any) => ipcRenderer.invoke('set-llm-config', llmConfig),
   },
 });

@@ -1,36 +1,9 @@
 import { app } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
-
+import config from './config-service';
 
 export let notesDirectory: string | null = null;
-
-// Configuration functions
-const configFilePath = (): string => {
-  return path.join(app.getPath('userData'), 'config.json');
-};
-
-export const loadConfigSettings = (): string | null => {
-  try {
-    if (fs.existsSync(configFilePath())) {
-      const config = JSON.parse(fs.readFileSync(configFilePath(), 'utf8'));
-      notesDirectory = config.notesDirectory || null;
-    }
-    return notesDirectory;
-  } catch (error) {
-    console.error('Error loading config:', error);
-    return null;
-  }
-};
-
-export const saveConfigSettings = (): void => {
-  try {
-    const config = { notesDirectory };
-    fs.writeFileSync(configFilePath(), JSON.stringify(config, null, 2));
-  } catch (error) {
-    console.error('Error saving config:', error);
-  }
-};
 
 // Create a default notes directory if none exists
 export const setupDefaultNotesDirectory = (): string | null => {
@@ -52,25 +25,13 @@ export const setupDefaultNotesDirectory = (): string | null => {
 
     // Set the notes directory
     notesDirectory = defaultNotesPath;
-    saveConfigSettings();
-    
+    config.setNotesDirectory(defaultNotesPath); // Save the default path to config
+
     // Ensure the directory has the proper structure (graph.json and generated subfolder)
     ensureNotesDirectoryStructure(defaultNotesPath);
   }
-  
-  return notesDirectory;
-};
 
-// Get current notes directory
-export const getNotesDirectory = (): string | null => {
   return notesDirectory;
-};
-
-// Set notes directory and ensure proper structure
-export const setNotesDirectory = (directory: string): void => {
-  notesDirectory = directory;
-  saveConfigSettings();
-  // ensureNotesDirectoryStructure(directory);
 };
 
 // Ensure that the notes directory has the proper structure
@@ -79,24 +40,38 @@ export const ensureNotesDirectoryStructure = (directory: string): void => {
     // Ensure graph.json exists in root directory
     const rootGraphPath = path.join(directory, 'graph.json');
     if (!fs.existsSync(rootGraphPath)) {
-        const graphData: { nodes: any[], links: any[] } = { nodes: [], links: [] };
-        fs.writeFileSync(rootGraphPath, JSON.stringify(graphData, null, 2));
-        console.log(`Created graph.json file in ${directory}`);
+      const graphData: { nodes: any[], links: any[] } = { nodes: [], links: [] };
+      fs.writeFileSync(rootGraphPath, JSON.stringify(graphData, null, 2));
+      console.log(`Created graph.json file in ${directory}`);
     }
-    
+
     // Ensure 'generated' subfolder exists
     const generatedPath = path.join(directory, 'generated');
     if (!fs.existsSync(generatedPath)) {
-        fs.mkdirSync(generatedPath, { recursive: true });
-        console.log(`Created 'generated' subfolder in ${directory}`);
+      fs.mkdirSync(generatedPath, { recursive: true });
+      console.log(`Created 'generated' subfolder in ${directory}`);
     }
-    
+
     // Ensure graph.json exists in 'generated' subfolder
     const generatedGraphPath = path.join(generatedPath, 'graph.json');
     if (!fs.existsSync(generatedGraphPath)) {
-        const graphData: { nodes: any[], links: any[] } = { nodes: [], links: [] };
+      const graphData: { nodes: any[], links: any[] } = { nodes: [], links: [] };
       fs.writeFileSync(generatedGraphPath, JSON.stringify(graphData, null, 2));
       console.log(`Created graph.json file in ${generatedPath}`);
+    }
+
+    // Ensure config.json exists
+    const configPath = path.join(directory, 'config.json');
+    if (!fs.existsSync(configPath)) {
+      const defaultConfig = {
+        llm: {
+          endpoint: 'https://api.deepseek.com',
+          apiKey: '',
+          model: 'deepseek-chat'
+        }
+      };
+      fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2));
+      console.log(`Created config.json file in ${directory}`);
     }
   } catch (error) {
     console.error('Error ensuring notes directory structure:', error);

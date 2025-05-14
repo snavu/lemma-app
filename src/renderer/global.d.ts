@@ -35,5 +35,9 @@ interface Window {
       queryDBTags: (searchQuery: string, notesDirectory: string) => Promise<Note[]>;
       queryDBKeyWords: (searchQuery: string, notesDirectory: string) => Promise<Note[]>;
     };
+    config: {
+      getLLMConfig: () => Promise<any>;
+      setLLMConfig: (llmConfig: any) => Promise<void>;
+    };
   };
 }
