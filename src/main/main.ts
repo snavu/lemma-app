@@ -337,6 +337,7 @@ app.on('ready', () => {
   database = new DbClient();
   config = new Config();
   inferenceService = new InferenceService();
+  // console.log("inferenceService.chatCompletion: ", inferenceService.chatCompletion(["role: user, content: tell me about type theory"]));
   createWindow();
   createAppMenu();
   setupIpcHandlers();
