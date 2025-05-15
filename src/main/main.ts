@@ -6,7 +6,9 @@ import { DbClient } from './database';
 import * as fileService from './file-service';
 import * as chromaService from './chroma-service';
 import * as graphLoader from './graph-loader';
-import * as userAgiSync from './user-agi-sync';
+import * as userAgiSync from './agi-sync';
+import { Config } from './config-service';
+import { InferenceService } from './inference';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -15,6 +17,8 @@ if (require('electron-squirrel-startup')) {
 
 let mainWindow: BrowserWindow | null = null;
 let database: DbClient;
+export let config: Config;
+export let inferenceService: InferenceService;
 
 const createWindow = (): void => {
   // Create the browser window
@@ -38,15 +42,12 @@ const createWindow = (): void => {
     // When running in production, load from the dist folder
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
-
-  // Initialize file system and notify renderer
-  initializeFileSystem();
 };
 
 // Initialize the file system configuration
 const initializeFileSystem = (): void => {
   // First try to load existing settings
-  const notesDir = fileService.loadConfigSettings();
+  const notesDir = config.getNotesDirectory();
 
   // If no directory is set after loading config, set up the default one
   if (!notesDir) {
@@ -60,16 +61,6 @@ const initializeFileSystem = (): void => {
       graphLoader.syncGraphWithFiles().then(success => {
         if (success) {
           console.log('Graph successfully synced with files');
-
-          // Now sync user with AGI
-          // userAgiSync.syncUserWithAgi().then(agiSuccess => {
-          //   if (agiSuccess) {
-          //     console.log('User successfully synced with AGI');
-
-          //   } else {
-          //     console.error('Failed to sync user with AGI');
-          //   }
-          // });
         } else {
           console.error('Failed to sync graph with files');
         }
@@ -78,6 +69,7 @@ const initializeFileSystem = (): void => {
   } else {
     // If directory exists from config, ensure it has the proper structure
     fileService.ensureNotesDirectoryStructure(notesDir);
+    fileService.setNotesDirectory(notesDir); // Set the notes directory in fileService
 
     // Notify renderer about the directory
     if (mainWindow) {
@@ -87,6 +79,7 @@ const initializeFileSystem = (): void => {
       graphLoader.syncGraphWithFiles().then(success => {
         if (success) {
           console.log('Graph successfully synced with files');
+
         } else {
           console.error('Failed to sync graph with files');
         }
@@ -155,7 +148,6 @@ const createAppMenu = () => {
 // Select notes directory
 const selectNotesDirectory = async (): Promise<string | null> => {
   if (!mainWindow) return null;
-
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openDirectory'],
     title: 'Select Notes Directory'
@@ -164,7 +156,7 @@ const selectNotesDirectory = async (): Promise<string | null> => {
   if (!result.canceled && result.filePaths.length > 0) {
     const directory = result.filePaths[0];
     fileService.setNotesDirectory(directory);
-
+    config.setNotesDirectory(directory);
     // Notify renderer about the selected directory
     mainWindow.webContents.send('notes-directory-selected', directory);
 
@@ -199,7 +191,7 @@ const setupIpcHandlers = (): void => {
   });
 
   // File system operations
-  ipcMain.handle('select-notes-directory', selectNotesDirectory);
+  ipcMain.handle('select-notes-directory', () => selectNotesDirectory());
   ipcMain.handle('get-files', fileService.getFilesFromDirectory);
   ipcMain.handle('read-file', (_, filePath) => fileService.readFile(filePath));
 
@@ -212,8 +204,7 @@ const setupIpcHandlers = (): void => {
       await graphLoader.updateFileInGraph(filename);
       // Update the database with the new content
       await database.upsertNotes(fileService.notesDirectory, filePath, content);
-      // update the file in AGI
-      // await userAgiSync.updateFileInAgi(filename);
+
     }
     return result;
   });
@@ -224,8 +215,7 @@ const setupIpcHandlers = (): void => {
     if (result.success) {
       // Add the new file to the graph
       await graphLoader.updateFileInGraph(fileName);
-      // Add the new file to AGI
-      // await userAgiSync.updateFileInAgi(fileName);
+
     }
     return result;
   });
@@ -237,22 +227,87 @@ const setupIpcHandlers = (): void => {
       // Remove the file from the graph
       const filename = path.basename(filePath);
       graphLoader.removeFileFromGraph(filename);
-      // Remove the file from AGI
-      userAgiSync.removeFileFromAgi(filename);
+
     }
     return result;
   });
 
-  ipcMain.handle('get-notes-directory', fileService.getNotesDirectory);
 
   // Graph file path operations
   ipcMain.handle('get-graph-json-path', fileService.getGraphJsonPath);
   ipcMain.handle('get-generated-graph-json-path', fileService.getGeneratedGraphJsonPath);
   ipcMain.handle('get-generated-folder-path', fileService.getGeneratedFolderPath);
 
-  // New graph-related handlers
   ipcMain.handle('sync-graph', async () => {
     return await graphLoader.syncGraphWithFiles();
+  });
+
+  // Config operations
+  ipcMain.handle('get-notes-directory', () => {
+    return config.getNotesDirectory()
+  });
+
+  ipcMain.handle('get-llm-config', () => {
+    return config.getLLMConfig();
+  });
+
+  ipcMain.handle('set-llm-config', (_, llmConfig) => {
+    console.log('Setting LLM config:', llmConfig);
+    const result = config.setLLMConfig(llmConfig);
+    // Update the inference service with new config if you have one
+    inferenceService.updateConfig(llmConfig);
+    return result;
+  });
+
+  ipcMain.handle('get-agi-config', () => {
+    return config.getAgiConfig();
+  });
+
+  ipcMain.handle('set-agi-config', (_, enabled) => {
+    const result = config.setAgiConfig(enabled);
+    return result;
+  });
+
+  ipcMain.handle('sync-agi', async () => {
+    // Sync user with AGI
+    const success = await userAgiSync.syncAgi();
+    if (success) {
+      console.log('User successfully synced all files with AGI');
+      return true;
+    } else {
+      console.error('Failed to sync user with AGI');
+      return false;
+    }
+  });
+
+  ipcMain.handle('update-file-in-agi', async (_, filename) => {
+    const success = await userAgiSync.updateFileInAgi(filename);
+    if (success) {
+      console.log('User successfully synced file with AGI');
+      return true;
+    } else {
+      console.error('Failed to sync file with AGI');
+      return false;
+    }
+  });
+
+  ipcMain.handle('remove-file-from-agi', async (_, filename) => {
+    const success = await userAgiSync.removeFileFromAgi(filename);
+    if (success) {
+      console.log('User successfully removed file with AGI');
+      return true;
+    } else {
+      console.error('Failed to remvoe file from AGI');
+      return false;
+    }
+  });
+
+  ipcMain.handle('get-local-inference-config', () => {
+    return config.getLocalInferenceConfig();
+  });
+  ipcMain.handle('set-local-inference-config', (_, localInferenceConfig) => {
+    const result = config.setLocalInferenceConfig(localInferenceConfig);
+    return result;
   });
 
   // Window control messages
@@ -279,11 +334,14 @@ const setupIpcHandlers = (): void => {
 
 // App lifecycle events
 app.on('ready', () => {
+  config = new Config();
   chromaService.startChromaDb();
+  database = new DbClient();
+  inferenceService = new InferenceService();
   createWindow();
   createAppMenu();
   setupIpcHandlers();
-  database = new DbClient();
+  initializeFileSystem();
 });
 
 app.on('window-all-closed', () => {
@@ -299,6 +357,7 @@ app.on('activate', () => {
     if (!chromaService.isChromaRunning()) {
       chromaService.startChromaDb();
     }
+
     createWindow();
   }
 });

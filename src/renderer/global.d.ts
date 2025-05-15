@@ -19,7 +19,6 @@ interface Window {
       saveFile: (filePath: string, content: string, updateHashtags: string[]) => Promise<{ success: boolean }>;
       createFile: (fileName: string) => Promise<{ success: boolean; filePath: string }>;
       deleteFile: (filePath: string) => Promise<{ success: boolean }>;
-      getNotesDirectory: () => Promise<string | null>;
       getGeneratedFolderPath: () => Promise<string | null>;
       getGraphJsonPath: () => Promise<string | null>;
       getGeneratedGraphJsonPath: () => Promise<string | null>;
@@ -35,5 +34,21 @@ interface Window {
       queryDBTags: (searchQuery: string, notesDirectory: string) => Promise<Note[]>;
       queryDBKeyWords: (searchQuery: string, notesDirectory: string) => Promise<Note[]>;
     };
+    config: {
+      getNotesDirectory: () => Promise<string | null>;
+      getLLMConfig: () => Promise<llmConfig>;
+      setLLMConfig: (llmConfig: llmConfig) => Promise<llmConfig>;
+      getAgiConfig: () => Promise<agiConfig>;
+      setAgiConfig: (enabled: boolean) => Promise<agiConfig>;
+      getLocalInferenceConfig: () => Promise<localInferenceConfig>;
+      setLocalInferenceConfig: (enabled: boolean) => Promise<localInferenceConfig>;
+    };
+    agi: {
+      syncAgi: () => Promise<boolean>;
+      updateFileInAgi: (filename: string) => Promise<boolean>;
+      removeFileFromAgi: (filename: string) => Promise<boolean>;
+    }
   };
 }
+
+

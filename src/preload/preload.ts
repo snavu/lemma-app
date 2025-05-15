@@ -2,6 +2,7 @@
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 
 import { contextBridge, ipcRenderer, shell } from 'electron';
+import { llmConfig } from 'src/main/config-service';
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
@@ -28,7 +29,6 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.invoke('save-file', { filePath, content, updateHashtags }),
     createFile: (fileName: string) => ipcRenderer.invoke('create-file', fileName),
     deleteFile: (filePath: string) => ipcRenderer.invoke('delete-file', filePath),
-    getNotesDirectory: () => ipcRenderer.invoke('get-notes-directory'),
     getGeneratedFolderPath: () => ipcRenderer.invoke('get-generated-folder-path'),
     getGraphJsonPath: () => ipcRenderer.invoke('get-graph-json-path'),
     getGeneratedGraphJsonPath: () => ipcRenderer.invoke('get-generated-graph-json-path'),
@@ -55,8 +55,26 @@ contextBridge.exposeInMainWorld('electron', {
       };
     }
   },
-  db: { 
+  db: {
     queryDBTags: (searchQuery: string, notesDirectory: string) => ipcRenderer.invoke('tag-search-query', searchQuery, notesDirectory),
     queryDBKeyWords: (searchQuery: string, notesDirectory: string) => ipcRenderer.invoke('keyword-search-query', searchQuery, notesDirectory),
   },
+  // Config operations
+  config: {
+    getNotesDirectory: () => ipcRenderer.invoke('get-notes-directory'),
+    getLLMConfig: () => ipcRenderer.invoke('get-llm-config'),
+    setLLMConfig: (llmConfig: llmConfig) => ipcRenderer.invoke('set-llm-config', llmConfig),
+    getAgiConfig: () => ipcRenderer.invoke('get-agi-config'),
+    setAgiConfig: (enabled: boolean) => ipcRenderer.invoke('set-agi-config', enabled),
+    getLocalInferenceConfig: () => ipcRenderer.invoke('get-local-inference-config'),
+    setLocalInferenceConfig: (enabled: boolean) => ipcRenderer.invoke('set-local-inference-config', enabled),
+  },
+
+  // AGI operations
+  agi: {
+    syncAgi: () => ipcRenderer.invoke('sync-agi'),
+    updateFileInAgi: (filename: string) => ipcRenderer.invoke('update-file-in-agi', filename),
+    removeFileFromAgi: (filename: string) => ipcRenderer.invoke('delete-file-in-agi', filename),
+  },
+
 });

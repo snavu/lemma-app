@@ -2,6 +2,66 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as fileService from './file-service';
 import * as graphService from './graph-service';
+import { inferenceService } from './main';
+import { config } from './main';
+import { c } from 'vite/dist/node/moduleRunnerTransport.d-CXw_Ws6P';
+
+/**
+ * Updates a parent note with links to all its chunk files
+ */
+const updateParentWithChunkLinks = async (parentFilename: string, chunkFilenames: string[]): Promise<boolean> => {
+  try {
+    // Get directories
+    const notesDir = config.getNotesDirectory();
+    const generatedDir = fileService.getGeneratedFolderPath();
+
+    if (!notesDir || !generatedDir) {
+      console.error('Directories not set');
+      return false;
+    }
+
+    // Path to parent file in the generated directory
+    const parentPath = path.join(generatedDir, parentFilename);
+
+    if (!fs.existsSync(parentPath)) {
+      console.error(`Parent file not found in generated directory: ${parentFilename}`);
+      return false;
+    }
+
+    // Read the current content
+    let content = fs.readFileSync(parentPath, 'utf8');
+
+    // Remove any existing chunk links section
+    content = content.replace(/\n\n## Chunks\n([\s\S]*?)(\n\n|$)/, '\n\n');
+
+    // Format the chunks section
+    let chunksSection = '\n\n## Chunks\n';
+    for (const chunkFilename of chunkFilenames) {
+      // Extract chunk number from filename
+      const chunkMatch = chunkFilename.match(/_chunk(\d+)\.md$/);
+      const chunkNum = chunkMatch ? chunkMatch[1] : '?';
+
+      // Format as a link without the .md extension
+      const linkName = chunkFilename.replace('.md', '');
+      chunksSection += `- [[${linkName}]] (Chunk ${chunkNum})\n`;
+    }
+
+    // Append the chunks section to the content
+    content += chunksSection;
+
+    // Write the updated content back to the file
+    fs.writeFileSync(parentPath, content);
+
+    // Update the node in the graph to include links to all chunks
+    const linkedFiles = graphService.parse_file_links(content, [...chunkFilenames, parentFilename]);
+    createNodeInAgiGraph(parentFilename, linkedFiles, 'assisted');
+
+    return true;
+  } catch (error) {
+    console.error(`Error updating parent with chunk links: ${error}`);
+    return false;
+  }
+};
 
 /**
  * Process the content of a file to extract linked files
@@ -11,7 +71,61 @@ const parseFileLinks = (content: string, availableFiles: string[]): string[] => 
 };
 
 /**
- * Chunk a file for AI processing
+ * Cleans up existing chunk files for a note
+ */
+const cleanupChunkFiles = (filename: string): void => {
+  try {
+    // Get generated directory
+    const generatedDir = fileService.getGeneratedFolderPath();
+    if (!generatedDir) {
+      console.error('Generated directory not set');
+      return;
+    }
+
+    const baseFilename = filename.split('.')[0];
+    const chunkPrefix = `generated_${baseFilename}_`;
+
+    try {
+      const generatedFiles = fs.readdirSync(generatedDir);
+      // Keep track of deleted chunks to update graph
+      const deletedChunks: string[] = [];
+
+      generatedFiles.forEach(file => {
+        if (file.startsWith(chunkPrefix) && file.endsWith('.md')) {
+          const generatedFilePath = path.join(generatedDir, file);
+          fs.unlinkSync(generatedFilePath);
+          console.log(`Deleted chunk file: ${file}`);
+          deletedChunks.push(file);
+
+          // Also delete the node from AGI graph
+          deleteNodeFromAgiGraph(file);
+        }
+      });
+    } catch (error) {
+      console.error(`Error cleaning up chunk files for ${filename}:`, error);
+    }
+  } catch (error) {
+    console.error(`Error in cleanupChunkFiles: ${error}`);
+  }
+};
+
+/**
+ * Helper function to extract linked references from content
+ */
+const extractLinkedReferences = (content: string): string[] => {
+  const linkedRefs: string[] = [];
+  const regex = /\[\[(.*?)\]\]/g;
+
+  let match;
+  while ((match = regex.exec(content)) !== null) {
+    linkedRefs.push(match[1]);
+  }
+
+  return linkedRefs;
+};
+
+/**
+ * Call the LLM API to get semantic chunking recommendations
  */
 export const chunk = async (filename: string, content: string, type: string): Promise<boolean> => {
   try {
@@ -24,31 +138,66 @@ export const chunk = async (filename: string, content: string, type: string): Pr
 
     console.log(`Chunking file: ${filename}, type: ${type}`);
 
-    // Process the content into chunks for AI processing
-    // Simple chunking by splitting on paragraphs (double newlines)
-    const paragraphs = content.split('\n\n').filter(p => p.trim().length > 0);
+    // Remove the existing chunks section if present
+    let cleanedContent = content;
+    const chunksHeader = "## Chunks";
+    const chunksIndex = content.indexOf(chunksHeader);
+    if (chunksIndex !== -1) {
+      cleanedContent = content.substring(0, chunksIndex).trim();
+    }
 
-    // For each significant paragraph, create a chunk file
-    for (let i = 0; i < paragraphs.length; i++) {
-      const paragraph = paragraphs[i].trim();
-      if (paragraph.length < 10) continue; // Skip very short paragraphs
+    // Call LLM to determine logical chunks
+    const chunkResults = await inferenceService.getChunks(cleanedContent, filename);
 
-      // Create a chunk file name
-      const chunkFilename = `generated_${filename.split('.')[0]}_chunk${i + 1}.md`;
+    if (!chunkResults || !chunkResults.chunks || chunkResults.chunks.length === 0) {
+      console.error('Failed to get chunk recommendations from LLM');
+      return false;
+    }
+
+    // Create files for each chunk
+    const chunkFilenames: string[] = [];
+
+    for (let i = 0; i < chunkResults.chunks.length; i++) {
+      const chunk = chunkResults.chunks[i];
+
+      // Create a safe filename
+      const baseFilename = filename.split('.')[0];
+      const safeTitle = chunk.title
+        .replace(/[^\w\s]/g, '') // Remove special chars
+        .replace(/\s+/g, '_') // Replace spaces with underscores
+        .substring(0, 30); // Limit length
+
+      const chunkFilename = `generated_${baseFilename}_${safeTitle}_chunk${i + 1}.md`;
       const chunkPath = path.join(generatedDir, chunkFilename);
 
       // Create chunk content with metadata
-      const chunkContent = `---
-source: ${filename}
-chunk_index: ${i + 1}
-total_chunks: ${paragraphs.length}
-type: ${type}
----
+      const chunkContent = `
 
-${paragraph}`;
+${chunk.content}
+
+---
+Linked note: [[${filename.replace('.md', '')}]]`;
 
       // Write the chunk file
       fs.writeFileSync(chunkPath, chunkContent);
+
+      // Extract linked references to add to graph
+      const linkedRefs = extractLinkedReferences(chunk.content);
+      const linkedFiles = [
+        filename, // Link to parent
+        ...linkedRefs.map(ref => `${ref}.md`) // Links to referenced files
+      ];
+
+      // Add to graph
+      createNodeInAgiGraph(chunkFilename, linkedFiles, 'assisted');
+
+      // Track this chunk filename
+      chunkFilenames.push(chunkFilename);
+    }
+
+    // Update the parent note with links to all chunks
+    if (chunkFilenames.length > 0) {
+      await updateParentWithChunkLinks(filename, chunkFilenames);
     }
 
     return true;
@@ -63,7 +212,8 @@ ${paragraph}`;
  */
 const copyFileToAgi = async (filename: string): Promise<boolean> => {
   try {
-    const notesDir = fileService.getNotesDirectory();
+    const notesDir = config.getNotesDirectory();
+    console.log('copyFileToAgi:', notesDir);
     if (!notesDir) {
       console.error('Notes directory not set');
       return false;
@@ -322,10 +472,10 @@ const deleteNodeFromAgiGraph = (filename: string): boolean => {
 /**
  * Sync user notes with AGI notes
  */
-export const syncUserWithAgi = async (): Promise<boolean> => {
+export const syncAgi = async (): Promise<boolean> => {
   try {
     // Get notes directory
-    const notesDir = fileService.getNotesDirectory();
+    const notesDir = config.getNotesDirectory();
     if (!notesDir) {
       console.error('Notes directory not set');
       return false;
@@ -376,7 +526,12 @@ export const syncUserWithAgi = async (): Promise<boolean> => {
         createNodeInAgiGraph(filename, linkedFiles, 'assisted');
 
         // Chunk the file
-        await chunk(filename, content, 'assisted');
+        const result = await chunk(filename, content, 'assisted');
+
+        if (!result) {
+          console.error(`Error chunking file: ${filename}`);
+          return false;
+        }
       }
     }
 
@@ -425,7 +580,7 @@ export const syncUserWithAgi = async (): Promise<boolean> => {
 export const updateFileInAgi = async (filename: string): Promise<boolean> => {
   try {
     // Get notes directory
-    const notesDir = fileService.getNotesDirectory();
+    const notesDir = config.getNotesDirectory();
     if (!notesDir) {
       console.error('Notes directory not set');
       return false;
@@ -442,31 +597,11 @@ export const updateFileInAgi = async (filename: string): Promise<boolean> => {
     const userFilePath = path.join(notesDir, filename);
     if (!fs.existsSync(userFilePath)) {
       // If the file doesn't exist in user directory, delete it from AGI directory
-      const agiFilePath = path.join(generatedDir, filename);
-      if (fs.existsSync(agiFilePath)) {
-        fs.unlinkSync(agiFilePath);
-        console.log(`Deleted file from AGI directory: ${filename}`);
-      }
-
-      // Delete the node from AGI graph
-      deleteNodeFromAgiGraph(filename);
-
-      // Also delete any generated files related to this filename
-      try {
-        const generatedFiles = fs.readdirSync(generatedDir);
-        generatedFiles.forEach(file => {
-          if (file.startsWith(`generated_${filename.split('.')[0]}`) && file.endsWith('.md')) {
-            const generatedFilePath = path.join(generatedDir, file);
-            fs.unlinkSync(generatedFilePath);
-            console.log(`Deleted related generated file: ${file}`);
-          }
-        });
-      } catch (error) {
-        console.error(`Error deleting related generated files for ${filename}:`, error);
-      }
-
-      return true;
+      return removeFileFromAgi(filename);
     }
+
+    // First, clean up any existing chunk files for this note
+    cleanupChunkFiles(filename);
 
     // Copy the file to AGI directory
     const copied = await copyFileToAgi(filename);
@@ -486,8 +621,13 @@ export const updateFileInAgi = async (filename: string): Promise<boolean> => {
     createNodeInAgiGraph(filename, linkedFiles, 'assisted');
 
     // Chunk the file
-    await chunk(filename, content, 'assisted');
+    const result = await chunk(filename, content, 'assisted');
 
+    if (!result) {
+      console.error(`Error chunking file: ${filename}`);
+      return false;
+    }
+    
     return true;
   } catch (error) {
     console.error('Error updating file in AGI:', error);
@@ -517,19 +657,8 @@ export const removeFileFromAgi = (filename: string): boolean => {
     // Delete the node from AGI graph
     deleteNodeFromAgiGraph(filename);
 
-    // Also delete any generated files related to this filename
-    try {
-      const generatedFiles = fs.readdirSync(generatedDir);
-      generatedFiles.forEach(file => {
-        if (file.startsWith(`generated_${filename.split('.')[0]}`) && file.endsWith('.md')) {
-          const generatedFilePath = path.join(generatedDir, file);
-          fs.unlinkSync(generatedFilePath);
-          console.log(`Deleted related generated file: ${file}`);
-        }
-      });
-    } catch (error) {
-      console.error(`Error deleting related generated files for ${filename}:`, error);
-    }
+    // Clean up any chunk files
+    cleanupChunkFiles(filename);
 
     return true;
   } catch (error) {
