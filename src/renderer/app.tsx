@@ -42,7 +42,8 @@ export const App = () => {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searchInput, setSearchInput] = useState<string>(''); // For knowing what the input to display
 
-  const [modalState, setModalState] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const openChat = () => setIsChatOpen(true);
 
   // View mode
   const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
@@ -159,12 +160,13 @@ export const App = () => {
           searchResult={searchResult}
           setResults={setResults}
         />
-        <div onClick={() => setModalState(!modalState)}>
+        <div onClick={() => setIsChatOpen(true)}>
           <ChatBubbleIcon/>
         </div>
-        {modalState && 
+        {isChatOpen && 
           <ChatUI
-            modalState={modalState}/>
+            isChatOpen={isChatOpen}
+            setIsChatOpen={setIsChatOpen}/>
         }
         <div className="main-content-wrapper">
           <TabBar
