@@ -82,9 +82,8 @@
     "i": "^0.3.7",
     "lowlight": "^3.3.0",
     "onnxruntime-common": "^1.23.0-dev.20250429-a9a3ad2e0c",
-    "onnxruntime-node": "^1.14.0",
-    "onnxruntime-web": "^1.14.0",
-    "openai": "^4.98.0",
+    "onnxruntime-node": "^1.22.0",
+    "onnxruntime-web": "^1.22.0",
     "re-resizable": "^6.11.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -100,7 +99,6 @@
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
     "sharp": "^0.34.1",
-    "sonner": "^2.0.3",
     "three": "^0.176.0",
     "three-stdlib": "^2.36.0",
     "tippy.js": "^6.3.7",
@@ -108,8 +106,6 @@
   },
   "overrides": {
     "sharp": "^0.34.1",
-    "chromadb-default-embed": "^2.14.0",
-    "onnxruntime-node": "^1.14.0",
-    "onnxruntime-web": "^1.14.0"
+    "chromadb-default-embed": "^2.14.0"
   }
 }
