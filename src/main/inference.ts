@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import { config } from "./main";
 import { llmConfig } from "./config-service";
-
+const { pipeline } = require("@huggingface/transformers");
 /**
  * Inference service supporting both cloud provider calls and local inference
  */
@@ -24,6 +24,7 @@ export class InferenceService {
     // Determine if we should use local mode
     this.isLocalMode = !llmConfig.apiKey || llmConfig.apiKey.trim() === '';
 
+    console.log("Local mode? ", this.isLocalMode);
     if (!this.isLocalMode) {
       // Cloud mode - initialize OpenAI client
       this.client = new OpenAI({
@@ -34,6 +35,7 @@ export class InferenceService {
     } else {
       // Local mode - initialize transformers.js pipeline
       this.client = null;
+      console.log('Loading transformers.js pipeline...1');
       this.initializeLocalPipeline();
     }
   }
@@ -43,25 +45,29 @@ export class InferenceService {
    */
   private async initializeLocalPipeline() {
 
-    console.log("Initializing local pipeline...");
     console.log("this.localPipeline", this.localPipeline);
     console.log("this.isLoadingPipeline", this.isLoadingPipeline);
     if (this.localPipeline !== undefined || this.isLoadingPipeline) {
       return;
     }
-    console.log("Loading local pipeline...");
 
     this.isLoadingPipeline = true;
     try {
       // Dynamically import transformers to avoid bundling issues
       if (!this.localPipeline) {
-        let { pipeline } = await import('@huggingface/transformers');
-        
+        //let { pipeline } = await import('@huggingface/transformers');
+        console.log('Loading transformers.js pipeline...2');
         // Initialize the text-generation pipeline with a suitable model
-        this.localPipeline = await pipeline('text-generation', 'Xenova/distilgpt2');
+        this.localPipeline = await pipeline('text-generation', "onnx-community/Qwen2.5-0.5B-Instruct", { dtype: "q4" },
+        );
         console.log('Local inference pipeline initialized successfully');
+        const messageHistory = [{ role: "user", content: "tell me about type theory" }];
+        const response = await this.chatCompletion(messageHistory);
+        console.log("inferenceService.chatCompletion: ", response);
+        
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Failed to initialize local inference pipeline:', error);
       this.localPipeline = null;
     }
