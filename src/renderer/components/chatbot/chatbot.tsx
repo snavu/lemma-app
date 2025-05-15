@@ -1,16 +1,17 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, Dispatch, SetStateAction } from 'react';
 import './chatbot.css';
 
 interface chatUIProps {
-isChatOpen: boolean;
-setIsChatOpen: (bool: boolean) => void;
+    isChatOpen: boolean;
+    setIsChatOpen: (bool: boolean) => void;
+    messages: { sender: 'user' | 'bot'; text: string }[];
+    setMessages: Dispatch<SetStateAction<{ sender: 'user' | 'bot'; text: string }[]>>;
 }
 
-export const ChatUI: React.FC<chatUIProps> = ({ isChatOpen, setIsChatOpen }) => {
+export const ChatUI: React.FC<chatUIProps> = ({ isChatOpen, setIsChatOpen, messages, setMessages }) => {
     const [isDragging, setIsDragging] = useState(false);
     const [position, setPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
     const offset = useRef({ x: 0, y: 0 });
-    const [messages, setMessages] = useState<string[]>([]);
     const [inputValue, setInputValue] = useState('');
 
     const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -20,15 +21,24 @@ export const ChatUI: React.FC<chatUIProps> = ({ isChatOpen, setIsChatOpen }) => 
             y: e.clientY - position.y,
         };
     };
-
     const onMouseMove = useCallback((e: MouseEvent) => {
         if (isDragging) {
-        setPosition({
-            x: e.clientX - offset.current.x,
-            y: e.clientY - offset.current.y,
-        });
+          const newX = e.clientX - offset.current.x;
+          const newY = e.clientY - offset.current.y;
+      
+          const chatBox = document.querySelector('.chat-floating') as HTMLElement;
+          const chatWidth = chatBox?.offsetWidth || 300;
+          const chatHeight = chatBox?.offsetHeight || 400;
+      
+          const maxX = window.innerWidth - chatWidth;
+          const maxY = window.innerHeight - chatHeight;
+      
+          setPosition({
+            x: Math.max(0, Math.min(newX, maxX)),
+            y: Math.max(0, Math.min(newY, maxY)),
+          });
         }
-    }, [isDragging]);
+      }, [isDragging]);
 
     const onMouseUp = useCallback(() => {
         setIsDragging(false);
@@ -46,12 +56,17 @@ export const ChatUI: React.FC<chatUIProps> = ({ isChatOpen, setIsChatOpen }) => 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             if (inputValue === "") return;
-            setMessages(prev => [...prev, inputValue.trim()]);
+            setMessages(prev => [...prev, { sender: 'user', text: inputValue.trim() }]);
             setInputValue('');
-            console.log('Enter pressed! Input value:', (e.target as HTMLInputElement).value);
+            // FOR TESTING UI
+            setTimeout(() => {
+                setMessages(prev => [...prev, { sender: 'bot', text: "test" }]);
+
+
+            }, 1000);
         }
     };
-    
+
     if (!isChatOpen) return null;
 
     return (
@@ -65,8 +80,11 @@ export const ChatUI: React.FC<chatUIProps> = ({ isChatOpen, setIsChatOpen }) => 
             </div>
             <div className="chat-messages-container">
                 {messages.map((msg, i) => (
-                <div key={i} className="chat-messages">
-                    {msg}
+                <div
+                    key={i}
+                    className={`chat-message ${msg.sender === 'user' ? 'chat-message-user' : 'chat-message-bot'}`}
+                >
+                    {msg.text}
                 </div>
                 ))}
             </div>
