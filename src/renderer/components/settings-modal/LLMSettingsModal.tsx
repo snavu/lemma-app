@@ -14,19 +14,12 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('');
   const [experimentalAgi, setExperimentalAgi] = useState(false);
-  const [sglangEnabled, setSgLangEnabled] = useState(true);
-  const [sglangPort, setSgLangPort] = useState(8000);
+  const [localInference, setLocalInference] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const closeTimeoutRef = useRef<number | null>(null);
-
+  console.log("localInference", localInference);
   const { syncAgi } = useAgi();
-  const {
-    stopSgLang,
-    restartSgLang,
-    isProcessing: isSgLangProcessing,
-    isRunning: isSgLangRunning
-  } = useSgLang();
 
   // Common models for different providers
   const modelOptions = {
@@ -79,37 +72,21 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
     try {
       const llmConfig = await window.electron.config.getLLMConfig();
       const agiConfig = await window.electron.config.getAgiConfig();
-      const sglangConfig = await window.electron.config.getSgLangConfig();
-
+      const localInferenceConfig = await window.electron.config.getLocalInferenceConfig();
       setEndpoint(llmConfig.endpoint);
       setApiKey(llmConfig.apiKey);
       setModel(llmConfig.model);
       setExperimentalAgi(agiConfig.enabled || false);
-      setSgLangEnabled(sglangConfig.enabled || true);
-      setSgLangPort(sglangConfig.port || 8000);
+      setLocalInference(localInferenceConfig.enabled || false);
     } catch (error) {
       console.error('Error loading settings:', error);
       toast.error('Failed to load settings');
     }
   };
 
-  // Handle toggling SGLang server
+  // Handle toggling local inference
   const handleSgLangToggle = async (enabled: boolean) => {
-    setSgLangEnabled(enabled);
-
-    if (enabled && !isSgLangRunning) {
-      await restartSgLang(sglangPort);
-    } else if (!enabled && isSgLangRunning) {
-      await stopSgLang();
-    }
-  };
-
-  // Handle port input change with validation
-  const handlePortChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value, 10);
-    if (!isNaN(value) && value > 0 && value < 65536) {
-      setSgLangPort(value);
-    }
+    setLocalInference(enabled);
   };
 
   // Save settings
@@ -125,21 +102,9 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
 
       const agiResult = await window.electron.config.setAgiConfig(experimentalAgi);
 
-      const sglangResult = await window.electron.config.setSgLangConfig({
-        enabled: sglangEnabled,
-        port: sglangPort
-      });
+      const localInferenceResult = await window.electron.config.setLocalInferenceConfig(localInference)
 
-      // Handle SGLang server status
-      const sglangConfig = await window.electron.config.getSgLangConfig();
-      if (sglangEnabled && isSgLangRunning && sglangPort !== sglangConfig.port) {
-        // Restart if port changed
-        await restartSgLang(sglangPort);
-      } else if (!sglangEnabled && isSgLangRunning) {
-        await stopSgLang();
-      }
-
-      if (llmResult && agiResult && sglangResult) {
+      if (llmResult && agiResult && localInferenceResult) {
         toast.success('Settings saved successfully!');
 
         if (experimentalAgi) {
@@ -161,19 +126,6 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
       setIsSaving(false);
     }
   };
-
-  // Function to get status badge class and text
-  const getStatusBadge = () => {
-    if (isSgLangProcessing) {
-      return { class: 'processing', text: 'Starting...' };
-    } else if (isSgLangRunning) {
-      return { class: 'running', text: 'Running' };
-    } else {
-      return { class: 'stopped', text: 'Stopped' };
-    }
-  };
-
-  const statusBadge = getStatusBadge();
 
   if (!isOpen) return null;
 
@@ -244,21 +196,17 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
             <div className="settings-section">
               <div className="section-header">
                 <h3 className="section-title">Local Inference Server</h3>
-                <div className={`status-badge ${statusBadge.class}`}>
-                  {statusBadge.text}
-                </div>
               </div>
 
               <div className="form-group toggle-group">
                 <div className="toggle-header">
-                  <label htmlFor="sglangEnabled">Enable SGLang Server</label>
+                  <label htmlFor="localInference">Enable local inference</label>
                   <label className="toggle-switch">
                     <input
-                      id="sglangEnabled"
+                      id="localInference"
                       type="checkbox"
-                      checked={sglangEnabled}
+                      checked={localInference}
                       onChange={(e) => handleSgLangToggle(e.target.checked)}
-                      disabled={isSgLangProcessing}
                     />
                     <span className="toggle-slider"></span>
                   </label>
@@ -266,53 +214,6 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                 <p className="help-text">Enable local SGLang inference server with OpenAI-compatible API</p>
               </div>
 
-              <div className="form-group" style={{ opacity: sglangEnabled ? 1 : 0.5 }}>
-                <label htmlFor="sglangPort">Server Port</label>
-                <div className={`number-input-wrapper ${(!sglangEnabled || isSgLangProcessing) ? 'disabled' : ''}`}>
-                  <input
-                    id="sglangPort"
-                    type="number"
-                    min="1024"
-                    max="65535"
-                    value={sglangPort}
-                    onChange={handlePortChange}
-                    disabled={!sglangEnabled || isSgLangProcessing}
-                    className="port-input"
-                  />
-                  <div className="number-controls">
-                    <button
-                      type="button"
-                      className="number-control-btn increment"
-                      onClick={() => sglangEnabled && !isSgLangProcessing && setSgLangPort(prev => Math.min(prev + 1, 65535))}
-                      disabled={!sglangEnabled || isSgLangProcessing}
-                      aria-label="Increment port number"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="18 15 12 9 6 15"></polyline>
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      className="number-control-btn decrement"
-                      onClick={() => sglangEnabled && !isSgLangProcessing && setSgLangPort(prev => Math.max(prev - 1, 1024))}
-                      disabled={!sglangEnabled || isSgLangProcessing}
-                      aria-label="Decrement port number"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-                <p className="help-text">Port for the local SGLang inference server (default: 8001)</p>
-              </div>
-
-              {sglangEnabled && (
-                <div className="server-info">
-                  <p>Server URL: <code>http://localhost:{sglangPort}</code></p>
-                  <p>OpenAI-compatible API for local inference</p>
-                </div>
-              )}
             </div>
 
             <div className="section-divider"></div>
@@ -344,16 +245,16 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
               <button
                 className="cancel-button"
                 onClick={handleClose}
-                disabled={isSaving || isSgLangProcessing}
+                disabled={isSaving}
               >
                 Cancel
               </button>
               <button
-                className={`save-button ${isSaving || isSgLangProcessing ? 'is-saving' : ''}`}
+                className={`save-button ${isSaving ? 'is-saving' : ''}`}
                 onClick={saveSettings}
-                disabled={isSaving || isSgLangProcessing}
+                disabled={isSaving}
               >
-                {isSaving ? 'Saving...' : isSgLangProcessing ? 'Processing...' : 'Save'}
+                {isSaving ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>

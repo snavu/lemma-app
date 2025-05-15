@@ -13,8 +13,7 @@ export interface agiConfig {
   enabled: boolean;
 }
 
-export interface sgLangConfig {
-  port: number;
+export interface localInferenceConfig {
   enabled: boolean;
 }
 
@@ -26,7 +25,7 @@ export class Config {
     notesDirectory?: string;
     llm: llmConfig;
     agi: agiConfig;
-    sglang: sgLangConfig;
+    local: localInferenceConfig;
   };
 
   private configPath: string | null;
@@ -61,8 +60,7 @@ export class Config {
         apiKey: '',
         model: 'deepseek-chat'
       },
-      sglang: {
-        port: 8000,
+      local: {
         enabled: true
       }
     };
@@ -138,29 +136,26 @@ export class Config {
   /**
    * Set the AGI configuration
    */
-  setAgiConfig(toggle: boolean) {
-    this.config.agi = { enabled: toggle };
+  setAgiConfig(enabled: boolean) {
+    this.config.agi = { enabled: enabled };
     this.saveConfig();
     return this.config.agi;
   }
 
   /**
-   * Get the SGLang configuration
+   * Get the local inference configuration
    */
-  getSgLangConfig() {
-    return this.config.sglang || { port: 8001, enabled: true };
+  getLocalInferenceConfig() {
+    return this.config.local || { enabled: false };
   }
 
   /**
-   * Set the SGLang configuration
+   * Set the local inference configuration
    */
-  setSgLangConfig(sgLangConfig: Partial<sgLangConfig>) {
-    this.config.sglang = {
-      ...this.getSgLangConfig(),
-      ...sgLangConfig
-    };
+  setLocalInferenceConfig(enabled: boolean) {
+    this.config.local = { enabled: enabled};
     this.saveConfig();
-    return this.config.sglang;
+    return this.config.local;
   }
 
   /**
@@ -183,7 +178,7 @@ export class Config {
         agi: {
           enabled: false
         },
-        sglang: {
+        local: {
           port: 8001,
           enabled: true
         }

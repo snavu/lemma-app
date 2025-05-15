@@ -65,14 +65,11 @@ contextBridge.exposeInMainWorld('electron', {
     getLLMConfig: () => ipcRenderer.invoke('get-llm-config'),
     setLLMConfig: (llmConfig: llmConfig) => ipcRenderer.invoke('set-llm-config', llmConfig),
     getAgiConfig: () => ipcRenderer.invoke('get-agi-config'),
-    setAgiConfig: (toggle: boolean) => ipcRenderer.invoke('set-agi-config', toggle),
-    getSgLangConfig: () => ipcRenderer.invoke('get-sglang-config'),
-    setSgLangConfig: (sgLangConfig: { port: number; enabled: boolean }) => ipcRenderer.invoke('set-sglang-config', sgLangConfig),
+    setAgiConfig: (enabled: boolean) => ipcRenderer.invoke('set-agi-config', enabled),
+    getLocalInferenceConfig: () => ipcRenderer.invoke('get-local-inference-config'),
+    setLocalInferenceConfig: (enabled: boolean) => ipcRenderer.invoke('set-local-inference-config', enabled),
   },
-  sglang: {
-    restartSgLang: () => ipcRenderer.invoke('restart-sglang'),
-    stopSgLang: () => ipcRenderer.invoke('stop-sglang'),
-  },
+
   // AGI operations
   agi: {
     syncAgi: () => ipcRenderer.invoke('sync-agi'),

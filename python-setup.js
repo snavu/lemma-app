@@ -21,13 +21,13 @@ try {
 
   const pip = isWin ? 'venv\\Scripts\\pip' : 'venv/bin/pip';
   try {
-    // Install both ChromaDB and SGLang
-    execSync(`${pip} install chromadb sglang`, { stdio: 'inherit' });
+    // Install both ChromaDB
+    execSync(`${pip} install chromadb`, { stdio: 'inherit' });
   } catch (pipError) {
     console.error('Failed to install packages with pip. Trying pip3...');
     const pip3 = isWin ? 'venv\\Scripts\\pip3' : 'venv/bin/pip3';
     try {
-      execSync(`${pip3} install chromadb sglang`, { stdio: 'inherit' });
+      execSync(`${pip3} install chromadb`, { stdio: 'inherit' });
     } catch (pip3Error) {
       console.error('Package installation failed. You may need to run this command with administrator/sudo privileges.');
       process.exit(1);

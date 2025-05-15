@@ -9,7 +9,6 @@ import * as graphLoader from './graph-loader';
 import * as userAgiSync from './agi-sync';
 import { Config } from './config-service';
 import { InferenceService } from './inference';
-import * as sglangService from './sglang-service';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -264,8 +263,8 @@ const setupIpcHandlers = (): void => {
     return config.getAgiConfig();
   });
 
-  ipcMain.handle('set-agi-config', (_, toggle) => {
-    const result = config.setAgiConfig(toggle);
+  ipcMain.handle('set-agi-config', (_, enabled) => {
+    const result = config.setAgiConfig(enabled);
     return result;
   });
 
@@ -303,19 +302,11 @@ const setupIpcHandlers = (): void => {
     }
   });
 
-  ipcMain.handle('get-sglang-config', () => {
-    return config.getSgLangConfig();
+  ipcMain.handle('get-local-inference-config', () => {
+    return config.getLocalInferenceConfig();
   });
-  ipcMain.handle('set-sglang-config', (_, sgLangConfig) => {
-    const result = config.setSgLangConfig(sgLangConfig);
-    return result;
-  });
-  ipcMain.handle('restart-sglang', async () => {
-    const result = await sglangService.restartSgLangServer();
-    return result;
-  });
-  ipcMain.handle('stop-sglang', async () => {
-    const result = await sglangService.endSgLangServer();
+  ipcMain.handle('set-local-inference-config', (_, localInferenceConfig) => {
+    const result = config.setLocalInferenceConfig(localInferenceConfig);
     return result;
   });
 
@@ -345,7 +336,6 @@ const setupIpcHandlers = (): void => {
 app.on('ready', () => {
   config = new Config();
   chromaService.startChromaDb();
-  sglangService.startSgLangServer(config.getSgLangConfig().port);
   database = new DbClient();
   inferenceService = new InferenceService();
   createWindow();
@@ -359,7 +349,6 @@ app.on('window-all-closed', () => {
     app.quit();
   } else {
     chromaService.endChromaDb();
-    sglangService.endSgLangServer();
   }
 });
 
@@ -368,14 +357,11 @@ app.on('activate', () => {
     if (!chromaService.isChromaRunning()) {
       chromaService.startChromaDb();
     }
-    if (!sglangService.isSgLangRunning()) {
-      sglangService.startSgLangServer();
-    }
+
     createWindow();
   }
 });
 
 app.on('before-quit', () => {
   chromaService.endChromaDb();
-  sglangService.endSgLangServer(); 
 });

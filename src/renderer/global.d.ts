@@ -39,13 +39,9 @@ interface Window {
       getLLMConfig: () => Promise<llmConfig>;
       setLLMConfig: (llmConfig: llmConfig) => Promise<llmConfig>;
       getAgiConfig: () => Promise<agiConfig>;
-      setAgiConfig: (toggle: boolean) => Promise<agiConfig>;
-      getSgLangConfig: () => Promise<sgLangConfig>;
-      setSgLangConfig: (sgLangConfig: sgLangConfig) => Promise<sgLangConfig>;
-    };
-    sgLang: {
-      restartSgLang: (sgLangConfig: sgLangConfig) => Promise<boolean>;
-      stopSgLang: () => Promise<boolean>;
+      setAgiConfig: (enabled: boolean) => Promise<agiConfig>;
+      getLocalInferenceConfig: () => Promise<localInferenceConfig>;
+      setLocalInferenceConfig: (enabled: boolean) => Promise<localInferenceConfig>;
     };
     agi: {
       syncAgi: () => Promise<boolean>;
