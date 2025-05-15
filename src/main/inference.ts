@@ -35,7 +35,6 @@ export class InferenceService {
     } else {
       // Local mode - initialize transformers.js pipeline
       this.client = null;
-      console.log('Loading transformers.js pipeline...1');
       this.initializeLocalPipeline();
     }
   }
@@ -56,14 +55,15 @@ export class InferenceService {
       // Dynamically import transformers to avoid bundling issues
       if (!this.localPipeline) {
         //let { pipeline } = await import('@huggingface/transformers');
-        console.log('Loading transformers.js pipeline...2');
-        // Initialize the text-generation pipeline with a suitable model
+        console.log('Loading transformers.js pipeline...');
+        // Initialize the text-generation pipeline
         this.localPipeline = await pipeline('text-generation', "onnx-community/Qwen2.5-0.5B-Instruct", { dtype: "q4" },
         );
         console.log('Local inference pipeline initialized successfully');
         const messageHistory = [{ role: "user", content: "tell me about type theory" }];
+        console.log('Test Prompt...', messageHistory[0]);
         const response = await this.chatCompletion(messageHistory);
-        console.log("inferenceService.chatCompletion: ", response);
+        console.log("Resposne: ", response);
         
       }
     }
