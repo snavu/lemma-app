@@ -99,6 +99,7 @@ export const updateFileInGraph = async (filename: string): Promise<boolean> => {
   try {
     // Get notes directory
     const notesDir = config.getNotesDirectory();
+    console.log('updateFileInGraph:', notesDir);
     if (!notesDir) {
       console.error('Notes directory not set');
       return false;

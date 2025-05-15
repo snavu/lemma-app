@@ -13,6 +13,11 @@ export interface agiConfig {
   enabled: boolean;
 }
 
+export interface sgLangConfig {
+  port: number;
+  enabled: boolean;
+}
+
 /**
  * Configuration service for managing app settings
  */
@@ -21,6 +26,7 @@ export class Config {
     notesDirectory?: string;
     llm: llmConfig;
     agi: agiConfig;
+    sglang: sgLangConfig;
   };
 
   private configPath: string | null;
@@ -54,6 +60,10 @@ export class Config {
         endpoint: 'https://api.deepseek.com',
         apiKey: '',
         model: 'deepseek-chat'
+      },
+      sglang: {
+        port: 8000,
+        enabled: true
       }
     };
   }
@@ -122,7 +132,7 @@ export class Config {
    * Get the AGI configuration
    */
   getAgiConfig() {
-    return this.config.agi || false;
+    return this.config.agi || { enabled: false };
   }
 
   /**
@@ -132,6 +142,25 @@ export class Config {
     this.config.agi = { enabled: toggle };
     this.saveConfig();
     return this.config.agi;
+  }
+
+  /**
+   * Get the SGLang configuration
+   */
+  getSgLangConfig() {
+    return this.config.sglang || { port: 8001, enabled: true };
+  }
+
+  /**
+   * Set the SGLang configuration
+   */
+  setSgLangConfig(sgLangConfig: Partial<sgLangConfig>) {
+    this.config.sglang = {
+      ...this.getSgLangConfig(),
+      ...sgLangConfig
+    };
+    this.saveConfig();
+    return this.config.sglang;
   }
 
   /**
@@ -153,6 +182,10 @@ export class Config {
         },
         agi: {
           enabled: false
+        },
+        sglang: {
+          port: 8001,
+          enabled: true
         }
       };
 

@@ -40,6 +40,12 @@ interface Window {
       setLLMConfig: (llmConfig: llmConfig) => Promise<llmConfig>;
       getAgiConfig: () => Promise<agiConfig>;
       setAgiConfig: (toggle: boolean) => Promise<agiConfig>;
+      getSgLangConfig: () => Promise<sgLangConfig>;
+      setSgLangConfig: (sgLangConfig: sgLangConfig) => Promise<sgLangConfig>;
+    };
+    sgLang: {
+      restartSgLang: (sgLangConfig: sgLangConfig) => Promise<boolean>;
+      stopSgLang: () => Promise<boolean>;
     };
     agi: {
       syncAgi: () => Promise<boolean>;
@@ -48,3 +54,5 @@ interface Window {
     }
   };
 }
+
+
