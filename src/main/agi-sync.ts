@@ -170,18 +170,12 @@ export const chunk = async (filename: string, content: string, type: string): Pr
       const chunkPath = path.join(generatedDir, chunkFilename);
 
       // Create chunk content with metadata
-      const chunkContent = `---
-source: ${filename}
-chunk_index: ${i + 1}
-total_chunks: ${chunkResults.chunks.length}
-type: ${type}
-chunk_title: "${chunk.title}"
----
+      const chunkContent = `
 
 ${chunk.content}
 
 ---
-Parent note: [[${filename.replace('.md', '')}]]`;
+Linked note: [[${filename.replace('.md', '')}]]`;
 
       // Write the chunk file
       fs.writeFileSync(chunkPath, chunkContent);
@@ -531,7 +525,7 @@ export const syncAgi = async (): Promise<boolean> => {
 
         // Chunk the file
         const result = await chunk(filename, content, 'assisted');
-        if(!result) {
+        if (!result) {
           console.error(`Error chunking file: ${filename}`);
           return false;
         }
