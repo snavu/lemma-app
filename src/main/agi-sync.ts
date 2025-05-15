@@ -188,7 +188,7 @@ Linked note: [[${filename.replace('.md', '')}]]`;
       ];
 
       // Add to graph
-      createNodeInAgiGraph(chunkFilename, linkedFiles, 'generated');
+      createNodeInAgiGraph(chunkFilename, linkedFiles, 'assisted');
 
       // Track this chunk filename
       chunkFilenames.push(chunkFilename);
