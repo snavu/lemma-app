@@ -12,11 +12,11 @@ const testFiles = testFilePaths.map((filePath: string) => ({
 const notesDir = '/tests';
 const database = new DbClient();
 
-describe('upsertNotes', () => {
+describe('upsertNotes()', () => {
   it('insert note 1', async () => {
     // Insert individual note into database
     const filePath = testFilePaths[0];
-    await database.upsertNotes(notesDir, filePath, testFiles.find(value => value.filePath === filePath).content);
+    await database.upsertNotes(notesDir, filePath, testFiles.find(value => value.filePath === filePath).content, 'user');
 
     // Query notes
     const data = await database.queryNotes(notesDir);
@@ -29,7 +29,7 @@ describe('upsertNotes', () => {
   it('insert note 2', async () => {
     // Insert individual note into database
     const filePath = testFilePaths[1];
-    await database.upsertNotes(notesDir, filePath, testFiles.find(value => value.filePath === filePath).content);
+    await database.upsertNotes(notesDir, filePath, testFiles.find(value => value.filePath === filePath).content, 'user');
 
     // Query notes
     const data = await database.queryNotes(notesDir);
@@ -41,7 +41,7 @@ describe('upsertNotes', () => {
 
   it('insert all notes', async () => {
     // Insert all notes into database
-    await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }));
+    await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }), Array(testFiles.length).fill('user'));
 
     // Query notes
     const data = await database.queryNotes(notesDir);
@@ -57,7 +57,7 @@ describe('upsertNotes', () => {
 describe('queryNotes()', () => {
   it('full text search 1', async () => {
     // Insert test notes into database
-    await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }));
+    await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }), Array(testFiles.length).fill('user'));
 
     // Query the note by keyword
     const data = await database.queryNotes(notesDir, 'cpu inside');
@@ -69,7 +69,7 @@ describe('queryNotes()', () => {
 
   it('full text search 2', async () => {
     // Insert test notes into database
-    await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }));
+    await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }), Array(testFiles.length).fill('user'));
 
     // Query the note by keyword
     const data = await database.queryNotes(notesDir, 'kirchhoff');
@@ -81,7 +81,7 @@ describe('queryNotes()', () => {
 
   it('query all notes', async () => {
     // Insert test notes into database
-    await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }));
+    await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }), Array(testFiles.length).fill('user'));
 
     // Query all notes
     const data = await database.queryNotes(notesDir);
@@ -96,7 +96,7 @@ describe('queryNotes()', () => {
 describe('queryNotesByTag()', () => {
   it('tag search 1', async () => {
     // Insert test notes into database
-    await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }));
+    await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }), Array(testFiles.length).fill('user'));
 
     // Query the note by tag
     const data = await database.queryNotesByTag(notesDir, 'motherboard');
@@ -108,7 +108,7 @@ describe('queryNotesByTag()', () => {
 
   it('tag search 2', async () => {
     // Insert test notes into database
-    await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }));
+    await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }), Array(testFiles.length).fill('user'));
 
     // Query the note by tag
     const searchQueries = ['ohms-law', 'kirchhoff']
@@ -126,7 +126,7 @@ describe('queryNotesByTag()', () => {
 describe('deleteNotes()', () => {
   it ('delete notes 1', async () => {
     // Insert test notes into database
-    await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }));
+    await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }), Array(testFiles.length).fill('user'));
 
     // Delete individual note
     const deletedFilename = 'tests/fixtures/computer.md';
@@ -141,7 +141,7 @@ describe('deleteNotes()', () => {
 
   it ('delete notes 2', async () => {
     // Insert test notes into database
-    await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }));
+    await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }), Array(testFiles.length).fill('user'));
 
     // Delete individual note
     const deletedFilename = 'tests/fixtures/circuits.md';
@@ -156,7 +156,7 @@ describe('deleteNotes()', () => {
 
   it ('delete all notes', async () => {
     // Insert test notes into database
-    await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }));
+    await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }), Array(testFiles.length).fill('user'));
 
     // Delete all notes
     await database.deleteNotes(notesDir);

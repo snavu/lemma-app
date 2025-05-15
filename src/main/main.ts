@@ -225,7 +225,7 @@ const setupIpcHandlers = (): void => {
       // Update the graph with the new content
       await graphLoader.updateFileInGraph(filename);
       // Update the database with the new content
-      await database.upsertNotes(fileService.notesDirectory, filePath, content);
+      await database.upsertNotes(fileService.notesDirectory, filePath, content, 'user');
       // update the file in AGI
       if (config.getAgiConfig()) {
         await userAgiSync.updateFileInAgi(filename);
