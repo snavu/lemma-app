@@ -43,9 +43,6 @@ export class InferenceService {
    * Initialize the local pipeline for transformers.js
    */
   private async initializeLocalPipeline() {
-
-    console.log("this.localPipeline", this.localPipeline);
-    console.log("this.isLoadingPipeline", this.isLoadingPipeline);
     if (this.localPipeline !== undefined || this.isLoadingPipeline) {
       return;
     }
@@ -54,17 +51,9 @@ export class InferenceService {
     try {
       // Dynamically import transformers to avoid bundling issues
       if (!this.localPipeline) {
-        //let { pipeline } = await import('@huggingface/transformers');
-        console.log('Loading transformers.js pipeline...');
         // Initialize the text-generation pipeline
         this.localPipeline = await pipeline('text-generation', "onnx-community/Qwen2.5-0.5B-Instruct", { dtype: "q4" },
         );
-        console.log('Local inference pipeline initialized successfully');
-        const messageHistory = [{ role: "user", content: "tell me about type theory" }];
-        console.log('Test Prompt...', messageHistory[0]);
-        const response = await this.chatCompletion(messageHistory);
-        console.log("Resposne: ", response);
-        
       }
     }
     catch (error) {
@@ -91,6 +80,7 @@ You are an expert in knowledge management and information chunking. Your task is
 - Include necessary context from parent sections
 - Ensure chunks follow natural semantic boundaries in the content
 - Handle formatting elements like bullet points, code blocks, and tables appropriately
+- Only return the JSON object with the chunks, do not include any additional text or explanations
 
 # Document Title: ${filename.replace(/\.md$/, '')}
 
@@ -141,10 +131,10 @@ The JSON structure should be:
         const responseContent = response[0]?.generated_text || '';
 
         try {
-          return JSON.parse(responseContent);
+          return JSON.parse(responseContent[responseContent.length - 1].content);
         } catch (error) {
           console.error('Failed to parse LLM response as JSON', error);
-          console.log('Raw response:', responseContent);
+          console.log('Raw response:', responseContent[responseContent.length - 1].content);
           return { chunks: [] };
         }
       } else {

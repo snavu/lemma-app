@@ -61,18 +61,6 @@ const initializeFileSystem = (): void => {
       graphLoader.syncGraphWithFiles().then(success => {
         if (success) {
           console.log('Graph successfully synced with files');
-
-          // Only sync with AGI if experimental AGI is enabled
-          if (config.getAgiConfig()) {
-            console.log('Syncing user with AGI...');
-            userAgiSync.syncAgi().then(agiSuccess => {
-              if (agiSuccess) {
-                console.log('User successfully synced with AGI');
-              } else {
-                console.error('Failed to sync user with AGI');
-              }
-            });
-          }
         } else {
           console.error('Failed to sync graph with files');
         }
@@ -91,17 +79,6 @@ const initializeFileSystem = (): void => {
         if (success) {
           console.log('Graph successfully synced with files');
 
-          // Only sync with AGI if experimental AGI is enabled
-          if (config.getAgiConfig()) {
-            console.log('Syncing user with AGI...');
-            userAgiSync.syncAgi().then(agiSuccess => {
-              if (agiSuccess) {
-                console.log('User successfully synced with AGI');
-              } else {
-                console.error('Failed to sync user with AGI');
-              }
-            });
-          }
         } else {
           console.error('Failed to sync graph with files');
         }
@@ -226,10 +203,7 @@ const setupIpcHandlers = (): void => {
       await graphLoader.updateFileInGraph(filename);
       // Update the database with the new content
       await database.upsertNotes(fileService.notesDirectory, filePath, content);
-      // update the file in AGI
-      if (config.getAgiConfig()) {
-        await userAgiSync.updateFileInAgi(filename);
-      }
+
     }
     return result;
   });
@@ -240,10 +214,7 @@ const setupIpcHandlers = (): void => {
     if (result.success) {
       // Add the new file to the graph
       await graphLoader.updateFileInGraph(fileName);
-      // Add the new file to AGI
-      if (config.getAgiConfig()) {
-        await userAgiSync.updateFileInAgi(fileName);
-      }
+
     }
     return result;
   });
@@ -255,8 +226,7 @@ const setupIpcHandlers = (): void => {
       // Remove the file from the graph
       const filename = path.basename(filePath);
       graphLoader.removeFileFromGraph(filename);
-      // Remove the file from AGI
-      userAgiSync.removeFileFromAgi(filename);
+ 
     }
     return result;
   });
@@ -301,10 +271,32 @@ const setupIpcHandlers = (): void => {
     // Sync user with AGI
     const success = await userAgiSync.syncAgi();
     if (success) {
-      console.log('User successfully synced with AGI');
+      console.log('User successfully synced all files with AGI');
       return true;
     } else {
       console.error('Failed to sync user with AGI');
+      return false;
+    }
+  });
+
+  ipcMain.handle('update-file-in-agi', async (_, filename) => {
+    const success = await userAgiSync.updateFileInAgi(filename);
+    if (success) {
+      console.log('User successfully synced file with AGI');
+      return true;
+    } else {
+      console.error('Failed to sync file with AGI');
+      return false;
+    }
+  });
+
+  ipcMain.handle('remove-file-from-agi', async (_, filename) => {
+    const success = await userAgiSync.removeFileFromAgi(filename);
+    if (success) {
+      console.log('User successfully removed file with AGI');
+      return true;
+    } else {
+      console.error('Failed to remvoe file from AGI');
       return false;
     }
   });

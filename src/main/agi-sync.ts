@@ -525,6 +525,7 @@ export const syncAgi = async (): Promise<boolean> => {
 
         // Chunk the file
         const result = await chunk(filename, content, 'assisted');
+
         if (!result) {
           console.error(`Error chunking file: ${filename}`);
           return false;
@@ -618,8 +619,13 @@ export const updateFileInAgi = async (filename: string): Promise<boolean> => {
     createNodeInAgiGraph(filename, linkedFiles, 'assisted');
 
     // Chunk the file
-    await chunk(filename, content, 'assisted');
+    const result = await chunk(filename, content, 'assisted');
 
+    if (!result) {
+      console.error(`Error chunking file: ${filename}`);
+      return false;
+    }
+    
     return true;
   } catch (error) {
     console.error('Error updating file in AGI:', error);

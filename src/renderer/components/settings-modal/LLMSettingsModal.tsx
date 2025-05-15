@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { toast } from 'sonner';
 import './llm-settings-modal.css';
+import { useAgi } from '../../hooks/useAgi';
 
 interface LLMSettingsModalProps {
   isOpen: boolean;
@@ -15,7 +16,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
   const [isSaving, setIsSaving] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const closeTimeoutRef = useRef<number | null>(null);
-
+  const { syncAgi, updateFileInAgi } = useAgi();
   // Common models for different providers
   const modelOptions = {
     'OpenAI': ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo'],
@@ -94,7 +95,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
         toast.success('Settings saved successfully!');
 
         if (experimentalAgi) {
-          syncAgi();
+         await syncAgi();
         }
 
         // Close modal after slight delay
@@ -112,17 +113,6 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
       setIsSaving(false);
     }
   };
-
-  const syncAgi = async () => {
-
-    const result = Promise.resolve(window.electron.config.syncAgi());
-    toast.promise(result, {
-      loading: 'Syncing AGI...',
-      success: 'AGI synced successfully!',
-      error: 'Failed to sync AGI'
-    });
-
-  }
 
   if (!isOpen) return null;
 

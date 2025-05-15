@@ -1,5 +1,6 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { TabInfo } from './useTabs';
+import { useAgi } from './useAgi';
 
 export const useNotesSync = (
   tabs: TabInfo[],
@@ -9,11 +10,13 @@ export const useNotesSync = (
 ) => {
   // Create a ref to store the debounced function
   const saveTimeoutRef = useRef<any>(null);
-  
+
   // Create refs for the latest callback functions
   const hasGraphChangedRef = useRef(hasGraphChanged);
   const triggerGraphRefreshRef = useRef(triggerGraphRefresh);
-  
+
+  const { syncAgi, updateFileInAgi } = useAgi();
+
   // Update refs when dependencies change
   useEffect(() => {
     hasGraphChangedRef.current = hasGraphChanged;
@@ -22,8 +25,8 @@ export const useNotesSync = (
 
   // Function to save file and check graph
   const saveAndCheckGraph = useCallback(async (
-    filePath: string, 
-    content: string, 
+    filePath: string,
+    content: string,
     updateHashtags: string[]
   ) => {
     if (!window.electron?.fs) return;
@@ -39,6 +42,17 @@ export const useNotesSync = (
       if (didGraphChange) {
         triggerGraphRefreshRef.current();
       }
+
+      // Extract just the filename from the path
+      const filename = filePath.split(/[/\\]/).pop();
+      
+      const result = await window.electron.config.getAgiConfig();
+      if (result) {
+        if (result.enabled) {
+          updateFileInAgi(filename);
+        }
+      }
+
     } catch (error) {
       console.error('Error during save or sync:', error);
     }
@@ -55,12 +69,12 @@ export const useNotesSync = (
 
     // Auto-save the content to the file with debouncing
     if (window.electron && tabToUpdate.filePath) {
-      
+
       // Clear any existing timeout
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
-      
+
       // Set a new timeout
       saveTimeoutRef.current = setTimeout(() => {
         saveAndCheckGraph(tabToUpdate.filePath, newContent, hashtags);

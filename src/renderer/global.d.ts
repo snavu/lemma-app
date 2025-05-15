@@ -40,7 +40,11 @@ interface Window {
       setLLMConfig: (llmConfig: llmConfig) => Promise<llmConfig>;
       getAgiConfig: () => Promise<agiConfig>;
       setAgiConfig: (toggle: boolean) => Promise<agiConfig>;
-      syncAgi: () => Promise<boolean>;
     };
+    agi: {
+      syncAgi: () => Promise<boolean>;
+      updateFileInAgi: (filename: string) => Promise<boolean>;
+      removeFileFromAgi: (filename: string) => Promise<boolean>;
+    }
   };
 }
