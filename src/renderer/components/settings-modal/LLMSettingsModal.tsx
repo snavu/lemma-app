@@ -211,7 +211,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                     <span className="toggle-slider"></span>
                   </label>
                 </div>
-                <p className="help-text">Enable local SGLang inference server with OpenAI-compatible API</p>
+                <p className="help-text">Enable local inference</p>
               </div>
 
             </div>

@@ -1,15 +1,16 @@
 import OpenAI from "openai";
 import { config } from "./main";
 import { llmConfig } from "./config-service";
-const { pipeline } = require("@huggingface/transformers");
+import { Ollama } from "ollama";
+
 /**
- * Inference service supporting both cloud provider calls and local inference
+ * Inference service supporting both cloud provider calls and local inference with Ollama
  */
 export class InferenceService {
   private client: OpenAI | null;
-  private localPipeline: any | null;
+  private ollamaClient: Ollama | null;
   private isLocalMode: boolean;
-  private isLoadingPipeline: boolean = false;
+  private localModel: string = "llama3.2"; // Default model
 
   /**
    * Constructor
@@ -22,43 +23,46 @@ export class InferenceService {
     };
 
     // Determine if we should use local mode
-    this.isLocalMode = !llmConfig.apiKey || llmConfig.apiKey.trim() === '';
+    this.isLocalMode = config.getLocalInferenceConfig().enabled;
 
     console.log("Local mode? ", this.isLocalMode);
+    
     if (!this.isLocalMode) {
       // Cloud mode - initialize OpenAI client
       this.client = new OpenAI({
         baseURL: llmConfig.endpoint || 'https://api.deepseek.com',
         apiKey: llmConfig.apiKey,
       });
-      this.localPipeline = null;
+      this.ollamaClient = null;
     } else {
-      // Local mode - initialize transformers.js pipeline
+      // Local mode - initialize Ollama client
       this.client = null;
-      this.initializeLocalPipeline();
+      this.initializeOllamaClient();
     }
   }
 
   /**
-   * Initialize the local pipeline for transformers.js
+   * Initialize the Ollama client
    */
-  private async initializeLocalPipeline() {
-    if (this.localPipeline !== undefined || this.isLoadingPipeline) {
-      return;
-    }
-
-    this.isLoadingPipeline = true;
+  private async initializeOllamaClient() {
     try {
-      // Dynamically import transformers to avoid bundling issues
-      if (!this.localPipeline) {
-        // Initialize the text-generation pipeline
-        this.localPipeline = await pipeline('text-generation', "onnx-community/Qwen2.5-0.5B-Instruct", { dtype: "q4" },
-        );
+      // Default Ollama server runs at this address
+      this.ollamaClient = new Ollama({ 
+        host: 'http://127.0.0.1:11434' 
+      });
+      
+      // Get local model configuration if available
+      const localConfig = config.getLocalInferenceConfig();
+      if (localConfig.model) {
+        this.localModel = localConfig.model;
       }
+      
+      console.log(`Initialized Ollama client with model: ${this.localModel}`);
+
     }
     catch (error) {
-      console.error('Failed to initialize local inference pipeline:', error);
-      this.localPipeline = null;
+      console.error('Failed to initialize Ollama client:', error);
+      this.ollamaClient = null;
     }
   }
 
@@ -113,28 +117,32 @@ The JSON structure should be:
       ];
 
       if (this.isLocalMode) {
-        // Local inference using transformers.js
-        if (!this.localPipeline) {
-          await this.initializeLocalPipeline();
-          if (!this.localPipeline) {
-            console.error('Local pipeline initialization failed');
+        // Local inference using Ollama
+        if (!this.ollamaClient) {
+          this.initializeOllamaClient();
+          if (!this.ollamaClient) {
+            console.error('Ollama client initialization failed');
             return { chunks: [] };
           }
         }
 
-        const response = await this.localPipeline(
-          messages, {
-          max_length: 2048,
-          temperature: 0.2
+        // Request JSON format output from Ollama
+        const response = await this.ollamaClient.chat({
+          model: this.localModel,
+          messages: messages,
+          format: "json",
+          options: {
+            temperature: 0.2
+          }
         });
 
-        const responseContent = response[0]?.generated_text || '';
+        const responseContent = response.message?.content || '';
 
         try {
-          return JSON.parse(responseContent[responseContent.length - 1].content);
+          return JSON.parse(responseContent);
         } catch (error) {
           console.error('Failed to parse LLM response as JSON', error);
-          console.log('Raw response:', responseContent[responseContent.length - 1].content);
+          console.log('Raw response:', responseContent);
           return { chunks: [] };
         }
       } else {
@@ -197,27 +205,59 @@ The JSON structure should be:
       ];
 
       if (this.isLocalMode) {
-        // Local inference using transformers.js
-        if (!this.localPipeline) {
-          await this.initializeLocalPipeline();
-          if (!this.localPipeline) {
-            console.error('Local pipeline initialization failed');
+        // Local inference using Ollama
+        if (!this.ollamaClient) {
+          this.initializeOllamaClient();
+          if (!this.ollamaClient) {
+            console.error('Ollama client initialization failed');
             return { response: '' };
           }
         }
 
-        const response = await this.localPipeline(messages, {
-          max_length: options.max_tokens || 1024,
-          temperature: options.temperature || 0.7
+        // Handle streaming if requested
+        if (options.stream) {
+          return {
+            responseStream: this.ollamaClient.chat({
+              model: this.localModel,
+              messages: messages,
+              stream: true,
+              options: {
+                temperature: options.temperature || 0.7
+              }
+            })
+          };
+        }
+
+        // Non-streaming response
+        const response = await this.ollamaClient.chat({
+          model: this.localModel,
+          messages: messages,
+          options: {
+            temperature: options.temperature || 0.7
+          }
         });
 
         return {
-          response: response[0]?.generated_text || ''
+          response: response.message?.content || ''
         };
       } else {
         // Cloud inference using OpenAI SDK - simple pass-through
         const modelName = options.model || config.getLLMConfig().model;
 
+        // Handle streaming if requested
+        if (options.stream) {
+          return {
+            responseStream: this.client!.chat.completions.create({
+              model: modelName,
+              messages: messages,
+              temperature: options.temperature || 0.7,
+              max_tokens: options.max_tokens,
+              stream: true
+            })
+          };
+        }
+
+        // Non-streaming response
         const response = await this.client!.chat.completions.create({
           model: modelName,
           messages: messages,
@@ -240,9 +280,10 @@ The JSON structure should be:
    */
   updateConfig(newConfig: llmConfig) {
     const usingLocalBefore = this.isLocalMode;
+    const localConfig = config.getLocalInferenceConfig();
 
-    // Determine if we should use local mode with the new config
-    this.isLocalMode = !newConfig.apiKey || newConfig.apiKey.trim() === '';
+    // Update local mode status based on the config service
+    this.isLocalMode = localConfig.enabled;
 
     if (!this.isLocalMode) {
       // Cloud mode - initialize or update OpenAI client
@@ -251,14 +292,27 @@ The JSON structure should be:
         apiKey: newConfig.apiKey,
       });
 
-      // If switching from local to cloud, clean up local pipeline
+      // If switching from local to cloud, clean up local client
       if (usingLocalBefore) {
-        this.localPipeline = null;
+        this.ollamaClient = null;
       }
     } else if (!usingLocalBefore) {
-      // Switching from cloud to local - initialize local pipeline
+      // Switching from cloud to local - initialize Ollama client
       this.client = null;
-      this.initializeLocalPipeline();
+      this.initializeOllamaClient();
+    }
+  }
+
+  /**
+   * Update the local inference model
+   */
+  updateLocalModel(modelName: string) {
+    this.localModel = modelName;
+    
+    // Update this in the config if needed
+    const localConfig = config.getLocalInferenceConfig();
+    if (localConfig.model !== modelName) {
+      config.setLocalInferenceConfig(true, modelName);
     }
   }
 
@@ -270,10 +324,10 @@ The JSON structure should be:
   }
 
   /**
-   * Check if the service is ready (either client configured or pipeline initialized)
+   * Check if the service is ready (either client configured or Ollama initialized)
    */
   isReady() {
-    return (this.isLocalMode && this.localPipeline !== null) ||
+    return (this.isLocalMode && this.ollamaClient !== null) ||
       (!this.isLocalMode && this.client !== null);
   }
 }

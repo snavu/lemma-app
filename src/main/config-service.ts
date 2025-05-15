@@ -15,6 +15,7 @@ export interface agiConfig {
 
 export interface localInferenceConfig {
   enabled: boolean;
+  model: string;
 }
 
 /**
@@ -146,14 +147,17 @@ export class Config {
    * Get the local inference configuration
    */
   getLocalInferenceConfig() {
-    return this.config.local || { enabled: false };
+    return this.config.local || { enabled: true, model: 'llama3.2' };
   }
 
   /**
    * Set the local inference configuration
    */
-  setLocalInferenceConfig(enabled: boolean) {
-    this.config.local = { enabled: enabled};
+  setLocalInferenceConfig(enabled: boolean, model?: string) {
+    this.config.local = {
+      enabled: enabled,
+      model: model || this.config.local?.model || "llama3.2"
+    };
     this.saveConfig();
     return this.config.local;
   }
@@ -179,8 +183,8 @@ export class Config {
           enabled: false
         },
         local: {
-          port: 8001,
-          enabled: true
+          enabled: false,
+          model: 'llama3.2'
         }
       };
 
