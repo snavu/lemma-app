@@ -45,7 +45,7 @@ export const App = () => {
 
   // State for chatBot
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [messages, setMessages] = useState<{ sender: 'user' | 'bot'; text: string }[]>([]);
+  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
 
   // View mode
   const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
@@ -116,6 +116,17 @@ export const App = () => {
     }
   };
 
+  const handleSendChatRequest = async (messageArray: { role: 'user' | 'assistant'; content: string }[]) => {
+    try {
+      const assistantResult = await window.electron.agi.sendChatRequest(messageArray);
+      setMessages(prev => [...prev, { role: 'assistant', content: assistantResult.response}]);
+      console.log(messages);
+      console.log(assistantResult);
+    } catch (err) {
+      console.log("Error sending request to model: ", err);
+    }
+  }
+
   const handleDeleteFileSync = async (filePath: string) => {
     const success = await handleDeleteFile(filePath);
     if (success) {
@@ -170,7 +181,8 @@ export const App = () => {
             isChatOpen={isChatOpen}
             setIsChatOpen={setIsChatOpen}
             messages={messages}
-            setMessages={setMessages}/>
+            setMessages={setMessages}
+            handleSendChatRequest={handleSendChatRequest}/>
         }
         <div className="main-content-wrapper">
           <TabBar

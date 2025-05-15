@@ -302,6 +302,10 @@ const setupIpcHandlers = (): void => {
     }
   });
 
+  ipcMain.handle('send-chat-request', async (_, messageArray) => {
+    return inferenceService.chatCompletion(messageArray);
+  });
+
   ipcMain.handle('get-local-inference-config', () => {
     return config.getLocalInferenceConfig();
   });
