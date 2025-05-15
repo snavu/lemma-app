@@ -82,7 +82,7 @@ const cleanupChunkFiles = (filename: string): void => {
     }
 
     const baseFilename = filename.split('.')[0];
-    const chunkPrefix = `generated_${baseFilename}_chunk`;
+    const chunkPrefix = `generated_${baseFilename}`;
 
     try {
       const generatedFiles = fs.readdirSync(generatedDir);
