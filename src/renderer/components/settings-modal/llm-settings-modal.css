@@ -333,3 +333,108 @@ input:focus + .toggle-slider {
   background-color: rgba(255, 255, 255, 0.07);
   margin: 24px 0;
 }
+
+/* Modern styling for number input spinners */
+input[type="number"] {
+  -moz-appearance: textfield; /* Firefox */
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Custom number input with buttons */
+.number-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.number-input-container input[type="number"] {
+  width: 100%;
+  padding-right: 40px; /* Space for controls */
+}
+
+.number-controls {
+  position: absolute;
+  right: 1px;
+  top: 1px;
+  bottom: 1px;
+  width: 38px;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0 7px 7px 0;
+  overflow: hidden;
+}
+
+.number-control-btn {
+  flex: 1;
+  background-color: var(--background-tertiary);
+  border: none;
+  color: rgba(170, 170, 170, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.number-control-btn:first-child {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.number-control-btn:hover {
+  background-color: var(--interactive-hover);
+  color: rgba(200, 200, 200, 0.9);
+}
+
+.number-control-btn:active {
+  background-color: var(--interactive-active);
+}
+
+/* Modern select styling */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='rgba(170, 170, 170, 0.8)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  padding-right: 36px;
+}
+
+.form-group select {
+  cursor: pointer;
+}
+
+.form-group select:hover {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='rgba(200, 200, 200, 0.9)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+/* Improved optgroup styling */
+optgroup {
+  font-weight: 600;
+  color: var(--text-normal);
+  background-color: var(--background-tertiary);
+}
+
+option {
+  padding: 8px;
+  background-color: var(--background-secondary);
+  color: var(--text-normal);
+}
+
+/* Ensure consistent height across browsers */
+select option, select optgroup {
+  font-size: 14px;
+}
+
+/* Remove focus outlines and replace with our custom style */
+select:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb), 0.25);
+}

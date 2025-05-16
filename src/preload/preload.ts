@@ -2,7 +2,7 @@
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 
 import { contextBridge, ipcRenderer, shell } from 'electron';
-import { llmConfig } from 'src/main/config-service';
+import { llmConfig, agiConfig, localInferenceConfig } from 'src/shared/types';
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
@@ -65,9 +65,9 @@ contextBridge.exposeInMainWorld('electron', {
     getLLMConfig: () => ipcRenderer.invoke('get-llm-config'),
     setLLMConfig: (llmConfig: llmConfig) => ipcRenderer.invoke('set-llm-config', llmConfig),
     getAgiConfig: () => ipcRenderer.invoke('get-agi-config'),
-    setAgiConfig: (enabled: boolean) => ipcRenderer.invoke('set-agi-config', enabled),
+    setAgiConfig: (agiConfig: agiConfig) => ipcRenderer.invoke('set-agi-config', agiConfig),
     getLocalInferenceConfig: () => ipcRenderer.invoke('get-local-inference-config'),
-    setLocalInferenceConfig: (enabled: boolean) => ipcRenderer.invoke('set-local-inference-config', enabled),
+    setLocalInferenceConfig: (localInferenceConfig: localInferenceConfig) => ipcRenderer.invoke('set-local-inference-config', localInferenceConfig),
   },
 
   // AGI operations

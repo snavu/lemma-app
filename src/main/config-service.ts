@@ -1,22 +1,8 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { app } from 'electron';
-import { notesDirectory } from './file-service';
+import { agiConfig, llmConfig, localInferenceConfig } from 'src/shared/types';
 
-export interface llmConfig {
-  endpoint: string;
-  apiKey: string;
-  model: string;
-}
-
-export interface agiConfig {
-  enabled: boolean;
-}
-
-export interface localInferenceConfig {
-  enabled: boolean;
-  model: string;
-}
 
 /**
  * Configuration service for managing app settings
@@ -40,7 +26,7 @@ export class Config {
    * Get the path to the config file
    */
   private getConfigPath(): string | null {
-    return path.join(app.getPath('documents'), 'LEMMA Notes', 'config.json');
+    return path.join(app.getPath('userData'), 'config.json');
   }
 
   /**
@@ -48,23 +34,15 @@ export class Config {
    */
   private loadConfig() {
     try {
-      if (this.configPath && fs.existsSync(this.configPath)) {
-        const data = fs.readFileSync(this.configPath, 'utf8');
-        return JSON.parse(data);
+      if (!this.configPath || !fs.existsSync(this.configPath)) {
+        this.ensureConfigFile();
       }
+      const data = fs.readFileSync(this.configPath, 'utf8');
+      return JSON.parse(data);
+    
     } catch (error) {
       console.error('Error loading config:', error);
     }
-    return {
-      llm: {
-        endpoint: 'https://api.deepseek.com',
-        apiKey: '',
-        model: 'deepseek-chat'
-      },
-      local: {
-        enabled: true
-      }
-    };
   }
 
   /**
@@ -137,8 +115,11 @@ export class Config {
   /**
    * Set the AGI configuration
    */
-  setAgiConfig(enabled: boolean) {
-    this.config.agi = { enabled: enabled };
+  setAgiConfig(agiConfig: Partial<agiConfig>) {
+    this.config.agi = {
+      ...this.getAgiConfig(),
+      ...agiConfig
+    };
     this.saveConfig();
     return this.config.agi;
   }
@@ -147,16 +128,16 @@ export class Config {
    * Get the local inference configuration
    */
   getLocalInferenceConfig() {
-    return this.config.local || { enabled: true, model: 'llama3.2' };
+    return this.config.local;
   }
 
   /**
    * Set the local inference configuration
    */
-  setLocalInferenceConfig(enabled: boolean, model?: string) {
+  setLocalInferenceConfig(localInferenceConfig: Partial<localInferenceConfig>) {
     this.config.local = {
-      enabled: enabled,
-      model: model || this.config.local?.model || "llama3.2"
+      ...this.getLocalInferenceConfig(),
+      ...localInferenceConfig
     };
     this.saveConfig();
     return this.config.local;
@@ -184,6 +165,7 @@ export class Config {
         },
         local: {
           enabled: false,
+          port: 11434,
           model: 'llama3.2'
         }
       };

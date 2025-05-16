@@ -39,9 +39,9 @@ interface Window {
       getLLMConfig: () => Promise<llmConfig>;
       setLLMConfig: (llmConfig: llmConfig) => Promise<llmConfig>;
       getAgiConfig: () => Promise<agiConfig>;
-      setAgiConfig: (enabled: boolean) => Promise<agiConfig>;
+      setAgiConfig: (agiConfig: agiConfig) => Promise<agiConfig>;
       getLocalInferenceConfig: () => Promise<localInferenceConfig>;
-      setLocalInferenceConfig: (enabled: boolean) => Promise<localInferenceConfig>;
+      setLocalInferenceConfig: (localInferenceConfig: localInferenceConfig) => Promise<localInferenceConfig>;
     };
     agi: {
       syncAgi: () => Promise<boolean>;
