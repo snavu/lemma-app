@@ -179,11 +179,11 @@ const selectNotesDirectory = async (): Promise<string | null> => {
 const setupIpcHandlers = (): void => {
 
   ipcMain.handle('tag-search-query', async (_, searchQuery, notesDirectory) => {
-    return database.queryNotesByTag(notesDirectory, searchQuery);
+    return database.queryNotes(notesDirectory, searchQuery, 'tag');
   });
 
   ipcMain.handle('keyword-search-query', async (_, searchQuery, notesDirectory) => {
-    return database.queryNotes(notesDirectory, searchQuery);
+    return database.queryNotes(notesDirectory, searchQuery, 'full-text');
   });
 
   ipcMain.handle('open-external', async (_, url) => {

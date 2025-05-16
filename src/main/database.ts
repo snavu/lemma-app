@@ -1,5 +1,5 @@
 const { DefaultEmbeddingFunction } = require('chromadb');
-import { ChromaClient, Collection, GetResponse } from 'chromadb';
+import { ChromaClient, Collection, GetResponse, Metadata, QueryResponse } from 'chromadb';
 import os from 'os';
 
 type FileType = 'user' | 'assisted' | 'generated';
@@ -148,17 +148,27 @@ export class DbClient {
 
   // Return a list of notes that matches the search query.
   // If no search query given, return all notes in the directory
-  public queryNotes = async (notesDirectory: string, searchQuery?: string): Promise<Note[]> => {
-    let data: GetResponse;
+  public queryNotes = async (notesDirectory: string, searchQuery?: string, searchMode: SearchMode = 'full-text'): Promise<Note[]> => {
+    let data: QueryResponse | GetResponse;
+
     try {
       await this.initCollection(this.collectionName);
       
       if (searchQuery) {
-        // Query notes by search query
-        data = await this.collection.get({ 
-          where: {'directory': notesDirectory},
-          whereDocument: {'$contains': searchQuery.toLowerCase()}
-        });
+        if (searchMode === 'similarity') {
+          // Query notes by similarity search
+          data = await this.collection.query({
+            queryTexts: searchQuery.toLowerCase(), 
+            where: {'directory': {'$eq': notesDirectory}},
+          });
+        } else {
+          const fullTextQuery = searchMode === 'tag' ? `#${searchQuery.toLowerCase()}` : searchQuery.toLowerCase();
+          // Query notes by search query
+          data = await this.collection.get({ 
+            where: {'directory': notesDirectory},
+            whereDocument: {'$contains': fullTextQuery}
+          });
+        }
       } else {
         // Query all notes
         data = await this.collection.get({ 
@@ -169,18 +179,34 @@ export class DbClient {
       console.error('Error during ChromaDB operation:', error);
     }
 
-    const results = data.ids.map((id, index) => ({
-      id: id,
-      filePath: String(data.metadatas[index].filePath),
-      content: data.documents[index],
-      type: data.metadatas[index].type as FileType,
-    }));
+    // Normalize results
+    const ids: string[] =
+      Array.isArray(data.ids[0]) // Multi-query case
+        ? (data.ids as string[][]).flat()
+        : (data.ids as string[]);
+
+    const documents: (string | null)[] =
+      Array.isArray(data.documents[0]) // Multi-query case
+        ? (data.documents as (string | null)[][]).flat()
+        : (data.documents as (string | null)[]);
+
+    const metadatas: (Metadata | null)[] =
+      Array.isArray(data.metadatas[0]) // Multi-query case
+        ? (data.metadatas as (Metadata | null)[][]).flat()
+        : (data.metadatas as (Metadata | null)[]);
+
+    const results: Note[] = ids.map((id, index) => {
+      const metadata = metadatas[index];
+      const content = documents[index];
+
+      return {
+        id: String(id),
+        filePath: String(metadata?.filePath || ''), // fallback for nulls
+        content: Array.isArray(content) ? content.join('\n') : String(content ?? ''), // handle string[] or null
+        type: (metadata?.type as FileType) ?? 'user', // default fallback
+      };
+    });
 
     return results;
   };
-
-  // Return a list of notes that contains the tag specified in the search query
-  public queryNotesByTag = async (notesDirectory: string, searchQuery: string): Promise<Note[]> => {
-    return this.queryNotes(notesDirectory, `#${searchQuery}`);
-  }
 }
