@@ -1,6 +1,7 @@
-const { DefaultEmbeddingFunction } = require('chromadb');
+const { OllamaEmbeddingFunction } = require('chromadb');
 import { ChromaClient, Collection, GetResponse, Metadata, QueryResponse } from 'chromadb';
 import os from 'os';
+import ollama from 'ollama';
 
 type FileType = 'user' | 'assisted' | 'generated';
 type SearchMode = 'similarity' | 'full-text' | 'tag';
@@ -12,7 +13,7 @@ interface Note {
   type: FileType
 }
 
-const defaultModelName = 'supabase/gte-small';
+const defaultModelName = 'nomic-embed-text';
 const primaryCollection = 'notes';
 
 // Get file or collection ID based on file or directory path
@@ -35,27 +36,48 @@ const getId = (filePath: string, type: string): string => {
 export class DbClient {
   private collection: Collection | null;
   private collectionName: string;
-  private embedFunc: typeof DefaultEmbeddingFunction;
+  // private embedFunc: typeof DefaultEmbeddingFunction;
+  private embedFunc: typeof OllamaEmbeddingFunction | null;
+  private modelName: string;
   private client: ChromaClient;
 
   constructor(collection: string = primaryCollection, model: string = defaultModelName) {
     this.client = new ChromaClient();
-    this.embedFunc = new DefaultEmbeddingFunction({ model: model });
+    this.embedFunc = null;
+    this.modelName = model;
     this.collection = null;
     this.collectionName = collection;
   }
 
   // Initializes connection to the collection. Will be done only once
-  private initCollection = async (collection: string): Promise<void> => {
+  private initCollection = async (): Promise<void> => {
     if (!this.collection) {
       try {
         this.collection = await this.client.getOrCreateCollection({
-          name: collection,
+          name: this.collectionName,
           embeddingFunction: this.embedFunc,
         });
       } catch (error) {
         console.error('Error during ChromaDB initialization:', error);
       }
+    }
+  };
+
+  // Initializes embedding function, downloading embedding model if not already installed. Will be done only once.
+  private initEmbeddingFunc = async (): Promise<void> => {
+    const modelList = await ollama.list();
+    // Model has not been installed yet
+    if (!modelList.models.find(obj => obj.model.split(':')[0] === this.modelName)) {
+      console.log(`Downloading '${this.modelName}'...`);
+      await ollama.pull({ model: this.modelName });
+      console.log(`Successfully downloaded '${this.modelName}...`);
+    }
+    // Embedding function not initialized yet
+    if (!this.embedFunc) {
+      this.embedFunc = new OllamaEmbeddingFunction({
+        url: 'http://127.0.0.1:11434/',
+        model: this.modelName
+      });
     }
   };
 
@@ -97,7 +119,9 @@ export class DbClient {
     }
 
     try {
-      await this.initCollection(this.collectionName);
+      await this.initEmbeddingFunc();
+      await this.initCollection();
+
       // Add/update notes to vector database
       await this.collection.upsert({
         ids: docIds,
@@ -117,7 +141,9 @@ export class DbClient {
   // If no specific document(s) is specified, deletes all documents of each note in the directory
   public deleteNotes = async (notesDirectory: string, filePath?: string | string[]) => {
     try {
-      await this.initCollection(this.collectionName);
+      await this.initEmbeddingFunc();
+      await this.initCollection();
+
       if (filePath) {
         if (Array.isArray(filePath)) {
           // Delete multiple notes from vector database
@@ -152,7 +178,8 @@ export class DbClient {
     let data: QueryResponse | GetResponse;
 
     try {
-      await this.initCollection(this.collectionName);
+      await this.initEmbeddingFunc();
+      await this.initCollection();
       
       if (searchQuery) {
         if (searchMode === 'similarity') {

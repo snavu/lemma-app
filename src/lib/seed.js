@@ -857,7 +857,7 @@ function generateContent(nodeId) {
 }
 
 // Create files in a directory structure
-const baseDir = 'LEMMA Notes';
+const baseDir = process.argv.slice(2)[0] ?? 'LEMMA Notes';
 
 // Create the base directory and required subdirectories
 function createDirectories() {
