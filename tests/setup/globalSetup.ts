@@ -60,6 +60,7 @@ const delFixtures = async (): Promise<void> => {
   if (!fs.existsSync(fixtureDir)) {
     fs.mkdirSync(fixtureDir);
   }
+  fs.writeFileSync(path.join(fixtureDir, '.gitkeep'), '');
 }
 
 module.exports = async () => {
