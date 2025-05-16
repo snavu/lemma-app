@@ -13,7 +13,8 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
   const [endpoint, setEndpoint] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('');
-  const [agiEnabled, setAgiEnabled] = useState(false);
+  const [chunkingEnabled, setChunkingEnabled] = useState(false);
+  const [liveModeEnabled, setLiveModeEnabled] = useState(false);
   const [localEnabled, setLocalEnabled] = useState(false);
   const [localPort, setLocalPort] = useState(11434);
   const [localModel, setLocalModel] = useState('llama3.2');
@@ -24,11 +25,13 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
 
   // Common models for different providers
   const modelOptions = {
-    'OpenAI': ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo'],
-    'DeepSeek': ['deepseek-chat', 'deepseek-coder'],
-    'Anthropic': ['claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'],
+    'OpenAI': ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo', 'custom'],
+    'DeepSeek': ['deepseek-chat', 'deepseek-coder', 'custom'],
+    'Anthropic': ['claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307', 'custom'],
     'Custom': ['custom']
   };
+
+  const [customModel, setCustomModel] = useState('');
 
   // Local model options
   const localModelOptions = [
@@ -101,6 +104,14 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
     return modelOptions[provider] || modelOptions.Custom;
   };
 
+  useEffect(() => {
+    if (detectProvider(endpoint) === 'Custom') {
+      setModel('custom');
+    } else {
+      setModel(getModelOptions()[0]);
+    }
+  }, [endpoint]);
+
   // Load settings when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -114,17 +125,26 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
       const agiConfig = await window.electron.config.getAgiConfig();
       const localInferenceConfig = await window.electron.config.getLocalInferenceConfig();
 
-
       setEndpoint(llmConfig.endpoint);
       setApiKey(llmConfig.apiKey);
       setModel(llmConfig.model);
-      setAgiEnabled(agiConfig.enabled || false);
-      setLocalEnabled(localInferenceConfig.enabled || false);
-      setLocalPort(localInferenceConfig.port || 11434);
+      setChunkingEnabled(agiConfig.enabled);
+      setLiveModeEnabled(agiConfig.enableLiveMode);
+      setLocalEnabled(localInferenceConfig.enabled);
+      setLocalPort(localInferenceConfig.port);
 
-      console.log(localInferenceConfig.enabled);
+      //Handle cloud model: could be a predefined or custom model
+      const savedCloudModel = llmConfig.model;
+      if (getModelOptions().includes(savedCloudModel)) {
+        setModel(savedCloudModel);
+        setCustomModel('');
+      } else {
+        setModel('custom');
+        setCustomModel(savedCloudModel);
+      }
+
       // Handle local model: could be a predefined or custom model
-      const savedLocalModel = localInferenceConfig.model || 'llama3.2';
+      const savedLocalModel = localInferenceConfig.model;
       if (localModelOptions.includes(savedLocalModel)) {
         setLocalModel(savedLocalModel);
         setCustomLocalModel('');
@@ -151,25 +171,28 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
       const llmResult = await window.electron.config.setLLMConfig({
         endpoint,
         apiKey,
-        model,
+        model: model === 'custom' ? customLocalModel : model,
       });
 
-      const agiResult = await window.electron.config.setAgiConfig({ enabled: agiEnabled });
+      const agiResult = await window.electron.config.setAgiConfig({
+        enableChunking: chunkingEnabled,
+        enableLiveMode: chunkingEnabled ? liveModeEnabled : false
+      });
 
-
-      const localInferenceConfig = {
+      const localInferenceResult = await window.electron.config.setLocalInferenceConfig({
         enabled: localEnabled,
         port: localPort,
         model: localModel === 'custom' ? customLocalModel : localModel,
-      }
-      
-      const localInferenceResult = await window.electron.config.setLocalInferenceConfig(localInferenceConfig);
+      });
 
       if (llmResult && agiResult && localInferenceResult) {
         toast.success('Settings saved successfully!');
 
-        if (agiEnabled) {
+        if (chunkingEnabled) {
           await syncAgi();
+        }
+        else {
+          setLiveModeEnabled(false);
         }
 
         // Close modal after slight delay
@@ -217,8 +240,9 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                   type="text"
                   value={endpoint}
                   onChange={(e) => setEndpoint(e.target.value)}
-                  placeholder="https://api.openai.com"
+                  placeholder="https://api.deepseek.com"
                 />
+
                 <p className="help-text">The base URL for the API service</p>
               </div>
 
@@ -249,6 +273,20 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                 </select>
                 <p className="help-text">The AI model to use for inference</p>
               </div>
+
+              {model === 'custom' && (
+                <div className="form-group">
+                  <label htmlFor="customModel">Custom Model Name</label>
+                  <input
+                    id="customModel"
+                    type="text"
+                    value={customModel}
+                    onChange={(e) => setCustomModel(e.target.value)}
+                    placeholder="Enter custom model name"
+                  />
+                  <p className="help-text">Specify a custom model name</p>
+                </div>
+              )}
             </div>
 
             <div className="section-divider"></div>
@@ -387,19 +425,38 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
 
               <div className="form-group toggle-group">
                 <div className="toggle-header">
-                  <label htmlFor="agiEnabled">Enable Experimental AGI</label>
+                  <label htmlFor="chunkingEnabled">Enable Experimental AGI</label>
                   <label className="toggle-switch">
                     <input
-                      id="agiEnabled"
+                      id="chunkingEnabled"
                       type="checkbox"
-                      checked={agiEnabled}
-                      onChange={(e) => setAgiEnabled(e.target.checked)}
+                      checked={chunkingEnabled}
+                      onChange={(e) => setChunkingEnabled(e.target.checked)}
                     />
                     <span className="toggle-slider"></span>
                   </label>
                 </div>
                 <p className="help-text">Enable experimental AGI features (may be unstable)</p>
               </div>
+
+              {chunkingEnabled && (
+                <div className="form-group toggle-group">
+                  <div className="toggle-header">
+                    <label htmlFor="liveModeEnabled" style={{ fontWeight: "bold" }}>Enable Live Mode</label>
+                    <label className="toggle-switch">
+                      <input
+                        id="liveModeEnabled"
+                        type="checkbox"
+                        checked={liveModeEnabled}
+                        onChange={(e) => setLiveModeEnabled(e.target.checked)}
+                      />
+                      <span className="toggle-slider"></span>
+                    </label>
+                  </div>
+                  <p className="help-text">Enables the AI to generate notes in realtime without prompting</p>
+                </div>
+
+              )}
             </div>
           </div>
 

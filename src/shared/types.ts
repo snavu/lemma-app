@@ -5,7 +5,8 @@ export interface llmConfig {
   }
   
   export interface agiConfig {
-    enabled: boolean;
+    enableChunking: boolean;
+    enableLiveMode: boolean;  
   }
   
   export interface localInferenceConfig {
