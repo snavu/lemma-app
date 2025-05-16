@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { toast } from 'sonner';
 import './llm-settings-modal.css';
+import { useAgi } from '../../hooks/useAgi';
+import { useSgLang } from '../../hooks/useSgLang';
 
 interface LLMSettingsModalProps {
   isOpen: boolean;
@@ -12,9 +14,12 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('');
   const [experimentalAgi, setExperimentalAgi] = useState(false);
+  const [localInference, setLocalInference] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const closeTimeoutRef = useRef<number | null>(null);
+  console.log("localInference", localInference);
+  const { syncAgi } = useAgi();
 
   // Common models for different providers
   const modelOptions = {
@@ -67,14 +72,21 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
     try {
       const llmConfig = await window.electron.config.getLLMConfig();
       const agiConfig = await window.electron.config.getAgiConfig();
+      const localInferenceConfig = await window.electron.config.getLocalInferenceConfig();
       setEndpoint(llmConfig.endpoint);
       setApiKey(llmConfig.apiKey);
       setModel(llmConfig.model);
       setExperimentalAgi(agiConfig.enabled || false);
+      setLocalInference(localInferenceConfig.enabled || false);
     } catch (error) {
-      console.error('Error loading LLM settings:', error);
+      console.error('Error loading settings:', error);
       toast.error('Failed to load settings');
     }
+  };
+
+  // Handle toggling local inference
+  const handleSgLangToggle = async (enabled: boolean) => {
+    setLocalInference(enabled);
   };
 
   // Save settings
@@ -90,11 +102,13 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
 
       const agiResult = await window.electron.config.setAgiConfig(experimentalAgi);
 
-      if (llmResult && agiResult) {
+      const localInferenceResult = await window.electron.config.setLocalInferenceConfig(localInference)
+
+      if (llmResult && agiResult && localInferenceResult) {
         toast.success('Settings saved successfully!');
 
         if (experimentalAgi) {
-          syncAgi();
+          await syncAgi();
         }
 
         // Close modal after slight delay
@@ -107,22 +121,11 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
         setIsSaving(false);
       }
     } catch (error) {
-      console.error('Error saving LLM settings:', error);
+      console.error('Error saving settings:', error);
       toast.error(error instanceof Error ? error.message : 'Unknown error saving settings');
       setIsSaving(false);
     }
   };
-
-  const syncAgi = async () => {
-
-    const result = Promise.resolve(window.electron.config.syncAgi());
-    toast.promise(result, {
-      loading: 'Syncing AGI...',
-      success: 'AGI synced successfully!',
-      error: 'Failed to sync AGI'
-    });
-
-  }
 
   if (!isOpen) return null;
 
@@ -142,63 +145,98 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
           </div>
 
           <div className="modal-body">
-            <div className="form-group">
-              <label htmlFor="endpoint">API Endpoint</label>
-              <input
-                id="endpoint"
-                type="text"
-                value={endpoint}
-                onChange={(e) => setEndpoint(e.target.value)}
-                placeholder="https://api.openai.com"
-              />
-              <p className="help-text">The base URL for the API service</p>
-            </div>
+            {/* API Settings Section */}
+            <div className="settings-section">
+              <h3 className="section-title">API Configuration</h3>
 
-            <div className="form-group">
-              <label htmlFor="apiKey">API Key</label>
-              <input
-                id="apiKey"
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Enter your API key"
-              />
-              <p className="help-text">Your API key for authentication</p>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="model">Model</label>
-              <select
-                id="model"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-              >
-                {getModelOptions().map((modelOption) => (
-                  <option key={modelOption} value={modelOption}>
-                    {modelOption}
-                  </option>
-                ))}
-              </select>
-              <p className="help-text">The AI model to use for inference</p>
-            </div>
-
-            <div className="form-group toggle-group">
-              <div className="toggle-header">
-                <label htmlFor="experimentalAgi">Experimental AGI</label>
-                <label className="toggle-switch">
-                  <input
-                    id="experimentalAgi"
-                    type="checkbox"
-                    checked={experimentalAgi}
-                    onChange={(e) => {
-                      const newValue = e.target.checked;
-                      setExperimentalAgi(newValue);
-                    }}
-                  />
-                  <span className="toggle-slider"></span>
-                </label>
+              <div className="form-group">
+                <label htmlFor="endpoint">API Endpoint</label>
+                <input
+                  id="endpoint"
+                  type="text"
+                  value={endpoint}
+                  onChange={(e) => setEndpoint(e.target.value)}
+                  placeholder="https://api.openai.com"
+                />
+                <p className="help-text">The base URL for the API service</p>
               </div>
-              <p className="help-text">Enable experimental AGI features (may be unstable)</p>
+
+              <div className="form-group">
+                <label htmlFor="apiKey">API Key</label>
+                <input
+                  id="apiKey"
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="Enter your API key"
+                />
+                <p className="help-text">Your API key for authentication</p>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="model">Model</label>
+                <select
+                  id="model"
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                >
+                  {getModelOptions().map((modelOption) => (
+                    <option key={modelOption} value={modelOption}>
+                      {modelOption}
+                    </option>
+                  ))}
+                </select>
+                <p className="help-text">The AI model to use for inference</p>
+              </div>
+            </div>
+
+            <div className="section-divider"></div>
+
+            {/* SGLang Section */}
+            <div className="settings-section">
+              <div className="section-header">
+                <h3 className="section-title">Local Inference Server</h3>
+              </div>
+
+              <div className="form-group toggle-group">
+                <div className="toggle-header">
+                  <label htmlFor="localInference">Enable local inference</label>
+                  <label className="toggle-switch">
+                    <input
+                      id="localInference"
+                      type="checkbox"
+                      checked={localInference}
+                      onChange={(e) => handleSgLangToggle(e.target.checked)}
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                </div>
+                <p className="help-text">Enable local inference</p>
+              </div>
+
+            </div>
+
+            <div className="section-divider"></div>
+
+            {/* Experimental Features Section */}
+            <div className="settings-section">
+              <h3 className="section-title">Experimental Features</h3>
+
+              <div className="form-group toggle-group">
+                <div className="toggle-header">
+                  <label htmlFor="experimentalAgi">Enable Experimental AGI</label>
+                  <label className="toggle-switch">
+                    <input
+                      id="experimentalAgi"
+                      type="checkbox"
+                      checked={experimentalAgi}
+                      onChange={(e) => setExperimentalAgi(e.target.checked)}
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                </div>
+                <p className="help-text">Enable experimental AGI features (may be unstable)</p>
+              </div>
             </div>
           </div>
 

@@ -4,6 +4,7 @@ import * as fileService from './file-service';
 import * as graphService from './graph-service';
 import { inferenceService } from './main';
 import { config } from './main';
+import { c } from 'vite/dist/node/moduleRunnerTransport.d-CXw_Ws6P';
 
 /**
  * Updates a parent note with links to all its chunk files
@@ -82,7 +83,7 @@ const cleanupChunkFiles = (filename: string): void => {
     }
 
     const baseFilename = filename.split('.')[0];
-    const chunkPrefix = `generated_${baseFilename}_chunk`;
+    const chunkPrefix = `generated_${baseFilename}_`;
 
     try {
       const generatedFiles = fs.readdirSync(generatedDir);
@@ -212,6 +213,7 @@ Linked note: [[${filename.replace('.md', '')}]]`;
 const copyFileToAgi = async (filename: string): Promise<boolean> => {
   try {
     const notesDir = config.getNotesDirectory();
+    console.log('copyFileToAgi:', notesDir);
     if (!notesDir) {
       console.error('Notes directory not set');
       return false;
@@ -525,6 +527,7 @@ export const syncAgi = async (): Promise<boolean> => {
 
         // Chunk the file
         const result = await chunk(filename, content, 'assisted');
+
         if (!result) {
           console.error(`Error chunking file: ${filename}`);
           return false;
@@ -618,8 +621,13 @@ export const updateFileInAgi = async (filename: string): Promise<boolean> => {
     createNodeInAgiGraph(filename, linkedFiles, 'assisted');
 
     // Chunk the file
-    await chunk(filename, content, 'assisted');
+    const result = await chunk(filename, content, 'assisted');
 
+    if (!result) {
+      console.error(`Error chunking file: ${filename}`);
+      return false;
+    }
+    
     return true;
   } catch (error) {
     console.error('Error updating file in AGI:', error);

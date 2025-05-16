@@ -65,8 +65,16 @@ contextBridge.exposeInMainWorld('electron', {
     getLLMConfig: () => ipcRenderer.invoke('get-llm-config'),
     setLLMConfig: (llmConfig: llmConfig) => ipcRenderer.invoke('set-llm-config', llmConfig),
     getAgiConfig: () => ipcRenderer.invoke('get-agi-config'),
-    setAgiConfig: (toggle: boolean) => ipcRenderer.invoke('set-agi-config', toggle),
+    setAgiConfig: (enabled: boolean) => ipcRenderer.invoke('set-agi-config', enabled),
+    getLocalInferenceConfig: () => ipcRenderer.invoke('get-local-inference-config'),
+    setLocalInferenceConfig: (enabled: boolean) => ipcRenderer.invoke('set-local-inference-config', enabled),
+  },
+
+  // AGI operations
+  agi: {
     syncAgi: () => ipcRenderer.invoke('sync-agi'),
+    updateFileInAgi: (filename: string) => ipcRenderer.invoke('update-file-in-agi', filename),
+    removeFileFromAgi: (filename: string) => ipcRenderer.invoke('delete-file-in-agi', filename),
   },
 
 });

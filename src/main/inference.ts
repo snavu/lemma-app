@@ -1,11 +1,16 @@
 import OpenAI from "openai";
 import { config } from "./main";
 import { llmConfig } from "./config-service";
+import { Ollama } from "ollama";
+
 /**
- * Simple inference service using OpenAI SDK
+ * Inference service supporting both cloud provider calls and local inference with Ollama
  */
 export class InferenceService {
-  private client: OpenAI;
+  private client: OpenAI | null;
+  private ollamaClient: Ollama | null;
+  private isLocalMode: boolean;
+  private localModel: string = "llama3.2"; // Default model
 
   /**
    * Constructor
@@ -17,18 +22,57 @@ export class InferenceService {
       model: ''
     };
 
-    this.client = new OpenAI({
-      baseURL: llmConfig.endpoint || 'https://api.deepseek.com',
-      apiKey: llmConfig.apiKey,
-    });
+    // Determine if we should use local mode
+    this.isLocalMode = config.getLocalInferenceConfig().enabled;
+
+    console.log("Local mode? ", this.isLocalMode);
+    
+    if (!this.isLocalMode) {
+      // Cloud mode - initialize OpenAI client
+      this.client = new OpenAI({
+        baseURL: llmConfig.endpoint || 'https://api.deepseek.com',
+        apiKey: llmConfig.apiKey,
+      });
+      this.ollamaClient = null;
+    } else {
+      // Local mode - initialize Ollama client
+      this.client = null;
+      this.initializeOllamaClient();
+    }
   }
 
   /**
-   * Send a chat completion request
+   * Initialize the Ollama client
+   */
+  private async initializeOllamaClient() {
+    try {
+      // Default Ollama server runs at this address
+      this.ollamaClient = new Ollama({ 
+        host: 'http://127.0.0.1:11434' 
+      });
+      
+      // Get local model configuration if available
+      const localConfig = config.getLocalInferenceConfig();
+      if (localConfig.model) {
+        this.localModel = localConfig.model;
+      }
+      
+      console.log(`Initialized Ollama client with model: ${this.localModel}`);
+
+    }
+    catch (error) {
+      console.error('Failed to initialize Ollama client:', error);
+      this.ollamaClient = null;
+    }
+  }
+
+  /**
+   * Send a chat completion request to chunk the document
+   * Works with both cloud and local inference
    */
   async getChunks(content: string, filename: string) {
     try {
-      // Create the prompt for the LLM
+      // Create the prompt for the model
       const prompt = `
 You are an expert in knowledge management and information chunking. Your task is to divide the following note into semantically meaningful, self-contained chunks of information.
 
@@ -40,6 +84,7 @@ You are an expert in knowledge management and information chunking. Your task is
 - Include necessary context from parent sections
 - Ensure chunks follow natural semantic boundaries in the content
 - Handle formatting elements like bullet points, code blocks, and tables appropriately
+- Only return the JSON object with the chunks, do not include any additional text or explanations
 
 # Document Title: ${filename.replace(/\.md$/, '')}
 
@@ -66,33 +111,167 @@ The JSON structure should be:
 }
 `;
 
-      // Get the model from config or use a default
-      const modelName = config.getLLMConfig().model;
+      const messages = [
+        { role: "system", content: "You are an AI assistant that specializes in semantic document chunking." },
+        { role: "user", content: prompt }
+      ];
 
-      // Call the chat completions API
-      const response = await this.client.chat.completions.create({
-        model: modelName,
-        messages: [
-          { role: "system", content: "You are an AI assistant that specializes in semantic document chunking." },
-          { role: "user", content: prompt }
-        ],
-        temperature: 0.2,
-        response_format: { type: "json_object" }
-      });
+      if (this.isLocalMode) {
+        // Local inference using Ollama
+        if (!this.ollamaClient) {
+          this.initializeOllamaClient();
+          if (!this.ollamaClient) {
+            console.error('Ollama client initialization failed');
+            return { chunks: [] };
+          }
+        }
 
-      // Parse the response content
-      const responseContent = response.choices[0]?.message.content || "";
+        // Request JSON format output from Ollama
+        const response = await this.ollamaClient.chat({
+          model: this.localModel,
+          messages: messages,
+          format: "json",
+          options: {
+            temperature: 0.2
+          }
+        });
 
-      try {
-        return JSON.parse(responseContent);
-      } catch (error) {
-        console.error('Failed to parse LLM response as JSON', error);
-        console.log('Raw response:', responseContent);
-        return { chunks: [] };
+        const responseContent = response.message?.content || '';
+
+        try {
+          return JSON.parse(responseContent);
+        } catch (error) {
+          console.error('Failed to parse LLM response as JSON', error);
+          console.log('Raw response:', responseContent);
+          return { chunks: [] };
+        }
+      } else {
+        // Cloud inference using OpenAI SDK
+        const modelName = config.getLLMConfig().model;
+
+        const response = await this.client!.chat.completions.create({
+          model: modelName,
+          messages: [
+            { role: "system", content: "You are an AI assistant that specializes in semantic document chunking." },
+            { role: "user", content: prompt }
+          ],
+          temperature: 0.2,
+          response_format: { type: "json_object" }
+        });
+
+        // Parse the response content
+        const responseContent = response.choices[0]?.message.content || "";
+
+        try {
+          return JSON.parse(responseContent);
+        } catch (error) {
+          console.error('Failed to parse LLM response as JSON', error);
+          console.log('Raw response:', responseContent);
+          return { chunks: [] };
+        }
       }
     } catch (error) {
-      console.error('Error calling LLM for chunking:', error);
+      console.error('Error in document chunking:', error);
       return { chunks: [] };
+    }
+  }
+
+  /**
+   * Send a chat completion for Q&A
+   * Works with both cloud and local inference
+   * Accepts standard message format:
+   * 
+   * @param messageHistory - Array of message objects with 'role' and 'content'. The user should be the last role.
+   * @param options - Additional options for the request
+   */
+  async chatCompletion(messageHistory: any[], options: any = {}) {
+    try {
+      const prompt = `
+      You are a helpful assistant that provides accurate, concise, and relevant answers based on the given context. 
+      When answering questions:
+      - Focus on directly addressing the user's query
+      - Provide accurate information based on the context provided
+      - If uncertain, acknowledge limitations rather than making up information
+      - Use clear and concise language
+      - Format code, lists, and technical content appropriately
+      - When asked about code, include working examples when appropriate
+      `;
+
+      const messages = [
+        { role: "system", content: "You are an AI assistant that specializes in question answering." },
+        { role: "user", content: prompt },
+        { role: "assistant", content: "Please provide the context for your question." },
+        ...messageHistory
+      ];
+
+      if (this.isLocalMode) {
+        // Local inference using Ollama
+        if (!this.ollamaClient) {
+          this.initializeOllamaClient();
+          if (!this.ollamaClient) {
+            console.error('Ollama client initialization failed');
+            return { response: '' };
+          }
+        }
+
+        // Handle streaming if requested
+        if (options.stream) {
+          return {
+            responseStream: this.ollamaClient.chat({
+              model: this.localModel,
+              messages: messages,
+              stream: true,
+              options: {
+                temperature: options.temperature || 0.7
+              }
+            })
+          };
+        }
+
+        // Non-streaming response
+        const response = await this.ollamaClient.chat({
+          model: this.localModel,
+          messages: messages,
+          options: {
+            temperature: options.temperature || 0.7
+          }
+        });
+
+        return {
+          response: response.message?.content || ''
+        };
+      } else {
+        // Cloud inference using OpenAI SDK - simple pass-through
+        const modelName = options.model || config.getLLMConfig().model;
+
+        // Handle streaming if requested
+        if (options.stream) {
+          return {
+            responseStream: this.client!.chat.completions.create({
+              model: modelName,
+              messages: messages,
+              temperature: options.temperature || 0.7,
+              max_tokens: options.max_tokens,
+              stream: true
+            })
+          };
+        }
+
+        // Non-streaming response
+        const response = await this.client!.chat.completions.create({
+          model: modelName,
+          messages: messages,
+          temperature: options.temperature || 0.7,
+          max_tokens: options.max_tokens
+        });
+
+        return {
+          response: response.choices[0]?.message.content || ''
+        };
+      }
+    } catch (error) {
+      console.error('Error in chat completion:', error);
+      return { response: '' };
     }
   }
 
@@ -100,9 +279,55 @@ The JSON structure should be:
    * Update client configuration
    */
   updateConfig(newConfig: llmConfig) {
-    this.client = new OpenAI({
-      baseURL: newConfig.endpoint || this.client.baseURL,
-      apiKey: newConfig.apiKey || this.client.apiKey,
-    });
+    const usingLocalBefore = this.isLocalMode;
+    const localConfig = config.getLocalInferenceConfig();
+
+    // Update local mode status based on the config service
+    this.isLocalMode = localConfig.enabled;
+
+    if (!this.isLocalMode) {
+      // Cloud mode - initialize or update OpenAI client
+      this.client = new OpenAI({
+        baseURL: newConfig.endpoint || 'https://api.deepseek.com',
+        apiKey: newConfig.apiKey,
+      });
+
+      // If switching from local to cloud, clean up local client
+      if (usingLocalBefore) {
+        this.ollamaClient = null;
+      }
+    } else if (!usingLocalBefore) {
+      // Switching from cloud to local - initialize Ollama client
+      this.client = null;
+      this.initializeOllamaClient();
+    }
+  }
+
+  /**
+   * Update the local inference model
+   */
+  updateLocalModel(modelName: string) {
+    this.localModel = modelName;
+    
+    // Update this in the config if needed
+    const localConfig = config.getLocalInferenceConfig();
+    if (localConfig.model !== modelName) {
+      config.setLocalInferenceConfig(true, modelName);
+    }
+  }
+
+  /**
+   * Check if the service is using local inference
+   */
+  isUsingLocalInference() {
+    return this.isLocalMode;
+  }
+
+  /**
+   * Check if the service is ready (either client configured or Ollama initialized)
+   */
+  isReady() {
+    return (this.isLocalMode && this.ollamaClient !== null) ||
+      (!this.isLocalMode && this.client !== null);
   }
 }

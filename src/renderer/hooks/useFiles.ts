@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useAgi } from './useAgi';
 
 export interface FileInfo {
   name: string;
@@ -10,6 +11,7 @@ export const useFiles = () => {
   const [notesDirectory, setNotesDirectory] = useState<string | null>(null);
   const [graphJsonPath, setGraphJsonPath] = useState<string | null>(null);
   const [files, setFiles] = useState<FileInfo[]>([]);
+  const { syncAgi, updateFileInAgi } = useAgi();
 
   // Check for default directory on initial load
   useEffect(() => {
@@ -45,6 +47,12 @@ export const useFiles = () => {
           if (path) {
             setGraphJsonPath(path);
           }
+          const result = await window.electron.config.getAgiConfig();
+          if (result) {
+            if (result.enabled) {
+              syncAgi();
+            }
+          }
         } catch (error) {
           console.error('Failed to load files:', error);
         }
@@ -52,7 +60,7 @@ export const useFiles = () => {
     };
 
     if (notesDirectory) {
-      console.log( 'Loading files from directory:', notesDirectory);
+      console.log('Loading files from directory:', notesDirectory);
       loadFiles();
     }
   }, [notesDirectory]);
@@ -89,6 +97,15 @@ export const useFiles = () => {
       const updatedFiles = await window.electron.fs.getFiles();
       setFiles(updatedFiles);
 
+      // Extract just the filename from the path
+      const filename = filePath.split(/[/\\]/).pop();
+
+      const result = await window.electron.config.getAgiConfig();
+      if (result) {
+        if (result.enabled) {
+          updateFileInAgi(filename);
+        }
+      }
       return true;
     } catch (error) {
       console.error('Failed to delete file:', error);
@@ -104,13 +121,20 @@ export const useFiles = () => {
     try {
       // Create a unique filename
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const fileName = `Note ${timestamp}`;
+      const fileName = `Note ${timestamp}.md`;
 
-      const result = await window.electron.fs.createFile(fileName + ".md");
+      await window.electron.fs.createFile(fileName);
 
       // Refresh files list
       const newFiles = await window.electron.fs.getFiles();
       setFiles(newFiles);
+
+      const result = await window.electron.config.getAgiConfig();
+      if (result) {
+        if (result.enabled) {
+          updateFileInAgi(fileName);
+        }
+      }
 
       // Get the notes directory if it's not already set
       if (!notesDirectory) {

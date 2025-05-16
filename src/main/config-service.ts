@@ -13,6 +13,11 @@ export interface agiConfig {
   enabled: boolean;
 }
 
+export interface localInferenceConfig {
+  enabled: boolean;
+  model: string;
+}
+
 /**
  * Configuration service for managing app settings
  */
@@ -21,6 +26,7 @@ export class Config {
     notesDirectory?: string;
     llm: llmConfig;
     agi: agiConfig;
+    local: localInferenceConfig;
   };
 
   private configPath: string | null;
@@ -54,6 +60,9 @@ export class Config {
         endpoint: 'https://api.deepseek.com',
         apiKey: '',
         model: 'deepseek-chat'
+      },
+      local: {
+        enabled: true
       }
     };
   }
@@ -122,16 +131,35 @@ export class Config {
    * Get the AGI configuration
    */
   getAgiConfig() {
-    return this.config.agi || false;
+    return this.config.agi || { enabled: false };
   }
 
   /**
    * Set the AGI configuration
    */
-  setAgiConfig(toggle: boolean) {
-    this.config.agi = { enabled: toggle };
+  setAgiConfig(enabled: boolean) {
+    this.config.agi = { enabled: enabled };
     this.saveConfig();
     return this.config.agi;
+  }
+
+  /**
+   * Get the local inference configuration
+   */
+  getLocalInferenceConfig() {
+    return this.config.local || { enabled: true, model: 'llama3.2' };
+  }
+
+  /**
+   * Set the local inference configuration
+   */
+  setLocalInferenceConfig(enabled: boolean, model?: string) {
+    this.config.local = {
+      enabled: enabled,
+      model: model || this.config.local?.model || "llama3.2"
+    };
+    this.saveConfig();
+    return this.config.local;
   }
 
   /**
@@ -153,6 +181,10 @@ export class Config {
         },
         agi: {
           enabled: false
+        },
+        local: {
+          enabled: false,
+          model: 'llama3.2'
         }
       };
 
