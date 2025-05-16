@@ -230,7 +230,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
 
           <div className="modal-body">
             {/* API Settings Section */}
-            <div className="settings-section">
+            {!localEnabled && (<div className="settings-section">
               <h3 className="section-title">API Configuration</h3>
 
               <div className="form-group">
@@ -289,7 +289,10 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
               )}
             </div>
 
-            <div className="section-divider"></div>
+            )}
+
+            {!localEnabled && (<div className="section-divider"></div>)}
+            
 
             {/* Local Inference Section */}
             <div className="settings-section">
