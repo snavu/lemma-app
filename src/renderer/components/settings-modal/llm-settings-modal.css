@@ -247,10 +247,6 @@ input:focus + .toggle-slider {
   min-width: 90px;
 }
 
-.accent-text{
-  color: blue;
-}
-
 .save-button {
   background-color: var(--interactive-accent);
   color: white;

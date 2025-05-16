@@ -128,7 +128,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
       setEndpoint(llmConfig.endpoint);
       setApiKey(llmConfig.apiKey);
       setModel(llmConfig.model);
-      setChunkingEnabled(agiConfig.enabled);
+      setChunkingEnabled(agiConfig.enableChunking);
       setLiveModeEnabled(agiConfig.enableLiveMode);
       setLocalEnabled(localInferenceConfig.enabled);
       setLocalPort(localInferenceConfig.port);
