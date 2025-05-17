@@ -46,7 +46,9 @@ const createWindow = (): void => {
 
 // Initialize the file system configuration
 const initializeFileSystem = (): void => {
+  config = new Config();
   // First try to load existing settings
+  config.reloadConfig();
   const notesDir = config.getNotesDirectory();
 
   // If no directory is set after loading config, set up the default one
@@ -252,7 +254,6 @@ const setupIpcHandlers = (): void => {
   });
 
   ipcMain.handle('set-llm-config', (_, llmConfig) => {
-    console.log('Setting LLM config:', llmConfig);
     const result = config.setLLMConfig(llmConfig);
     // Update the inference service with new config if you have one
     inferenceService.updateConfig(llmConfig);
@@ -263,8 +264,8 @@ const setupIpcHandlers = (): void => {
     return config.getAgiConfig();
   });
 
-  ipcMain.handle('set-agi-config', (_, enabled) => {
-    const result = config.setAgiConfig(enabled);
+  ipcMain.handle('set-agi-config', (_, agiConfig) => {
+    const result = config.setAgiConfig(agiConfig);
     return result;
   });
 
@@ -334,14 +335,15 @@ const setupIpcHandlers = (): void => {
 
 // App lifecycle events
 app.on('ready', () => {
-  config = new Config();
-  chromaService.startChromaDb();
-  database = new DbClient();
-  inferenceService = new InferenceService();
+
   createWindow();
   createAppMenu();
   setupIpcHandlers();
   initializeFileSystem();
+  chromaService.startChromaDb();
+  database = new DbClient();
+  inferenceService = new InferenceService();
+
 });
 
 app.on('window-all-closed', () => {

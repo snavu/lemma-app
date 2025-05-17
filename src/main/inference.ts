@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { config } from "./main";
-import { llmConfig } from "./config-service";
+import { llmConfig} from 'src/shared/types';
 import { Ollama } from "ollama";
 
 /**
@@ -9,6 +9,7 @@ import { Ollama } from "ollama";
 export class InferenceService {
   private client: OpenAI | null;
   private ollamaClient: Ollama | null;
+  private localPort: number = 11434; // Default port for Ollama server
   private isLocalMode: boolean;
   private localModel: string = "llama3.2"; // Default model
 
@@ -25,8 +26,6 @@ export class InferenceService {
     // Determine if we should use local mode
     this.isLocalMode = config.getLocalInferenceConfig().enabled;
 
-    console.log("Local mode? ", this.isLocalMode);
-    
     if (!this.isLocalMode) {
       // Cloud mode - initialize OpenAI client
       this.client = new OpenAI({
@@ -46,18 +45,21 @@ export class InferenceService {
    */
   private async initializeOllamaClient() {
     try {
-      // Default Ollama server runs at this address
-      this.ollamaClient = new Ollama({ 
-        host: 'http://127.0.0.1:11434' 
-      });
-      
       // Get local model configuration if available
       const localConfig = config.getLocalInferenceConfig();
       if (localConfig.model) {
         this.localModel = localConfig.model;
       }
-      
-      console.log(`Initialized Ollama client with model: ${this.localModel}`);
+      if (localConfig.port) {
+        this.localPort = localConfig.port;
+      }
+
+      this.ollamaClient = new Ollama({
+        host: `http://127.0.0.1:${this.localPort}`,
+      });
+
+
+      console.log(`Initialized Ollama client with model: ${this.localModel} on port: ${this.localPort}`);
 
     }
     catch (error) {
@@ -300,19 +302,6 @@ The JSON structure should be:
       // Switching from cloud to local - initialize Ollama client
       this.client = null;
       this.initializeOllamaClient();
-    }
-  }
-
-  /**
-   * Update the local inference model
-   */
-  updateLocalModel(modelName: string) {
-    this.localModel = modelName;
-    
-    // Update this in the config if needed
-    const localConfig = config.getLocalInferenceConfig();
-    if (localConfig.model !== modelName) {
-      config.setLocalInferenceConfig(true, modelName);
     }
   }
 

@@ -46,14 +46,12 @@ export const ensureNotesDirectoryStructure = (directory: string): void => {
     if (!fs.existsSync(rootGraphPath)) {
       const graphData: { nodes: any[], links: any[] } = { nodes: [], links: [] };
       fs.writeFileSync(rootGraphPath, JSON.stringify(graphData, null, 2));
-      console.log(`Created graph.json file in ${directory}`);
     }
 
     // Ensure 'generated' subfolder exists
     const generatedPath = path.join(directory, 'generated');
     if (!fs.existsSync(generatedPath)) {
       fs.mkdirSync(generatedPath, { recursive: true });
-      console.log(`Created 'generated' subfolder in ${directory}`);
     }
 
     // Ensure graph.json exists in 'generated' subfolder
@@ -61,25 +59,8 @@ export const ensureNotesDirectoryStructure = (directory: string): void => {
     if (!fs.existsSync(generatedGraphPath)) {
       const graphData: { nodes: any[], links: any[] } = { nodes: [], links: [] };
       fs.writeFileSync(generatedGraphPath, JSON.stringify(graphData, null, 2));
-      console.log(`Created graph.json file in ${generatedPath}`);
     }
 
-    // Ensure config.json exists
-    const configPath = path.join(directory, 'config.json');
-    if (!fs.existsSync(configPath)) {
-      const defaultConfig = {
-        llm: {
-          endpoint: 'https://api.deepseek.com',
-          apiKey: '',
-          model: 'deepseek-chat'
-        },
-        agi: {
-          enabled: false,
-        },
-      };
-      fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2));
-      console.log(`Created config.json file in ${directory}`);
-    }
   } catch (error) {
     console.error('Error ensuring notes directory structure:', error);
   }
