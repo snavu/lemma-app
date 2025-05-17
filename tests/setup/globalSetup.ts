@@ -51,7 +51,7 @@ const endChromaDb = async (): Promise<void> => {
 };
 
 const initFixtures = (): void => {
-  const child = spawn('npm', ['run', 'seed', '--', fixtureDir], { stdio: 'inherit' });
+  const child = spawn('npm', ['run', 'seed', '--', fixtureDir], { stdio: 'inherit', shell: true });
   child.on('exit', () => console.log('Initialized fixtures'));
 }
 

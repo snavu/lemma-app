@@ -6,11 +6,14 @@ const tempFile = path.join(__dirname, 'child-process.json');
 const fixtureDir = 'tests/fixtures';
 const dbPath = path.join(process.cwd(), 'lemma-test-db');
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 const endChromaDb = async (): Promise<void> => {
   try {
     const { pid } = JSON.parse(fs.readFileSync(tempFile, 'utf8'));
     process.kill(pid, 'SIGTERM');
     fs.unlinkSync(tempFile);
+    await sleep(100);
     await fs.promises.rm(dbPath, { recursive: true, force: true });
     process.stdout.write(`Closed ChromaDB server with PID: ${pid}\n`);
   } catch (err) {
