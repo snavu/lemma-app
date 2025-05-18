@@ -1,16 +1,23 @@
 const { OllamaEmbeddingFunction } = require('chromadb');
-import { ChromaClient, Collection, GetResponse, Metadata, QueryResponse } from 'chromadb';
+import { ChromaClient, Collection, GetResponse, Metadata, GetParams, QueryRecordsParams, QueryResponse } from 'chromadb';
 import os from 'os';
 import ollama from 'ollama';
 
-type FileType = 'user' | 'assisted' | 'generated';
-type SearchMode = 'similarity' | 'full-text' | 'tag';
+export type FileType = 'user' | 'assisted' | 'generated';
+export type SearchMode = 'similarity' | 'full-text' | 'tag';
 
 interface Note {
   id: string,
   filePath: string,
   content: string,
   type: FileType
+}
+
+interface SearchParams {
+  searchQuery: string;
+  searchMode: SearchMode;
+  filterByType: FileType | FileType[];
+  limit: number;
 }
 
 const defaultModelName = 'nomic-embed-text';
@@ -87,7 +94,7 @@ export class DbClient {
     filePath: string | string[], 
     content: string | string[], 
     fileType: FileType | FileType[]
-  ) => {
+  ): Promise<void> => {
     let docIds: string[];
     let notesContent: string[];
     let metadatas: any[];
@@ -139,7 +146,7 @@ export class DbClient {
 
   // Deletes the document of the specified note(s) in the directory.
   // If no specific document(s) is specified, deletes all documents of each note in the directory
-  public deleteNotes = async (notesDirectory: string, filePath?: string | string[]) => {
+  public deleteNotes = async (notesDirectory: string, filePath?: string | string[]): Promise<void> => {
     try {
       await this.initEmbeddingFunc();
       await this.initCollection();
@@ -174,36 +181,54 @@ export class DbClient {
 
   // Return a list of notes that matches the search query.
   // If no search query given, return all notes in the directory
-  public queryNotes = async (notesDirectory: string, searchQuery?: string, searchMode: SearchMode = 'full-text'): Promise<Note[]> => {
+  public queryNotes = async (
+    notesDirectory: string, 
+    { searchQuery, searchMode = 'full-text', filterByType, limit }: Partial<SearchParams> = {}
+  ): Promise<Note[]> => {
     let data: QueryResponse | GetResponse;
 
-    try {
-      await this.initEmbeddingFunc();
-      await this.initCollection();
-      
-      if (searchQuery) {
-        if (searchMode === 'similarity') {
-          // Query notes by similarity search
-          data = await this.collection.query({
-            queryTexts: searchQuery.toLowerCase(), 
-            where: {'directory': {'$eq': notesDirectory}},
-          });
-        } else {
-          const fullTextQuery = searchMode === 'tag' ? `#${searchQuery.toLowerCase()}` : searchQuery.toLowerCase();
-          // Query notes by search query
-          data = await this.collection.get({ 
-            where: {'directory': notesDirectory},
-            whereDocument: {'$contains': fullTextQuery}
-          });
-        }
+    let queryParam: QueryRecordsParams | GetParams = {
+      where: filterByType
+        // Filter by file type
+        ? {'$and': [
+            {'directory': {'$eq': notesDirectory}},
+            Array.isArray(filterByType) 
+              ? {'$or': filterByType.map(type => { return { 'type': {'$eq': type} }})} // Filter by multiple file types
+              : {'type': {'$eq': filterByType }} // Filter by only one file type
+          ]} 
+        : {'directory': {'$eq': notesDirectory}}
+    };
+
+    await this.initEmbeddingFunc();
+    await this.initCollection();
+    
+    if (searchQuery) {
+      if (searchMode === 'similarity') {
+        queryParam = { 
+          ...queryParam,
+          queryTexts: searchQuery.toLowerCase(),
+          ...(limit ? {nResults: limit} : {}),
+        };
+
+        // Query notes by similarity search
+        data = await this.collection.query(queryParam);
       } else {
-        // Query all notes
-        data = await this.collection.get({ 
-          where: {'directory': notesDirectory},
-        });
+        const fullTextQuery = searchMode === 'tag' ? `#${searchQuery.toLowerCase()}` : searchQuery.toLowerCase();
+        queryParam = {
+          ...queryParam,
+          whereDocument: {'$contains': fullTextQuery},
+          ...(limit ? {limit: limit} : {}),
+        };
+
+        // Query notes by search query
+        data = await this.collection.get(queryParam);
       }
-    } catch (error) {
-      console.error('Error during ChromaDB operation:', error);
+    } else {
+      // Query all notes
+      data = await this.collection.get({ 
+        ...queryParam,
+        ...(limit ? {limit: limit} : {}),
+      });
     }
 
     // Normalize results

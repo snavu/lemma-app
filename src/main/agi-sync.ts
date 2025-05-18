@@ -4,7 +4,7 @@ import * as fileService from './file-service';
 import * as graphService from './graph-service';
 import { inferenceService } from './main';
 import { config } from './main';
-import { c } from 'vite/dist/node/moduleRunnerTransport.d-CXw_Ws6P';
+// import { c } from 'vite/dist/node/moduleRunnerTransport.d-CXw_Ws6P';
 
 /**
  * Updates a parent note with links to all its chunk files
