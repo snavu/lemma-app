@@ -275,8 +275,24 @@ const KnowledgeGraph = ({
           width={containerRef.current?.clientWidth || window.innerWidth}
           height={containerRef.current?.clientHeight || window.innerHeight}
           backgroundColor="#020305"
-          linkColor={() => "#bababa"}
-          nodeResolution={16}
+          linkColor={(link) => {
+            // Define colors for edges based on source node type
+            const edgeColors: any = {
+              user: "#4270fc",      // Blue for user connections
+              assisted: "#ff9800",  // Orange for assisted connections
+              generated: "#e74c3c", // Red for generated connections
+              default: "#bababa"    // Light gray for default
+            };
+
+            // Get the source node
+            const sourceNode = typeof link.source === 'object' ? link.source :
+              graphData.nodes.find(node => node.id === link.source);
+
+            // Return color based on source node type with lower opacity
+            return sourceNode && sourceNode.type
+              ? `${edgeColors[sourceNode.type]}80` // 80 is hex for 50% opacity
+              : `${edgeColors.default}80`;
+          }} nodeResolution={16}
           nodeLabel={(node: any) => node.name || node.id}
           onNodeClick={(node: any) => {
 
