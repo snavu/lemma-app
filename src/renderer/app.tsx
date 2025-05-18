@@ -85,6 +85,19 @@ export const App = () => {
     return currentTab?.filePath;
   };
 
+
+  useEffect(() => {
+    if (window.electron?.on) {
+      const removeListener = window.electron.on.graphRefresh(() => {
+        triggerGraphRefresh();
+      });
+
+      return () => {
+        removeListener();
+      };
+    }
+  }, [triggerGraphRefresh]);
+
   // Set up new note listener from menu
   useEffect(() => {
     if (window.electron?.on) {

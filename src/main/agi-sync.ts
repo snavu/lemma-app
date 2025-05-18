@@ -6,6 +6,19 @@ import { inferenceService } from './main';
 import { config } from './main';
 import { c } from 'vite/dist/node/moduleRunnerTransport.d-CXw_Ws6P';
 import { viewMode } from 'src/shared/types';
+import { throttle } from 'lodash'; 
+
+import { BrowserWindow } from 'electron';
+
+// Helper function to send events to all renderer processes
+export const notifyGraphRefresh = throttle(() => {
+  const windows = BrowserWindow.getAllWindows();
+  for (const win of windows) {
+    if (!win.isDestroyed()) {
+      win.webContents.send('graph-refresh');
+    }
+  }
+}, 300, { leading: true, trailing: true });
 
 /**
  * Updates a parent note with links to all its chunk files
@@ -286,6 +299,7 @@ const createNodeInAgiGraph = (filename: string, linkedFiles: string[], type: str
 
     // Add node to graph
     graphData.nodes.push(newNode);
+    notifyGraphRefresh();
 
     // Create links to connected files
     for (const linkedFile of linkedFiles) {
@@ -369,6 +383,7 @@ const updateLinksInAgiGraph = (nodeId: number, linkedFiles: string[], type: stri
         };
 
         graphData.links.push(newLink);
+        notifyGraphRefresh();
       }
     }
 
@@ -381,6 +396,7 @@ const updateLinksInAgiGraph = (nodeId: number, linkedFiles: string[], type: stri
             link => link.source === nodeId && link.target === targetNode.id
           );
 
+          // TODO: investigate why this is not working
           if (linkIndex !== -1) {
             //graphData.links.splice(linkIndex, 1);
           }
@@ -436,6 +452,7 @@ const deleteNodeFromAgiGraph = (filename: string): boolean => {
     graphData.links = graphData.links.filter(
       link => link.source !== node.id && link.target !== node.id
     );
+    notifyGraphRefresh();
 
     // Write the updated graph data
     fs.writeFileSync(agiGraphPath, JSON.stringify(graphData, null, 2));
@@ -553,6 +570,7 @@ export const syncAgi = async (): Promise<boolean> => {
       }
 
     }
+    notifyGraphRefresh();
 
     return true;
   } catch (error) {
