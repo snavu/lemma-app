@@ -155,9 +155,9 @@ export const chunk = async (filename: string, content: string, type: string): Pr
       return false;
     }
 
+
     // Create files for each chunk
     const chunkFilenames: string[] = [];
-
     for (let i = 0; i < chunkResults.chunks.length; i++) {
       const chunk = chunkResults.chunks[i];
 
@@ -172,32 +172,33 @@ export const chunk = async (filename: string, content: string, type: string): Pr
       const chunkPath = path.join(generatedDir, chunkFilename);
 
       // Create chunk content with metadata
-      const chunkContent = `
-
-${chunk.content}
-
----
-Linked note: [[${filename.replace('.md', '')}]]`;
+      const chunkContent = `${chunk.content}` + ` \n\n --- \n Linked note: [[${filename.replace('.md', '')}]]`;
 
       // Write the chunk file
       fs.writeFileSync(chunkPath, chunkContent);
 
-      // Extract linked references to add to graph
-      const linkedRefs = extractLinkedReferences(chunk.content);
-      const linkedFiles = [
-        ...linkedRefs.map(ref => `${ref}.md`) // Links to referenced files
-      ];
-
-      // Add to graph
-      createNodeInAgiGraph(chunkFilename, linkedFiles, 'assisted');
+      createNodeInAgiGraph(chunkFilename, [], 'assisted');
 
       // Track this chunk filename
       chunkFilenames.push(chunkFilename);
     }
 
+
+    for (let i = 0; i < chunkResults.chunks.length; i++) {
+      const chunk = chunkResults.chunks[i];
+      // Extract linked references to add to graph
+      const availableFiles = [...chunkFilenames, filename];
+      const chunkContent = `${chunk.content}` + ` \n\n --- \n Linked note: [[${filename.replace('.md', '')}]]`;
+      const linkedFiles = parseFileLinks(chunkContent, availableFiles);
+
+      // Add to graph
+      createNodeInAgiGraph(chunkFilenames[i], linkedFiles, 'assisted');
+
+    }
+
     // Update the parent note with links to all chunks
     if (chunkFilenames.length > 0) {
-      // await updateParentWithChunkLinks(filename, chunkFilenames);
+      await updateParentWithChunkLinks(filename, chunkFilenames);
     }
 
     return true;
@@ -236,7 +237,7 @@ const copyFileToAgi = async (filename: string): Promise<boolean> => {
 
     return true;
   } catch (error) {
-    console.error(`Error copying file ${filename} to AGI directory:`, error);
+    console.error(`Error copying file ${filename} to AGI directory: `, error);
     return false;
   }
 };
@@ -291,7 +292,7 @@ const createNodeInAgiGraph = (filename: string, linkedFiles: string[], type: str
       // Find target node
       let targetNode = graphData.nodes.find(node => node.name === linkedFile);
 
-      if(!targetNode ){
+      if (!targetNode) {
         continue;
       }
       // Create link
@@ -357,18 +358,7 @@ const updateLinksInAgiGraph = (nodeId: number, linkedFiles: string[], type: stri
         let targetNode = graphData.nodes.find(node => node.name === linkedFile);
 
         if (!targetNode) {
-          // Create target node if it doesn't exist
-          const targetId = graphData.nodes.length > 0
-            ? Math.max(...graphData.nodes.map(node => node.id)) + 1
-            : 0;
-
-          targetNode = {
-            id: targetId,
-            name: linkedFile,
-            type: type
-          };
-
-          graphData.nodes.push(targetNode);
+          continue;
         }
 
         // Create link
@@ -392,7 +382,7 @@ const updateLinksInAgiGraph = (nodeId: number, linkedFiles: string[], type: stri
           );
 
           if (linkIndex !== -1) {
-            graphData.links.splice(linkIndex, 1);
+            //graphData.links.splice(linkIndex, 1);
           }
         }
       }
@@ -499,14 +489,14 @@ export const syncAgi = async (): Promise<boolean> => {
     // Step 3: For each AGI filename not in user directory, delete AGI files
     for (const filename of agiFilenames) {
       if (!userFilenames.includes(filename)) {
-        console.log(`Removing AGI file not in user directory: ${filename}`);
+        console.log(`Removing AGI file not in user directory: ${filename} `);
 
         // Delete file from AGI directory
         const filePath = path.join(generatedDir, filename);
         try {
           fs.unlinkSync(filePath);
         } catch (error) {
-          console.error(`Error deleting file ${filename} from AGI directory:`, error);
+          console.error(`Error deleting file ${filename} from AGI directory: `, error);
         }
 
         // Delete the node from AGI graph
@@ -516,14 +506,14 @@ export const syncAgi = async (): Promise<boolean> => {
         try {
           const generatedFiles = fs.readdirSync(generatedDir);
           generatedFiles.forEach(file => {
-            if (file.startsWith(`generated_${filename.split('.')[0]}`) && file.endsWith('.md')) {
+            if (file.startsWith(`generated_${filename.split('.')[0]} `) && file.endsWith('.md')) {
               const generatedFilePath = path.join(generatedDir, file);
               fs.unlinkSync(generatedFilePath);
-              console.log(`Deleted related generated file: ${file}`);
+              console.log(`Deleted related generated file: ${file} `);
             }
           });
         } catch (error) {
-          console.error(`Error deleting related generated files for ${filename}:`, error);
+          console.error(`Error deleting related generated files for ${filename}: `, error);
         }
       }
     }
@@ -532,7 +522,7 @@ export const syncAgi = async (): Promise<boolean> => {
     // Step 3: For each user file not in AGI directory, copy user files to AGI directory
     for (const filename of userFilenames) {
       if (!agiFilenames.includes(filename)) {
-        console.log(`Syncing user file to AGI: ${filename}`);
+        console.log(`Syncing user file to AGI: ${filename} `);
 
         // Copy file to AGI directory
         await copyFileToAgi(filename);
@@ -556,7 +546,7 @@ export const syncAgi = async (): Promise<boolean> => {
       const result = await chunk(filename, content, 'assisted');
 
       if (!result) {
-        console.error(`Error chunking file: ${filename}`);
+        console.error(`Error chunking file: ${filename} `);
         return false;
       }
 
@@ -620,7 +610,7 @@ export const updateFileInAgi = async (filename: string): Promise<boolean> => {
     const result = await chunk(filename, content, 'assisted');
 
     if (!result) {
-      console.error(`Error chunking file: ${filename}`);
+      console.error(`Error chunking file: ${filename} `);
       return false;
     }
 
@@ -647,7 +637,7 @@ export const removeFileFromAgi = (filename: string): boolean => {
     const agiFilePath = path.join(generatedDir, filename);
     if (fs.existsSync(agiFilePath)) {
       fs.unlinkSync(agiFilePath);
-      console.log(`Deleted file from AGI directory: ${filename}`);
+      console.log(`Deleted file from AGI directory: ${filename} `);
     }
 
     // Delete the node from AGI graph

@@ -274,7 +274,6 @@ export const parse_file_links = (content: string, availableFiles: string[]): str
     // Regex for both escaped links \[\[filename\]\] and non-escaped links [[filename]]
     const regex = /(?:\\\[\\\[(.*?)\\\]\\\])|(?:\[\[(.*?)\]\])/g;
     let match;
-    
     while ((match = regex.exec(content)) !== null) {
         // The filename will be in either group 1 (escaped) or group 2 (non-escaped)
         const filename = match[1] || match[2];
