@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as fileService from './file-service';
+import { viewMode } from 'src/shared/types';
 
 // Types for graph data
 interface Node {
@@ -21,8 +22,8 @@ interface GraphData {
 }
 
 // Helper function to read graph.json
-const readGraphJson = (): GraphData | null => {
-    const graphPath = fileService.getGraphJsonPath();
+const readGraphJson = (mode: viewMode): GraphData | null => {
+    const graphPath = fileService.getGraphJsonPath(mode);
     if (!graphPath || !fs.existsSync(graphPath)) {
         return null;
     }
@@ -37,8 +38,8 @@ const readGraphJson = (): GraphData | null => {
 };
 
 // Helper function to write graph.json
-const writeGraphJson = (graphData: GraphData): boolean => {
-    const graphPath = fileService.getGraphJsonPath();
+const writeGraphJson = (mode: viewMode, graphData: GraphData): boolean => {
+    const graphPath = fileService.getGraphJsonPath(mode);
     if (!graphPath) {
         return false;
     }
@@ -53,8 +54,8 @@ const writeGraphJson = (graphData: GraphData): boolean => {
 };
 
 // Create node in the graph and add links to connected files
-export const create_node = (filename: string, linked_files: string[], type: string): Node | null => {
-    const graphData = readGraphJson();
+export const create_node = (mode:viewMode, filename: string, linked_files: string[], type: string): Node | null => {
+    const graphData = readGraphJson(mode);
     if (!graphData) {
         return null;
     }
@@ -79,19 +80,19 @@ export const create_node = (filename: string, linked_files: string[], type: stri
 
     // Add node to graph
     graphData.nodes.push(newNode);
-    writeGraphJson(graphData);
+    writeGraphJson(mode, graphData);
 
     // Create links to connected files
     for (const linkedFile of linked_files) {
-        create_link(newId, linkedFile, type);
+        create_link(mode, newId, linkedFile, type);
     }
 
     return newNode;
 };
 
 // Create a link between two nodes
-export const create_link = (source: number | string, target: number | string, type: string): boolean => {
-    const graphData = readGraphJson();
+export const create_link = (mode:viewMode, source: number | string, target: number | string, type: string): boolean => {
+    const graphData = readGraphJson(mode);
     if (!graphData) {
         return false;
     }
@@ -101,9 +102,9 @@ export const create_link = (source: number | string, target: number | string, ty
     let targetId: number;
 
     if (typeof source === 'string') {
-        const sourceNode = get_node(source);
+        const sourceNode = get_node(mode, source);
         if (!sourceNode) {
-            const newSourceNode = create_node(source, [], type);
+            const newSourceNode = create_node(mode, source, [], type);
             if (!newSourceNode) return false;
             sourceId = newSourceNode.id;
         } else {
@@ -114,9 +115,9 @@ export const create_link = (source: number | string, target: number | string, ty
     }
 
     if (typeof target === 'string') {
-        const targetNode = get_node(target);
+        const targetNode = get_node(mode, target);
         if (!targetNode) {
-            const newTargetNode = create_node(target, [], type);
+            const newTargetNode = create_node(mode, target, [], type);
             if (!newTargetNode) return false;
             targetId = newTargetNode.id;
         } else {
@@ -144,12 +145,12 @@ export const create_link = (source: number | string, target: number | string, ty
 
     // Add link to graph
     graphData.links.push(newLink);
-    return writeGraphJson(graphData);
+    return writeGraphJson(mode, graphData);
 };
 
 // Get all nodes from the graph
-export const get_nodes = (): Node[] | null => {
-    const graphData = readGraphJson();
+export const get_nodes = (mode: viewMode): Node[] | null => {
+    const graphData = readGraphJson(mode);
     if (!graphData) {
         return null;
     }
@@ -157,8 +158,8 @@ export const get_nodes = (): Node[] | null => {
 };
 
 // Get a specific node by filename
-export const get_node = (filename: string): Node | null => {
-    const graphData = readGraphJson();
+export const get_node = (mode: viewMode, filename: string): Node | null => {
+    const graphData = readGraphJson(mode);
     if (!graphData) {
         return null;
     }
@@ -168,8 +169,8 @@ export const get_node = (filename: string): Node | null => {
 };
 
 // Delete a node and all its connected links
-export const delete_node = (id?: number, filename?: string): boolean => {
-    const graphData = readGraphJson();
+export const delete_node = (mode: viewMode, id?: number, filename?: string): boolean => {
+    const graphData = readGraphJson(mode);
     if (!graphData) {
         return false;
     }
@@ -177,7 +178,7 @@ export const delete_node = (id?: number, filename?: string): boolean => {
     // Determine node ID if filename is provided
     let nodeId = id;
     if (!nodeId && filename) {
-        const node = get_node(filename);
+        const node = get_node(mode, filename);
         if (node) {
             nodeId = node.id;
         } else {
@@ -201,12 +202,12 @@ export const delete_node = (id?: number, filename?: string): boolean => {
         link => link.source !== nodeId && link.target !== nodeId
     );
 
-    return writeGraphJson(graphData);
+    return writeGraphJson(mode, graphData);
 };
 
 // Delete a specific link between two nodes
-export const delete_link = (source: number | string, target: number | string): boolean => {
-    const graphData = readGraphJson();
+export const delete_link = (mode: viewMode, source: number | string, target: number | string): boolean => {
+    const graphData = readGraphJson(mode);
     if (!graphData) {
         return false;
     }
@@ -216,7 +217,7 @@ export const delete_link = (source: number | string, target: number | string): b
     let targetId: number;
 
     if (typeof source === 'string') {
-        const sourceNode = get_node(source);
+        const sourceNode = get_node(mode, source);
         if (!sourceNode) return false;
         sourceId = sourceNode.id;
     } else {
@@ -224,7 +225,7 @@ export const delete_link = (source: number | string, target: number | string): b
     }
 
     if (typeof target === 'string') {
-        const targetNode = get_node(target);
+        const targetNode = get_node(mode, target);
         if (!targetNode) return false;
         targetId = targetNode.id;
     } else {
@@ -241,12 +242,12 @@ export const delete_link = (source: number | string, target: number | string): b
     }
 
     graphData.links.splice(linkIndex, 1);
-    return writeGraphJson(graphData);
+    return writeGraphJson(mode, graphData);
 };
 
 // Get all links from the graph
-export const get_links = (): Link[] | null => {
-    const graphData = readGraphJson();
+export const get_links = (mode: viewMode): Link[] | null => {
+    const graphData = readGraphJson(mode);
     if (!graphData) {
         return null;
     }

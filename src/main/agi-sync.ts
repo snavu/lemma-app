@@ -5,6 +5,7 @@ import * as graphService from './graph-service';
 import { inferenceService } from './main';
 import { config } from './main';
 import { c } from 'vite/dist/node/moduleRunnerTransport.d-CXw_Ws6P';
+import { viewMode } from 'src/shared/types';
 
 /**
  * Updates a parent note with links to all its chunk files
@@ -12,7 +13,7 @@ import { c } from 'vite/dist/node/moduleRunnerTransport.d-CXw_Ws6P';
 const updateParentWithChunkLinks = async (parentFilename: string, chunkFilenames: string[]): Promise<boolean> => {
   try {
     // Get directories
-    const notesDir = config.getNotesDirectory();
+    const notesDir = config.getMainNotesDirectory();
     const generatedDir = fileService.getGeneratedFolderPath();
 
     if (!notesDir || !generatedDir) {
@@ -212,7 +213,7 @@ Linked note: [[${filename.replace('.md', '')}]]`;
  */
 const copyFileToAgi = async (filename: string): Promise<boolean> => {
   try {
-    const notesDir = config.getNotesDirectory();
+    const notesDir = config.getMainNotesDirectory();
     console.log('copyFileToAgi:', notesDir);
     if (!notesDir) {
       console.error('Notes directory not set');
@@ -475,7 +476,7 @@ const deleteNodeFromAgiGraph = (filename: string): boolean => {
 export const syncAgi = async (): Promise<boolean> => {
   try {
     // Get notes directory
-    const notesDir = config.getNotesDirectory();
+    const notesDir = config.getMainNotesDirectory();
     if (!notesDir) {
       console.error('Notes directory not set');
       return false;
@@ -489,7 +490,8 @@ export const syncAgi = async (): Promise<boolean> => {
     }
 
     // Step 1: Get all user filenames
-    const userFiles = await fileService.getFilesFromDirectory();
+    const viewMode = 'main ' as viewMode;
+    const userFiles = await fileService.getFilesFromDirectory(viewMode);
     const userFilenames = userFiles.map(file => file.name);
 
     // Step 2: Get all AGI filenames (without "generated_" prefix)
@@ -580,7 +582,7 @@ export const syncAgi = async (): Promise<boolean> => {
 export const updateFileInAgi = async (filename: string): Promise<boolean> => {
   try {
     // Get notes directory
-    const notesDir = config.getNotesDirectory();
+    const notesDir = config.getMainNotesDirectory();
     if (!notesDir) {
       console.error('Notes directory not set');
       return false;
@@ -611,7 +613,8 @@ export const updateFileInAgi = async (filename: string): Promise<boolean> => {
     const content = fileService.readFile(userFilePath);
 
     // Get all user filenames to validate links
-    const userFiles = await fileService.getFilesFromDirectory();
+    const viewMode = 'main ' as viewMode;
+    const userFiles = await fileService.getFilesFromDirectory(viewMode);
     const userFilenames = userFiles.map(file => file.name);
 
     // Parse file links

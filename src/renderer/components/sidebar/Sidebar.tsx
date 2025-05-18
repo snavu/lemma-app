@@ -3,6 +3,7 @@ import { ContextMenu } from '../context-menu/ContextMenu';
 import './sidebar.css';
 import { SearchResults } from '../search/searchResult';
 import LLMSettingsModal from '../settings-modal/LLMSettingsModal';
+import { viewMode } from 'src/shared/types';
 
 interface FileInfo {
   name: string;
@@ -41,6 +42,8 @@ interface SidebarProps {
   setSearchInput: (input: string) => void;
   searchResult: boolean;
   setResults: (info: SearchResult[]) => void;
+  viewMode: viewMode;
+  toggleViewMode: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -52,13 +55,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onDeleteFile,
   activeTab,
   setSearchresult,
-  results, 
-  searchInput, 
+  results,
+  searchInput,
   handleFileSelect,
   handleSearch,
-  setSearchInput, 
+  setSearchInput,
   searchResult,
   setResults,
+  viewMode,
+  toggleViewMode
 }) => {
   // State for context menu
   const [contextMenu, setContextMenu] = useState<{
@@ -103,7 +108,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     try {
       // Call the parent component's delete handler
       const success = await onDeleteFile(filePath);
-      
+
       if (!success) {
         alert('Failed to delete file. Please try again.');
       }
@@ -160,6 +165,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </svg>
   );
 
+  const ViewModeIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+      <line x1="3" y1="9" x2="21" y2="9"></line>
+      <line x1="9" y1="21" x2="9" y2="9"></line>
+    </svg>
+  );
+
   // Icons for the context menu
   const OpenIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -176,14 +189,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <line x1="14" y1="11" x2="14" y2="17"></line>
     </svg>
   );
-  
+
   const RenameIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 20h9"></path>
       <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
     </svg>
   );
-  
+
   const DuplicateIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -196,16 +209,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="sidebar-header">
         <div className="sidebar-actions">
           <button onClick={onNewNote} title="New Note">
-            <NewNoteIcon /> 
+            <NewNoteIcon />
           </button>
           <button onClick={onSelectDirectory} title="Select Notes Directory">
-            <FolderIcon /> 
+            <FolderIcon />
           </button>
           <button onClick={() => setSearchresult(true)} title="Search">
             <SearchIcon />
           </button>
           <button onClick={openLLMSettings} title="AI Settings">
             <AISettingsIcon />
+          </button>
+          <button
+            onClick={toggleViewMode}
+            className={viewMode === 'generated' ? 'active' : ''}
+          >
+            <ViewModeIcon />
           </button>
         </div>
       </div>
@@ -285,21 +304,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </>
       )}
 
-      {searchResult && 
-        <SearchResults 
+      {searchResult &&
+        <SearchResults
           handleFileSelect={handleFileSelect}
-          setSearchresult={setSearchresult} 
+          setSearchresult={setSearchresult}
           results={results}
           searchInput={searchInput}
           handleSearch={handleSearch}
           setSearchInput={setSearchInput}
           setResults={setResults}
-      />}
+        />}
 
       {/* LLM Settings Modal */}
-      <LLMSettingsModal 
-        isOpen={isLLMSettingsOpen} 
-        onClose={closeLLMSettings} 
+      <LLMSettingsModal
+        isOpen={isLLMSettingsOpen}
+        onClose={closeLLMSettings}
       />
     </div>
   );

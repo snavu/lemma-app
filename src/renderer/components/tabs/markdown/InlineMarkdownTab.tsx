@@ -12,7 +12,6 @@ interface MarkdownTabProps {
   files: FileInfo[];
   onFileSelect: (filePath: string) => void;
   initialDoc: string;
-  viewMode?: 'split' | 'editor' | 'preview';
   onChange?: (content: string, hashtags: string[], klinks: string[]) => void;
   currentFilePath?: string;
 }

@@ -3,6 +3,7 @@ import * as graphService from './graph-service';
 import * as fs from 'fs';
 import * as path from 'path';
 import { config } from './main';
+import { viewMode } from 'src/shared/types';
 
 /**
  * Synchronizes the graph.json with the actual files in the notes directory
@@ -10,21 +11,21 @@ import { config } from './main';
  * - Removes nodes for deleted files
  * - Updates links between files
  */
-export const syncGraphWithFiles = async (): Promise<boolean> => {
+export const syncGraphWithFiles = async (mode: viewMode): Promise<boolean> => {
   try {
     // Get notes directory
-    const notesDir = config.getNotesDirectory();
+    const notesDir = fileService.getCurrentNotesDirectory(mode);
     if (!notesDir) {
       console.error('Notes directory not set');
       return false;
     }
 
     // Get all markdown files in directory
-    const files = await fileService.getFilesFromDirectory();
+    const files = await fileService.getFilesFromDirectory(mode);
     const filenames = files.map(file => file.name);
     
     // Get all nodes in the graph
-    const nodes = graphService.get_nodes() || [];
+    const nodes = graphService.get_nodes(mode) || [];
     const nodeNames = nodes.map(node => node.name);
 
     // Step 1: Add nodes for files that don't have corresponding nodes
@@ -32,7 +33,7 @@ export const syncGraphWithFiles = async (): Promise<boolean> => {
       if (!nodeNames.includes(filename)) {
         console.log(`Adding node for new file: ${filename}`);
         // Create node
-        graphService.create_node(filename, [], 'user');
+        graphService.create_node(mode, filename, [], 'user');
       }
     }
 
@@ -40,14 +41,14 @@ export const syncGraphWithFiles = async (): Promise<boolean> => {
     for (const node of nodes) {
       if (!filenames.includes(node.name)) {
         console.log(`Removing node for deleted file: ${node.name}`);
-        graphService.delete_node(node.id);
+        graphService.delete_node(mode, node.id);
       }
     }
 
     // Step 3: Update links for existing files
     for (const filename of filenames) {
       // Get corresponding node
-      const node = graphService.get_node(filename);
+      const node = graphService.get_node(mode, filename);
       if (!node) continue;
       
       // Read file content
@@ -58,7 +59,7 @@ export const syncGraphWithFiles = async (): Promise<boolean> => {
       const linkedFiles = graphService.parse_file_links(content, filenames);
       
       // Get all current links where this node is the source
-      const links = graphService.get_links() || [];
+      const links = graphService.get_links(mode) || [];
       const currentTargets = links
         .filter(link => link.source === node.id)
         .map(link => {
@@ -72,7 +73,7 @@ export const syncGraphWithFiles = async (): Promise<boolean> => {
       for (const linkedFile of linkedFiles) {
         if (!currentTargets.includes(linkedFile)) {
           console.log(`Adding link from ${filename} to ${linkedFile}`);
-          graphService.create_link(node.id, linkedFile, 'user');
+          graphService.create_link(mode, node.id, linkedFile, 'user');
         }
       }
       
@@ -80,7 +81,7 @@ export const syncGraphWithFiles = async (): Promise<boolean> => {
       for (const currentTarget of currentTargets) {
         if (!linkedFiles.includes(currentTarget)) {
           console.log(`Removing link from ${filename} to ${currentTarget}`);
-          graphService.delete_link(node.id, currentTarget);
+          graphService.delete_link(mode, node.id, currentTarget);
         }
       }
     }
@@ -95,10 +96,10 @@ export const syncGraphWithFiles = async (): Promise<boolean> => {
 /**
  * Updates the graph when a specific file is added or modified
  */
-export const updateFileInGraph = async (filename: string): Promise<boolean> => {
+export const updateFileInGraph = async (mode: viewMode, filename: string): Promise<boolean> => {
   try {
     // Get notes directory
-    const notesDir = config.getNotesDirectory();
+    const notesDir = fileService.getCurrentNotesDirectory(mode);
     console.log('updateFileInGraph:', notesDir);
     if (!notesDir) {
       console.error('Notes directory not set');
@@ -106,18 +107,18 @@ export const updateFileInGraph = async (filename: string): Promise<boolean> => {
     }
 
     // Get all markdown files in directory
-    const files = await fileService.getFilesFromDirectory();
+    const files = await fileService.getFilesFromDirectory(mode);
     const filenames = files.map(file => file.name);
     
     // Find the file node
-    let node = graphService.get_node(filename);
+    let node = graphService.get_node(mode, filename);
     
     // Read the file content
     const filePath = path.join(notesDir, filename);
     if (!fs.existsSync(filePath)) {
       // File doesn't exist, delete node if it exists
       if (node) {
-        graphService.delete_node(node.id);
+        graphService.delete_node(mode, node.id);
       }
       return true;
     }
@@ -129,17 +130,17 @@ export const updateFileInGraph = async (filename: string): Promise<boolean> => {
     
     if (!node) {
       // Create new node if it doesn't exist
-      graphService.create_node(filename, linkedFiles, 'user');
+      graphService.create_node(mode, filename, linkedFiles, 'user');
       return true;
     }
     
     // Update links for existing node
-    const links = graphService.get_links() || [];
+    const links = graphService.get_links(mode) || [];
     const currentTargets = links
       .filter(link => link.source === node.id)
       .map(link => {
         // Find target node name from id
-        const nodes = graphService.get_nodes() || [];
+        const nodes = graphService.get_nodes(mode) || [];
         const targetNode = nodes.find(n => n.id === link.target);
         return targetNode ? targetNode.name : null;
       })
@@ -148,14 +149,14 @@ export const updateFileInGraph = async (filename: string): Promise<boolean> => {
     // Add new links
     for (const linkedFile of linkedFiles) {
       if (!currentTargets.includes(linkedFile)) {
-        graphService.create_link(node.id, linkedFile, 'user');
+        graphService.create_link(mode, node.id, linkedFile, 'user');
       }
     }
     
     // Remove deleted links
     for (const currentTarget of currentTargets) {
       if (!linkedFiles.includes(currentTarget)) {
-        graphService.delete_link(node.id, currentTarget);
+        graphService.delete_link(mode, node.id, currentTarget);
       }
     }
     
@@ -169,10 +170,10 @@ export const updateFileInGraph = async (filename: string): Promise<boolean> => {
 /**
  * Updates the graph when a file is deleted
  */
-export const removeFileFromGraph = (filename: string): boolean => {
-  const node = graphService.get_node(filename);
+export const removeFileFromGraph = (mode:viewMode, filename: string): boolean => {
+  const node = graphService.get_node(mode, filename);
   if (node) {
-    return graphService.delete_node(node.id);
+    return graphService.delete_node(mode, node.id);
   }
   return true;
 };
