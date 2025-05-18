@@ -11,6 +11,8 @@ import { viewMode } from 'src/shared/types';
  * - Removes nodes for deleted files
  * - Updates links between files
  */
+
+
 export const syncGraphWithFiles = async (mode: viewMode): Promise<boolean> => {
   try {
     // Get notes directory

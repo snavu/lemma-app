@@ -21,7 +21,6 @@ export const useFiles = () => {
       if (window.electron?.fs) {
         try {
           // Get current view mode
-          const mode = await window.electron.fs.getViewMode();
           setViewMode(mode);
 
           // Get directories

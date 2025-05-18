@@ -21,6 +21,19 @@ interface GraphData {
     links: Link[];
 }
 
+/**
+ *  note: mode is used to determine which graph.json file to use
+ *        - 'main' for the main graph.json
+ *        - 'generated' for the generated graph.json
+ *        graph-loader.ts is called when the user selects new notes directory
+ *        and the mode passed is 'main'
+ *        the user should not select the generated directory
+ *        the generated directory syncs using the sync-agi.ts functions
+ *        and we may refactor the sync-agi.ts functions to use this function by passing the mode as 'generated' 
+ *        
+ */
+
+
 // Helper function to read graph.json
 const readGraphJson = (mode: viewMode): GraphData | null => {
     const graphPath = fileService.getGraphJsonPath(mode);
