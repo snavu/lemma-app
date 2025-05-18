@@ -125,58 +125,50 @@ export class DbClient {
       }];
     }
 
-    try {
-      await this.initEmbeddingFunc();
-      await this.initCollection();
+    await this.initEmbeddingFunc();
+    await this.initCollection();
 
-      // Add/update notes to vector database
-      await this.collection.upsert({
-        ids: docIds,
-        documents: notesContent,
-        metadatas: metadatas,
-      });
+    // Add/update notes to vector database
+    await this.collection.upsert({
+      ids: docIds,
+      documents: notesContent,
+      metadatas: metadatas,
+    });
 
-      // Get document from database for debugging
-      // const results = await this.queryNotes(notesDirectory, content);
-      console.log('Document(s) successfully upserted:', filePath); // Output results
-    } catch (error) {
-      console.error('Error during ChromaDB operation:', error);
-    }
+    // Get document from database for debugging
+    // const results = await this.queryNotes(notesDirectory, content);
+    console.log('Document(s) successfully upserted:', filePath); // Output results
   };
 
   // Deletes the document of the specified note(s) in the directory.
   // If no specific document(s) is specified, deletes all documents of each note in the directory
   public deleteNotes = async (notesDirectory: string, filePath?: string | string[]): Promise<void> => {
-    try {
-      await this.initEmbeddingFunc();
-      await this.initCollection();
+    await this.initEmbeddingFunc();
+    await this.initCollection();
 
-      if (filePath) {
-        if (Array.isArray(filePath)) {
-          // Delete multiple notes from vector database
-          await this.collection.delete({
-            ids: filePath.map(file => getId(file, 'file')),
-            where: {'directory': notesDirectory}
-          });
-        } else {
-          // Delete individual note from vector database
-          await this.collection.delete({
-            ids: [getId(filePath, 'file')],
-            where: {'directory': notesDirectory}
-          });
-        }
-      } else {
-        // Delete all notes from vector database
+    if (filePath) {
+      if (Array.isArray(filePath)) {
+        // Delete multiple notes from vector database
         await this.collection.delete({
+          ids: filePath.map(file => getId(file, 'file')),
+          where: {'directory': notesDirectory}
+        });
+      } else {
+        // Delete individual note from vector database
+        await this.collection.delete({
+          ids: [getId(filePath, 'file')],
           where: {'directory': notesDirectory}
         });
       }
-
-      if (filePath) console.log('Document(s) successfully deleted:', filePath);
-      else console.log(`All documents successfully deleted from ${notesDirectory}`);
-    } catch (error) {
-      console.error('Error during ChromaDB operation:', error);
+    } else {
+      // Delete all notes from vector database
+      await this.collection.delete({
+        where: {'directory': notesDirectory}
+      });
     }
+
+    if (filePath) console.log('Document(s) successfully deleted:', filePath);
+    else console.log(`All documents successfully deleted from ${notesDirectory}`);
   };
 
   // Return a list of notes that matches the search query.
