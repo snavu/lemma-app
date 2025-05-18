@@ -519,6 +519,7 @@ export const syncAgi = async (): Promise<boolean> => {
     }
 
 
+    let newFileNames = [];
     // Step 3: For each user file not in AGI directory, copy user files to AGI directory
     for (const filename of userFilenames) {
       if (!agiFilenames.includes(filename)) {
@@ -526,11 +527,12 @@ export const syncAgi = async (): Promise<boolean> => {
 
         // Copy file to AGI directory
         await copyFileToAgi(filename);
+        newFileNames.push(filename);
       }
     }
 
-    // Step 4: For each file
-    for (const filename of userFilenames) {
+    // Step 4: For each new file
+    for (const filename of newFileNames) {
 
       // Read file content
       const filePath = path.join(notesDir, filename);
