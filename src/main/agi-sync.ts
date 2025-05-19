@@ -9,6 +9,9 @@ import { viewMode } from 'src/shared/types';
 import { throttle } from 'lodash'; 
 
 import { BrowserWindow } from 'electron';
+import { DbClient, FileType } from './database';
+
+const agiDatabase = new DbClient('agi-notes');
 
 // Helper function to send events to all renderer processes
 export const notifyGraphRefresh = throttle(() => {
@@ -87,7 +90,7 @@ const parseFileLinks = (content: string, availableFiles: string[]): string[] => 
 /**
  * Cleans up existing chunk files for a note
  */
-const cleanupChunkFiles = (filename: string): void => {
+const cleanupChunkFiles = async (filename: string): Promise<void> => {
   try {
     // Get generated directory
     const generatedDir = fileService.getGeneratedFolderPath();
@@ -104,7 +107,7 @@ const cleanupChunkFiles = (filename: string): void => {
       // Keep track of deleted chunks to update graph
       const deletedChunks: string[] = [];
 
-      generatedFiles.forEach(file => {
+      for (const file of generatedFiles) {
         if (file.startsWith(chunkPrefix) && file.endsWith('.md')) {
           const generatedFilePath = path.join(generatedDir, file);
           fs.unlinkSync(generatedFilePath);
@@ -113,8 +116,11 @@ const cleanupChunkFiles = (filename: string): void => {
 
           // Also delete the node from AGI graph
           deleteNodeFromAgiGraph(file);
+
+          // Delete each chunk from the database
+          await agiDatabase.deleteNotes(generatedDir, generatedFilePath);
         }
-      });
+      }
     } catch (error) {
       console.error(`Error cleaning up chunk files for ${filename}:`, error);
     }
@@ -189,6 +195,9 @@ export const chunk = async (filename: string, content: string, type: string): Pr
 
       // Write the chunk file
       fs.writeFileSync(chunkPath, chunkContent);
+
+      // Insert chunk into database
+      await agiDatabase.upsertNotes(generatedDir, chunkPath, chunk.content, type as FileType);
 
       createNodeInAgiGraph(chunkFilename, [], 'assisted');
 
@@ -602,11 +611,11 @@ export const updateFileInAgi = async (filename: string): Promise<boolean> => {
     const userFilePath = path.join(notesDir, filename);
     if (!fs.existsSync(userFilePath)) {
       // If the file doesn't exist in user directory, delete it from AGI directory
-      return removeFileFromAgi(filename);
+      return await removeFileFromAgi(filename);
     }
 
     // First, clean up any existing chunk files for this note
-    cleanupChunkFiles(filename);
+    await cleanupChunkFiles(filename);
 
     // Copy the file to AGI directory
     const copied = await copyFileToAgi(filename);
@@ -644,7 +653,7 @@ export const updateFileInAgi = async (filename: string): Promise<boolean> => {
 /**
  * Remove a user file from AGI
  */
-export const removeFileFromAgi = (filename: string): boolean => {
+export const removeFileFromAgi = async (filename: string): Promise<boolean> => {
   try {
     // Get generated directory
     const generatedDir = fileService.getGeneratedFolderPath();
@@ -664,7 +673,7 @@ export const removeFileFromAgi = (filename: string): boolean => {
     deleteNodeFromAgiGraph(filename);
 
     // Clean up any chunk files
-    cleanupChunkFiles(filename);
+    await cleanupChunkFiles(filename);
 
     return true;
   } catch (error) {

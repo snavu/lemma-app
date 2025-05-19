@@ -865,8 +865,8 @@ function createDirectories() {
     fs.mkdirSync(baseDir);
   }
   
-  // Create the 'generated' subdirectory
-  const generatedDir = path.join(baseDir, 'generated');
+  // Create the 'LEMMA_generated' subdirectory
+  const generatedDir = path.join(baseDir, 'LEMMA_generated');
   if (!fs.existsSync(generatedDir)) {
     fs.mkdirSync(generatedDir);
   }

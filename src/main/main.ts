@@ -229,7 +229,7 @@ const setupIpcHandlers = (): void => {
   });
 
   // Modified delete-file handler to update the graph
-  ipcMain.handle('delete-file', (_, filePath) => {
+  ipcMain.handle('delete-file', async (_, filePath) => {
     const result = fileService.deleteFile(filePath);
     const viewMode = 'main' as viewMode; // Default view mode
     if (result.success) {
@@ -237,6 +237,8 @@ const setupIpcHandlers = (): void => {
       const filename = path.basename(filePath);
       graphLoader.removeFileFromGraph(viewMode, filename);
 
+      // Remove the file from the database
+      await database.deleteNotes(fileService.mainNotesDirectory, filePath);
     }
     return result;
   });
