@@ -9,6 +9,7 @@ import * as graphLoader from './graph-loader';
 import * as userAgiSync from './agi-sync';
 import { Config } from './config-service';
 import { InferenceService } from './inference';
+import { viewMode } from 'src/shared/types';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -30,7 +31,7 @@ const createWindow = (): void => {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      devTools: true
+      devTools: false
     },
   });
 
@@ -49,7 +50,8 @@ const initializeFileSystem = (): void => {
   config = new Config();
   // First try to load existing settings
   config.reloadConfig();
-  const notesDir = config.getNotesDirectory();
+  const notesDir = config.getMainNotesDirectory();
+  const viewMode = 'main' as viewMode; // Default view mode
 
   // If no directory is set after loading config, set up the default one
   if (!notesDir) {
@@ -60,7 +62,7 @@ const initializeFileSystem = (): void => {
       mainWindow.webContents.send('notes-directory-selected', newDir);
 
       // Sync graph with files in the directory
-      graphLoader.syncGraphWithFiles().then(success => {
+      graphLoader.syncGraphWithFiles(viewMode).then(success => {
         if (success) {
           console.log('Graph successfully synced with files');
         } else {
@@ -71,14 +73,14 @@ const initializeFileSystem = (): void => {
   } else {
     // If directory exists from config, ensure it has the proper structure
     fileService.ensureNotesDirectoryStructure(notesDir);
-    fileService.setNotesDirectory(notesDir); // Set the notes directory in fileService
+    fileService.MainNotesDirectory(notesDir); // Set the notes directory in fileService
 
     // Notify renderer about the directory
     if (mainWindow) {
       mainWindow.webContents.send('notes-directory-selected', notesDir);
 
       // Sync graph with files in the directory
-      graphLoader.syncGraphWithFiles().then(success => {
+      graphLoader.syncGraphWithFiles(viewMode).then(success => {
         if (success) {
           console.log('Graph successfully synced with files');
 
@@ -157,13 +159,14 @@ const selectNotesDirectory = async (): Promise<string | null> => {
 
   if (!result.canceled && result.filePaths.length > 0) {
     const directory = result.filePaths[0];
-    fileService.setNotesDirectory(directory);
-    config.setNotesDirectory(directory);
+    fileService.MainNotesDirectory(directory);
+    config.setMainNotesDirectory(directory);
+    const viewMode = 'main' as viewMode; // Default view mode
     // Notify renderer about the selected directory
     mainWindow.webContents.send('notes-directory-selected', directory);
 
     // Sync graph with files in the new directory
-    graphLoader.syncGraphWithFiles().then(success => {
+    graphLoader.syncGraphWithFiles(viewMode).then(success => {
       if (success) {
         console.log('Graph successfully synced with files in new directory');
       } else {
@@ -194,7 +197,8 @@ const setupIpcHandlers = (): void => {
 
   // File system operations
   ipcMain.handle('select-notes-directory', () => selectNotesDirectory());
-  ipcMain.handle('get-files', fileService.getFilesFromDirectory);
+  ipcMain.handle('get-current-notes-directory', (_, mode) => fileService.getCurrentNotesDirectory(mode));
+  ipcMain.handle('get-files', (_, mode) => fileService.getFilesFromDirectory(mode));
   ipcMain.handle('read-file', (_, filePath) => fileService.readFile(filePath));
 
   // Modified save-file handler to update the graph
@@ -202,10 +206,11 @@ const setupIpcHandlers = (): void => {
     const result = await fileService.saveFile(filePath, content, updateHashtags);
     if (result.success) {
       const filename = path.basename(filePath);
+      const viewMode = 'main' as viewMode; // Default view mode
       // Update the graph with the new content
-      await graphLoader.updateFileInGraph(filename);
+      await graphLoader.updateFileInGraph(viewMode, filename);
       // Update the database with the new content
-      await database.upsertNotes(fileService.notesDirectory, filePath, content, 'user');
+      await database.upsertNotes(fileService.mainNotesDirectory, filePath, content, 'user');
 
     }
     return result;
@@ -214,9 +219,10 @@ const setupIpcHandlers = (): void => {
   // Modified create-file handler to update the graph
   ipcMain.handle('create-file', async (_, fileName) => {
     const result = fileService.createFile(fileName);
+    const viewMode = 'main' as viewMode; // Default view mode
     if (result.success) {
       // Add the new file to the graph
-      await graphLoader.updateFileInGraph(fileName);
+      await graphLoader.updateFileInGraph(viewMode, fileName);
 
     }
     return result;
@@ -225,10 +231,11 @@ const setupIpcHandlers = (): void => {
   // Modified delete-file handler to update the graph
   ipcMain.handle('delete-file', (_, filePath) => {
     const result = fileService.deleteFile(filePath);
+    const viewMode = 'main' as viewMode; // Default view mode
     if (result.success) {
       // Remove the file from the graph
       const filename = path.basename(filePath);
-      graphLoader.removeFileFromGraph(filename);
+      graphLoader.removeFileFromGraph(viewMode, filename);
 
     }
     return result;
@@ -236,17 +243,15 @@ const setupIpcHandlers = (): void => {
 
 
   // Graph file path operations
-  ipcMain.handle('get-graph-json-path', fileService.getGraphJsonPath);
-  ipcMain.handle('get-generated-graph-json-path', fileService.getGeneratedGraphJsonPath);
-  ipcMain.handle('get-generated-folder-path', fileService.getGeneratedFolderPath);
+  ipcMain.handle('get-graph-json-path', (_, mode) => fileService.getGraphJsonPath(mode));
 
-  ipcMain.handle('sync-graph', async () => {
-    return await graphLoader.syncGraphWithFiles();
+  ipcMain.handle('sync-graph', async (_, mode) => {
+    return await graphLoader.syncGraphWithFiles(mode);
   });
 
   // Config operations
-  ipcMain.handle('get-notes-directory', () => {
-    return config.getNotesDirectory()
+  ipcMain.handle('get-main-notes-directory', () => {
+    return config.getMainNotesDirectory()
   });
 
   ipcMain.handle('get-llm-config', () => {
@@ -309,6 +314,15 @@ const setupIpcHandlers = (): void => {
   ipcMain.handle('set-local-inference-config', (_, localInferenceConfig) => {
     const result = config.setLocalInferenceConfig(localInferenceConfig);
     return result;
+  });
+
+  ipcMain.handle('get-view-mode', () => {
+    return config.getViewMode();
+  });
+
+  ipcMain.handle('set-view-mode', (_, mode) => {
+    fileService.setViewMode(mode);
+    return config.setViewMode(mode);
   });
 
   // Window control messages

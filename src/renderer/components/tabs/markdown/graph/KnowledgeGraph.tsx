@@ -275,8 +275,24 @@ const KnowledgeGraph = ({
           width={containerRef.current?.clientWidth || window.innerWidth}
           height={containerRef.current?.clientHeight || window.innerHeight}
           backgroundColor="#020305"
-          linkColor={() => "#bababa"}
-          nodeResolution={16}
+          linkColor={(link) => {
+            // Define colors for edges based on source node type
+            const edgeColors: any = {
+              user: "#4270fc",      // Blue for user connections
+              assisted: "#ff9800",  // Orange for assisted connections
+              generated: "#e74c3c", // Red for generated connections
+              default: "#bababa"    // Light gray for default
+            };
+
+            // Get the source node
+            const sourceNode = typeof link.source === 'object' ? link.source :
+              graphData.nodes.find(node => node.id === link.source);
+
+            // Return color based on source node type with lower opacity
+            return sourceNode && sourceNode.type
+              ? `${edgeColors[sourceNode.type]}80` // 80 is hex for 50% opacity
+              : `${edgeColors.default}80`;
+          }} nodeResolution={16}
           nodeLabel={(node: any) => node.name || node.id}
           onNodeClick={(node: any) => {
 
@@ -291,9 +307,31 @@ const KnowledgeGraph = ({
 
           }}
           nodeThreeObject={(node: any) => {
-            // Create a sphere for the node
+            // Define base colors for different node types
+            const baseColors: any = {
+              user: "#4270fc",      // Blue for user nodes
+              assisted: "#ff9800",  // Orange for assisted nodes
+              generated: "#e74c3c", // Red for generated nodes
+              default: "#4270fc"    // Default to blue for nodes without a type
+            };
+
+            // Define brighter versions for highlighted state
+            const brightColors: any = {
+              user: "#96b0ff",      // Brighter blue 
+              assisted: "#ffb74d",  // Brighter orange
+              generated: "#ff6b6b", // Brighter red
+              default: "#96b0ff"    // Default to brighter blue
+            };
+
+            // Determine the node color based on type and highlight state
+            const nodeType = node.type;
+            const nodeColor = node.id === highlightedNode
+              ? brightColors[nodeType]
+              : baseColors[nodeType];
+
+            // Create material with the determined color
             const material = new THREE.MeshLambertMaterial({
-              color: node.id === highlightedNode ? "#96b0ff" : "#4270fc",
+              color: nodeColor,
               transparent: true,
               opacity: 0.9
             });

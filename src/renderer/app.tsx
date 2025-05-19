@@ -42,17 +42,16 @@ export const App = () => {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searchInput, setSearchInput] = useState<string>(''); // For knowing what the input to display
 
-  // View mode
-  const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
-
   // Use custom hooks 
   const {
     files,
     notesDirectory,
     graphJsonPath,
+    viewMode,
+    toggleViewMode,
     handleSelectDirectory,
     handleDeleteFile,
-    handleNewNote
+    handleNewNote,
   } = useFiles();
 
   const {
@@ -85,6 +84,19 @@ export const App = () => {
     const currentTab = tabs.find(tab => tab.id === activeTab);
     return currentTab?.filePath;
   };
+
+
+  useEffect(() => {
+    if (window.electron?.on) {
+      const removeListener = window.electron.on.graphRefresh(() => {
+        triggerGraphRefresh();
+      });
+
+      return () => {
+        removeListener();
+      };
+    }
+  }, [triggerGraphRefresh]);
 
   // Set up new note listener from menu
   useEffect(() => {
@@ -150,6 +162,9 @@ export const App = () => {
           setSearchInput={setSearchInput}
           searchResult={searchResult}
           setResults={setResults}
+          viewMode={viewMode}
+          toggleViewMode={toggleViewMode}
+
         />
         <div className="main-content-wrapper">
           <TabBar
@@ -167,7 +182,6 @@ export const App = () => {
                   files={files}
                   key={activeTab}
                   initialDoc={getCurrentTabContent()}
-                  viewMode={viewMode}
                   onFileSelect={handleFileSelect}
                   currentFilePath={getCurrentFilePath()}
                   onChange={(content, hashtags) => handleNoteChange(activeTab, content, hashtags)}
@@ -189,7 +203,7 @@ export const App = () => {
             )}
           </div>
         </div>
-        <ToastProvider/>
+        <ToastProvider />
       </div>
 
     </div>

@@ -2,16 +2,24 @@ import { app } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { config } from './main';
+import { viewMode } from 'src/shared/types';
 
-export let notesDirectory: string | null = null;
+export let mainNotesDirectory: string | null = null;
+export let generatedDirectory: string | null = null;
+export let currentViewMode: viewMode = 'main' as viewMode;
 
-export const setNotesDirectory = (directory: string): void => {
-  notesDirectory = directory;
+export const MainNotesDirectory = (directory: string): void => {
+  mainNotesDirectory = directory;
+  generatedDirectory = path.join(directory, 'LEMMA_generated');
+}
+
+export const setViewMode = (mode: viewMode): void => {
+  currentViewMode = mode;
 }
 
 // Create a default notes directory if none exists
 export const setupDefaultNotesDirectory = (): string | null => {
-  if (notesDirectory === null) {
+  if (mainNotesDirectory === null) {
     // Create a 'Notes' folder in the user's documents directory
     const documentsPath = app.getPath('documents');
     const defaultNotesPath = path.join(documentsPath, 'LEMMA Notes');
@@ -28,15 +36,27 @@ export const setupDefaultNotesDirectory = (): string | null => {
     }
 
     // Set the notes directory
-    notesDirectory = defaultNotesPath;
-    config.setNotesDirectory(defaultNotesPath); // Save the default path to config
+    mainNotesDirectory = defaultNotesPath;
+    config.setMainNotesDirectory(defaultNotesPath); // Save the default path to config
 
     // Ensure the directory has the proper structure (graph.json and generated subfolder)
     ensureNotesDirectoryStructure(defaultNotesPath);
   }
 
-  return notesDirectory;
+  return mainNotesDirectory;
 };
+
+export const getCurrentNotesDirectory = (mode: viewMode): string | null => {
+  if (mode) {
+    if (mode === 'generated') {
+      return generatedDirectory;
+    }
+    else {
+      return mainNotesDirectory;
+    }
+  }
+  return currentViewMode === 'main' ? mainNotesDirectory : generatedDirectory;
+}
 
 // Ensure that the notes directory has the proper structure
 export const ensureNotesDirectoryStructure = (directory: string): void => {
@@ -49,12 +69,12 @@ export const ensureNotesDirectoryStructure = (directory: string): void => {
     }
 
     // Ensure 'generated' subfolder exists
-    const generatedPath = path.join(directory, 'generated');
+    const generatedPath = path.join(directory, 'LEMMA_generated');
     if (!fs.existsSync(generatedPath)) {
       fs.mkdirSync(generatedPath, { recursive: true });
     }
 
-    // Ensure graph.json exists in 'generated' subfolder
+    // Ensure graph.json exists in 'LEMMA_generated' subfolder
     const generatedGraphPath = path.join(generatedPath, 'graph.json');
     if (!fs.existsSync(generatedGraphPath)) {
       const graphData: { nodes: any[], links: any[] } = { nodes: [], links: [] };
@@ -67,34 +87,44 @@ export const ensureNotesDirectoryStructure = (directory: string): void => {
 };
 
 // Get path to the main graph.json file
-export const getGraphJsonPath = (): string | null => {
-  if (!notesDirectory) {
+export const getGraphJsonPath = (mode: viewMode): string | null => {
+  if (!mainNotesDirectory || !generatedDirectory) {
     return null;
   }
-  return path.join(notesDirectory, 'graph.json');
+
+  // Check if we are in generated view mode
+  if (mode === 'generated' || currentViewMode === 'generated') {
+    return path.join(generatedDirectory, 'graph.json');
+  }
+  return path.join(mainNotesDirectory, 'graph.json');
 };
 
 // Get path to the generated graph.json file
 export const getGeneratedGraphJsonPath = (): string | null => {
-  if (!notesDirectory) {
+  if (!mainNotesDirectory || !generatedDirectory) {
     return null;
   }
-  return path.join(notesDirectory, 'generated', 'graph.json');
+  return path.join(generatedDirectory, 'graph.json');
 };
 
 // Get path to the generated folder
 export const getGeneratedFolderPath = (): string | null => {
-  if (!notesDirectory) {
+  if (!mainNotesDirectory) {
     return null;
   }
-  return path.join(notesDirectory, 'generated');
+  return generatedDirectory;
 };
 
 // Get markdown files from directory
-export const getFilesFromDirectory = async (): Promise<{ name: string; path: string; stats: any }[]> => {
+export const getFilesFromDirectory = async (mode: viewMode): Promise<{ name: string; path: string; stats: any }[]> => {
+  const notesDirectory = getCurrentNotesDirectory(mode);
   if (!notesDirectory) {
-    setupDefaultNotesDirectory();
-    if (!notesDirectory) {
+    if (mode === 'main' || currentViewMode === 'main') {
+      setupDefaultNotesDirectory();
+      if (!mainNotesDirectory) {
+        return [];
+      }
+    } else {
       return [];
     }
   }
@@ -135,6 +165,10 @@ export const readFile = (filePath: string): string => {
 // Save file content
 export const saveFile = async (filePath: string, content: string, updateHashtags: string[]): Promise<{ success: boolean }> => {
   try {
+    if (currentViewMode === 'generated') {
+      throw new Error('Cannot delete files in generated view mode');
+    }
+
     fs.writeFileSync(filePath, content);
     return { success: true };
   } catch (error) {
@@ -145,16 +179,19 @@ export const saveFile = async (filePath: string, content: string, updateHashtags
 
 // Create new file
 export const createFile = (fileName: string): { success: boolean; filePath: string } => {
+  if (currentViewMode === 'generated') {
+    throw new Error('Cannot create files in generated view mode');
+  }
   // Ensure we have a notes directory
-  if (!notesDirectory) {
+  if (!mainNotesDirectory) {
     setupDefaultNotesDirectory();
 
-    if (!notesDirectory) {
+    if (!mainNotesDirectory) {
       throw new Error('Failed to create or find a notes directory');
     }
   }
 
-  const filePath = path.join(notesDirectory, fileName);
+  const filePath = path.join(mainNotesDirectory, fileName);
 
   // Check if file already exists
   if (fs.existsSync(filePath)) {
@@ -174,13 +211,16 @@ export const createFile = (fileName: string): { success: boolean; filePath: stri
 // Delete a file
 export const deleteFile = (filePath: string): { success: boolean } => {
   try {
+    if (currentViewMode === 'generated') {
+      throw new Error('Cannot delete files in generated view mode');
+    }
     // Confirm the file exists
     if (!fs.existsSync(filePath)) {
       throw new Error('File does not exist');
     }
 
     // Make sure the file is within the notes directory (security check)
-    if (!notesDirectory || !filePath.startsWith(notesDirectory)) {
+    if (!mainNotesDirectory || !filePath.startsWith(mainNotesDirectory)) {
       throw new Error('Cannot delete files outside of the notes directory');
     }
 

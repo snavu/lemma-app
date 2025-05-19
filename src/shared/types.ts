@@ -15,3 +15,4 @@ export interface llmConfig {
     model: string;
   }
   
+  export type viewMode = 'main' | 'generated';

@@ -14,14 +14,14 @@ interface Window {
     };
     fs: {
       selectDirectory: () => Promise<string | null>;
-      getFiles: () => Promise<Array<{ name: string; path: string; stats: any }>>;
+      getFiles: (mode: viewMode) => Promise<Array<{ name: string; path: string; stats: any }>>;
       readFile: (filePath: string) => Promise<string>;
       saveFile: (filePath: string, content: string, updateHashtags: string[]) => Promise<{ success: boolean }>;
       createFile: (fileName: string) => Promise<{ success: boolean; filePath: string }>;
       deleteFile: (filePath: string) => Promise<{ success: boolean }>;
-      getGeneratedFolderPath: () => Promise<string | null>;
-      getGraphJsonPath: () => Promise<string | null>;
-      getGeneratedGraphJsonPath: () => Promise<string | null>;
+      getGraphJsonPath: (mode: viewMode) => Promise<string | null>;
+      getViewMode: () => Promise<'main' | 'generated'>;
+      setViewMode: (mode: viewMode) => Promise<void>;
     };
     graph: {
       syncGraph: () => Promise<boolean>;
@@ -29,13 +29,16 @@ interface Window {
     on: {
       notesDirectorySelected: (callback: (directory: string) => void) => () => void;
       newNote: (callback: () => void) => () => void;
+      graphRefresh: (callback: () => void) => () => void;
+
     };
     db: {
       queryDBTags: (searchQuery: string, notesDirectory: string) => Promise<Note[]>;
       queryDBKeyWords: (searchQuery: string, notesDirectory: string) => Promise<Note[]>;
     };
     config: {
-      getNotesDirectory: () => Promise<string | null>;
+      getMainNotesDirectory: () => Promise<string | null>;
+      getCurrentNotesDirectory: (mode: viewMode ) => Promise<string | null>;
       getLLMConfig: () => Promise<llmConfig>;
       setLLMConfig: (llmConfig: llmConfig) => Promise<llmConfig>;
       getAgiConfig: () => Promise<agiConfig>;

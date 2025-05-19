@@ -2,7 +2,8 @@
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 
 import { contextBridge, ipcRenderer, shell } from 'electron';
-import { llmConfig, agiConfig, localInferenceConfig } from 'src/shared/types';
+import { llmConfig, agiConfig, localInferenceConfig, viewMode } from 'src/shared/types';
+import { Vector2 } from 'three';
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
@@ -23,15 +24,15 @@ contextBridge.exposeInMainWorld('electron', {
   // File system operations
   fs: {
     selectDirectory: () => ipcRenderer.invoke('select-notes-directory'),
-    getFiles: () => ipcRenderer.invoke('get-files'),
+    getFiles: (mode: viewMode) => ipcRenderer.invoke('get-files', mode),
     readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
     saveFile: (filePath: string, content: string, updateHashtags: string[]) =>
       ipcRenderer.invoke('save-file', { filePath, content, updateHashtags }),
     createFile: (fileName: string) => ipcRenderer.invoke('create-file', fileName),
     deleteFile: (filePath: string) => ipcRenderer.invoke('delete-file', filePath),
-    getGeneratedFolderPath: () => ipcRenderer.invoke('get-generated-folder-path'),
-    getGraphJsonPath: () => ipcRenderer.invoke('get-graph-json-path'),
-    getGeneratedGraphJsonPath: () => ipcRenderer.invoke('get-generated-graph-json-path'),
+    getGraphJsonPath: (mode: viewMode) => ipcRenderer.invoke('get-graph-json-path', mode),
+    getViewMode: () => ipcRenderer.invoke('get-view-mode'),
+    setViewMode: (mode: viewMode) => ipcRenderer.invoke('set-view-mode', mode),
   },
   graph: {
     syncGraph: () => ipcRenderer.invoke('sync-graph'),
@@ -53,6 +54,12 @@ contextBridge.exposeInMainWorld('electron', {
       return () => {
         ipcRenderer.removeAllListeners('new-note');
       };
+    },
+    graphRefresh: (callback: () => void) => {
+      ipcRenderer.on('graph-refresh', () => callback());
+      return () => {
+        ipcRenderer.removeAllListeners('graph-refresh');
+      };
     }
   },
   db: {
@@ -61,7 +68,7 @@ contextBridge.exposeInMainWorld('electron', {
   },
   // Config operations
   config: {
-    getNotesDirectory: () => ipcRenderer.invoke('get-notes-directory'),
+    getCurrentNotesDirectory: (mode: viewMode) => ipcRenderer.invoke('get-current-notes-directory', mode),
     getLLMConfig: () => ipcRenderer.invoke('get-llm-config'),
     setLLMConfig: (llmConfig: llmConfig) => ipcRenderer.invoke('set-llm-config', llmConfig),
     getAgiConfig: () => ipcRenderer.invoke('get-agi-config'),
