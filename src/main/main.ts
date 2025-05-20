@@ -31,7 +31,7 @@ const createWindow = (): void => {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      devTools: false
+      devTools: true
     },
   });
 
@@ -311,12 +311,13 @@ const setupIpcHandlers = (): void => {
   });
 
   ipcMain.handle('send-chat-request', async (_, messageArray) => {
-    // let fullResponse = '';
-    return inferenceService.chatCompletion(messageArray, { stream: true }, (token) => {
+    const response = await inferenceService.chatCompletion(messageArray, { stream: true }, (token) => {
       // Send each new token back to frontend
-      mainWindow.webContents.send('llm-word', token);
-      // fullResponse += token;
+      mainWindow.webContents.send('llm-token-received', token);
     });
+
+    mainWindow.webContents.send('llm-response-done');
+    return response;
   });
 
   ipcMain.handle('get-local-inference-config', () => {

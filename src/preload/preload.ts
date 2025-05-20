@@ -83,11 +83,11 @@ contextBridge.exposeInMainWorld('electron', {
     updateFileInAgi: (filename: string) => ipcRenderer.invoke('update-file-in-agi', filename),
     removeFileFromAgi: (filename: string) => ipcRenderer.invoke('delete-file-in-agi', filename),
     sendChatRequest: (messageArray: { role: 'user' | 'assistant'; content: string }[]) => ipcRenderer.invoke('send-chat-request', messageArray),
-    onWord: (callback: (word: string) => void) => ipcRenderer.on('llm-word', (_event, word) => callback(word)),
-    onDone: (callback: () => void) => ipcRenderer.on('llm-done', callback),
-    removeListeners: () => {
-      ipcRenderer.removeAllListeners('llm-word');
-      ipcRenderer.removeAllListeners('llm-done');
+    onTokenReceived: (callback: (token: string) => void) => ipcRenderer.on('llm-token-received', (_event, token) => callback(token)),
+    onResponseDone: (callback: () => void) => ipcRenderer.on('llm-response-done', callback),
+    removeStreamListeners: () => {
+      ipcRenderer.removeAllListeners('llm-token-received');
+      ipcRenderer.removeAllListeners('llm-response-done');
     },
 
   },

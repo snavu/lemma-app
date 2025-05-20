@@ -149,21 +149,27 @@ export const App = () => {
 
     let assistantMessage = '';
 
-    window.electron.agi.onWord((word) => {
-      assistantMessage += word;
+    // Listener to receive token by token
+    window.electron.agi.onTokenReceived((token) => {
+      assistantMessage += token;
       setMessages(prev => {
-          const updated = [...prev];
-          updated[updated.length - 1] = { role: 'assistant', content: assistantMessage.trim() };
-          return updated;
-        });
+        const updated = [...prev];
+        updated[updated.length - 1] = { role: 'assistant', content: assistantMessage.trim() };
+        return updated;
+      });
     });
 
-    window.electron.agi.onDone(() => {
-      window.electron.agi.removeListeners();
+    // Remove stream listeners when done streaming
+    window.electron.agi.onResponseDone(() => {
+      window.electron.agi.removeStreamListeners();
     });
 
     try {
-      await window.electron.agi.sendChatRequest(messageArray);
+      const assistantResult = await window.electron.agi.sendChatRequest(messageArray);
+      setMessages(prev => {
+        const withoutThinking = prev.slice(0, -1);
+        return [...withoutThinking, { role: 'assistant', content: assistantResult.response }];
+      });
     } catch (err) {
       console.log("Error sending request to model: ", err);
     }

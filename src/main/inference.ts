@@ -262,9 +262,8 @@ The JSON structure should be:
           for await (const chunk of stream) {
             const token = chunk?.message?.content;
             if (token) {
-              // 
-              fullResponse += token;
-              onToken(token);
+              fullResponse += token; // Append token to response
+              onToken(token); // Invoke callback function
             }
           }
 
@@ -304,7 +303,7 @@ The JSON structure should be:
           for await (const chunk of stream) {
             const token = chunk.choices[0]?.delta?.content;
             if (token) {
-              fullResponse += token;
+              fullResponse += token; // Append token to response
               onToken(token); // Invoke callback function
             }
           }
