@@ -74,7 +74,9 @@ export const ChatUI: React.FC<chatUIProps> = ({ isChatOpen, setIsChatOpen, messa
             content: inputValue.trim(),
         };
         
-        const userMessages = [...messages, userMessage];
+        const userMessages = [...chatRef.current?.getLatestMessages(), userMessage];
+        console.log("User mesages", userMessages);
+        const testMessages = chatRef.current?.getLatestMessages();
         chatRef.current?.setDisplayMessageArray(userMessages);
         setInputValue('');
         setIsAwaitingResponse(true);
@@ -90,7 +92,8 @@ export const ChatUI: React.FC<chatUIProps> = ({ isChatOpen, setIsChatOpen, messa
         
         try {
             console.log("Before called");
-            chatRef.current?.handleSendChatRequest(userMessages);
+            const latestMessages = chatRef.current?.getLatestMessages();
+            chatRef.current?.handleSendChatRequest([...latestMessages, userMessage]);
         } finally {
             setIsAwaitingResponse(false);
         }
@@ -114,7 +117,8 @@ export const ChatUI: React.FC<chatUIProps> = ({ isChatOpen, setIsChatOpen, messa
             <ChatHeader 
                 setIsChatOpen={setIsChatOpen}
                 onMouseDown={onMouseDown}
-                setMessages={setMessages} 
+                setMessages={setMessages}
+                ChatMessageHandle={chatRef}
             />
             <ChatMessage
                 setMessages={setMessages} 

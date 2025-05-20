@@ -1,13 +1,17 @@
-import React, { Dispatch, SetStateAction } from 'react';
+import React, { Dispatch, SetStateAction, forwardRef } from 'react';
+import { ChatMessageHandle } from './chatMessage';
+
 import './chatHeader.css';
 
-interface chatHeaderProps {
+interface ChatHeaderProps {
     setIsChatOpen: (bool: boolean) => void;
     onMouseDown: (e: React.MouseEvent<HTMLDivElement>) => void;
     setMessages: Dispatch<SetStateAction<{ role: 'user' | 'assistant'; content: string }[]>>;
+    ChatMessageHandle: React.RefObject<ChatMessageHandle>;
 }
 
-export const ChatHeader: React.FC<chatHeaderProps> = ({ setIsChatOpen, onMouseDown, setMessages }) => {
+export const ChatHeader = forwardRef<ChatMessageHandle, ChatHeaderProps>(
+    ({ setIsChatOpen, onMouseDown, setMessages, ChatMessageHandle }, ref) => {
 
     const CloseIcon = () => (
         <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -20,9 +24,9 @@ export const ChatHeader: React.FC<chatHeaderProps> = ({ setIsChatOpen, onMouseDo
         <div className="chat-header" onMouseDown={onMouseDown}>
             <div>Q&A Chat</div>
             <div className="chat-buttons">
-                <button className="clear-button" onClick={() => setMessages([])}>Clear</button>
+                <button className="clear-button" onClick={() => ChatMessageHandle.current?.setDisplayMessageArray([])}>Clear</button>
                 <button className="exit-button" onClick={() => {setIsChatOpen(false);}} onMouseDown={(e) => e.stopPropagation()}><CloseIcon/></button>
             </div>
         </div>      
     );
-};
+});

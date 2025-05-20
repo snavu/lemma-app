@@ -18,24 +18,24 @@ interface ChatMessageProps {
 export type ChatMessageHandle = {
     handleSendChatRequest: (messages: { role: 'user' | 'assistant'; content: string }[]) => void;
     setDisplayMessageArray: Dispatch<SetStateAction<{ role: 'user' | 'assistant'; content: string }[]>>;
+    getLatestMessages: () => { role: 'user' | 'assistant'; content: string }[];
 };
 
 export const ChatMessage = forwardRef<ChatMessageHandle, ChatMessageProps>(
     ({ messages, setMessages }, ref) => {
         const bottomRef = useRef<HTMLDivElement>(null);
-
-
         const [displayMessageArray, setDisplayMessageArray] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+        const displayMessageRef = useRef(displayMessageArray);
 
-        const handleSendChatRequest = async (messageArray: { role: 'user' | 'assistant'; content: string }[]) => {
+
+            const handleSendChatRequest = async (messageArray: { role: 'user' | 'assistant'; content: string }[]) => {
             console.log("called");
             setDisplayMessageArray(prev => [...prev, { role: 'assistant', content: '' }]);
-            console.log(displayMessageArray);
+            console.log(messageArray);
             let assistantMessage = '';
 
             window.electron.agi.onTokenReceived(token => {
                 assistantMessage += token;
-                console.log("TEST");
                 setDisplayMessageArray(prev => {
                     const updated = [...prev];
                     updated[updated.length - 1] = { role: 'assistant', content: assistantMessage.trim() };
@@ -49,10 +49,10 @@ export const ChatMessage = forwardRef<ChatMessageHandle, ChatMessageProps>(
 
             try {
                 const assistantResult = await window.electron.agi.sendChatRequest(messageArray);
-                // setMessages(prev => {
-                //     const withoutThinking = prev.slice(0, -1);
-                //     return [...withoutThinking, { role: 'assistant', content: assistantResult.response }];
-                // });
+                setDisplayMessageArray(prev => {
+                    const withoutThinking = prev.slice(0, -1);
+                    return [...withoutThinking, { role: 'assistant', content: assistantResult.response }];
+                });
             } catch (err) {
                 console.log("Error sending request to model: ", err);
             }
@@ -61,9 +61,12 @@ export const ChatMessage = forwardRef<ChatMessageHandle, ChatMessageProps>(
         useImperativeHandle(ref, () => ({
             handleSendChatRequest,
             setDisplayMessageArray,
+            getLatestMessages: () => displayMessageRef.current,
         }));
 
         useEffect(() => {
+            console.log(displayMessageArray);
+            displayMessageRef.current = displayMessageArray;
             bottomRef.current?.scrollIntoView({ behavior: "smooth" });
         }, [displayMessageArray]);
 
