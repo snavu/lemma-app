@@ -12,6 +12,10 @@
     resize: both;
 }
 
+.chat-message p {
+    margin: 0;
+}
+
 .chat-header {
     padding: 10px;
     background-color: var(--background-primary);

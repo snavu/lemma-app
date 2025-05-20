@@ -2,6 +2,8 @@ import OpenAI from "openai";
 import { config } from "./main";
 import { llmConfig} from 'src/shared/types';
 import { Ollama } from "ollama";
+import { DbClient, FileType } from "./database";
+import * as fileService from './file-service';
 
 /**
  * Inference service supporting both cloud provider calls and local inference with Ollama
@@ -12,6 +14,7 @@ export class InferenceService {
   private localPort: number = 11434; // Default port for Ollama server
   private isLocalMode: boolean;
   private localModel: string = "llama3.2"; // Default model
+  private agiDatabase: DbClient;
 
   /**
    * Constructor
@@ -38,6 +41,9 @@ export class InferenceService {
       this.client = null;
       this.initializeOllamaClient();
     }
+
+    // Initialize database connection
+    this.agiDatabase = new DbClient('agi-notes');
   }
 
   /**
@@ -206,6 +212,23 @@ The JSON structure should be:
         ...messageHistory,
         { role: "assistant", content: "" }
       ];
+      
+      const userPrompt = messages[messages.length-2].content;
+      const contextArr = await this.agiDatabase.queryNotes(
+        fileService.generatedDirectory,
+        { searchQuery: userPrompt, searchMode: 'similarity', limit: 5 }
+      );
+
+      let aggregatedPrompt = '';
+      for (const [i, context] of contextArr.entries()) {
+        // Append context to the user prompt
+        aggregatedPrompt += `File ${i}: ${context.filePath}\nContext: ${context.content}\n\n`;
+      }
+      // Append user's query to the prompt
+      aggregatedPrompt += `User's query: ${userPrompt}`;
+      messages[messages.length-2].content = aggregatedPrompt;
+
+      console.log(messages[messages.length-2]); // Debugging
 
       if (this.isLocalMode) {
         // Local inference using Ollama

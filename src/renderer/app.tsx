@@ -55,7 +55,7 @@ export const App = () => {
     files,
     notesDirectory,
     graphJsonPath,
-    viewMode,
+    // viewMode,
     toggleViewMode,
     handleSelectDirectory,
     handleDeleteFile,

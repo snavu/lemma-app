@@ -92,6 +92,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-force-graph-3d": "^1.26.1",
+    "react-markdown": "^10.1.0",
     "react-resizable-box": "^2.1.0",
     "react-resizable-panels": "^2.1.9",
     "react-rnd": "^10.5.2",

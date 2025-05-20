@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback, Dispatch, SetStateAction } from 'react';
 import './chatbot.css';
+import Markdown from 'react-markdown';
 
 interface chatUIProps {
     isChatOpen: boolean;
@@ -135,7 +136,7 @@ export const ChatUI: React.FC<chatUIProps> = ({ isChatOpen, setIsChatOpen, messa
                     <div
                         key={i}
                         className={`chat-message ${msg.role === 'user' ? 'chat-message-user' : 'chat-message-bot'}`}>
-                        {msg.content}
+                        <Markdown>{msg.content}</Markdown>
                     </div>
                 ))}
                 <div ref={bottomRef} />
