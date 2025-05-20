@@ -102,7 +102,6 @@ export const updateFileInGraph = async (mode: viewMode, filename: string): Promi
   try {
     // Get notes directory
     const notesDir = fileService.getCurrentNotesDirectory(mode);
-    console.log('updateFileInGraph:', notesDir);
     if (!notesDir) {
       console.error('Notes directory not set');
       return false;

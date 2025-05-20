@@ -129,7 +129,7 @@ export const useFiles = () => {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const fileName = `Note ${timestamp}.md`;
 
-      await window.electron.fs.createFile(fileName);
+      const file = await window.electron.fs.createFile(fileName);
 
       // Refresh files list
       const newFiles = await window.electron.fs.getFiles(mode);
@@ -142,7 +142,7 @@ export const useFiles = () => {
         }
       }
 
-      return result.filePath;
+      return file.filePath;
     } catch (error) {
       console.error('Failed to create new note:', error);
       return null;
