@@ -18,6 +18,7 @@ export const useTabs = (files: FileInfo[]) => {
   // Handle file selection from sidebar
   const handleFileSelect = useCallback(async (filePath: string) => {
     if (!window.electron?.fs) return;
+    console.log('File selected:', filePath);
 
     // Check if file is already open in a tab
     const existingTab = tabs.find(tab => tab.filePath === filePath);
