@@ -12,7 +12,7 @@ import './chatMessage.css';
 
 interface ChatMessageProps {
     messages: { role: 'user' | 'assistant'; content: string }[];
-    setMessages: Dispatch<SetStateAction<{ role: 'user' | 'assistant'; content: string }[]>>;
+    isChatOpen: boolean;
 }
 
 export type ChatMessageHandle = {
@@ -22,16 +22,14 @@ export type ChatMessageHandle = {
 };
 
 export const ChatMessage = forwardRef<ChatMessageHandle, ChatMessageProps>(
-    ({ messages, setMessages }, ref) => {
+    ({ messages, isChatOpen }, ref) => {
         const bottomRef = useRef<HTMLDivElement>(null);
         const [displayMessageArray, setDisplayMessageArray] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
         const displayMessageRef = useRef(displayMessageArray);
 
 
             const handleSendChatRequest = async (messageArray: { role: 'user' | 'assistant'; content: string }[]) => {
-            console.log("called");
             setDisplayMessageArray(prev => [...prev, { role: 'assistant', content: '' }]);
-            console.log(messageArray);
             let assistantMessage = '';
 
             window.electron.agi.onTokenReceived(token => {
@@ -56,7 +54,7 @@ export const ChatMessage = forwardRef<ChatMessageHandle, ChatMessageProps>(
             } catch (err) {
                 console.log("Error sending request to model: ", err);
             }
-        };
+        };  
 
         useImperativeHandle(ref, () => ({
             handleSendChatRequest,
@@ -65,10 +63,13 @@ export const ChatMessage = forwardRef<ChatMessageHandle, ChatMessageProps>(
         }));
 
         useEffect(() => {
-            console.log(displayMessageArray);
             displayMessageRef.current = displayMessageArray;
             bottomRef.current?.scrollIntoView({ behavior: "smooth" });
         }, [displayMessageArray]);
+
+        useEffect(() => {
+            setDisplayMessageArray(messages);
+        }, [isChatOpen]);
 
         return (
             <div className="chat-messages-container">

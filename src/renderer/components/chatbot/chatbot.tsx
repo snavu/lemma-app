@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback, Dispatch, SetStateAction, forwardRef, useImperativeHandle } from 'react';
 import { ChatHeader } from './chatHeader';
 import { ChatMessage, ChatMessageHandle } from './chatMessage';
+import { ChatInput } from './chatInput';
 import './chatbot.css';
 
 interface chatUIProps {
@@ -15,8 +16,6 @@ export const ChatUI: React.FC<chatUIProps> = ({ isChatOpen, setIsChatOpen, messa
     const [isDragging, setIsDragging] = useState(false);
     const [position, setPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
     const offset = useRef({ x: 0, y: 0 });
-    const [inputValue, setInputValue] = useState('');
-    const [isAwaitingResponse, setIsAwaitingResponse] = useState(false);
     const chatRef = useRef<ChatMessageHandle>(null);
 
     const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -59,55 +58,7 @@ export const ChatUI: React.FC<chatUIProps> = ({ isChatOpen, setIsChatOpen, messa
         };
     }, [onMouseMove, onMouseUp]);
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            if (inputValue === "") return;
-                sendMessage();
-        }
-    };
-
-    const sendMessage = () => {
-        if (isAwaitingResponse || inputValue.trim() === "") return;
-        
-        const userMessage: { role: 'user' | 'assistant'; content: string } = {
-            role: 'user',
-            content: inputValue.trim(),
-        };
-        
-        const userMessages = [...chatRef.current?.getLatestMessages(), userMessage];
-        console.log("User mesages", userMessages);
-        const testMessages = chatRef.current?.getLatestMessages();
-        chatRef.current?.setDisplayMessageArray(userMessages);
-        setInputValue('');
-        setIsAwaitingResponse(true);
-        
-        const thinkingMessage: { role: 'user' | 'assistant'; content: string } = {
-            role: 'assistant',
-            content: 'Thinking...',
-        };
-        
-        setTimeout(() => {
-            chatRef.current?.setDisplayMessageArray([...userMessages, thinkingMessage]);
-        }, 200);
-        
-        try {
-            console.log("Before called");
-            const latestMessages = chatRef.current?.getLatestMessages();
-            chatRef.current?.handleSendChatRequest([...latestMessages, userMessage]);
-        } finally {
-            setIsAwaitingResponse(false);
-        }
-    };
-    
-
     if (!isChatOpen) return null;
-
-    const SendIcon = () => (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{ pointerEvents: 'none' }}>
-          <path d="M12 19V5" />
-          <path d="M5 12l7-7 7 7" />
-        </svg>
-    );
 
     return (
         <div
@@ -121,23 +72,11 @@ export const ChatUI: React.FC<chatUIProps> = ({ isChatOpen, setIsChatOpen, messa
                 ChatMessageHandle={chatRef}
             />
             <ChatMessage
-                setMessages={setMessages} 
                 messages={messages}
+                isChatOpen={isChatOpen}
                 ref={chatRef}
             />
-            <div className="chat-input-bar">
-                <input className="chat-input" 
-                    placeholder="Ask a question" 
-                    onKeyDown={handleKeyDown} value={inputValue}
-                    onChange={e => setInputValue(e.target.value)}/>
-                {isAwaitingResponse ? (
-                    <div className="circle-loader"></div>
-                    ) : (
-                    <button className="chat-send-button" onClick={() => sendMessage()}>
-                        <SendIcon />
-                    </button>
-                )}
-            </div>
+            <ChatInput ChatMessageHandle={chatRef}/>
         </div>
     );
 };
