@@ -132,12 +132,38 @@ export const App = () => {
   };
 
   const handleSendChatRequest = async (messageArray: { role: 'user' | 'assistant'; content: string }[]) => {
-    try {
-      const assistantResult = await window.electron.agi.sendChatRequest(messageArray);
+    // try {
+    //   const assistantResult = await window.electron.agi.sendChatRequest(messageArray);
+    //   setMessages(prev => {
+    //     const withoutThinking = prev.slice(0, -1);
+    //     return [...withoutThinking, { role: 'assistant', content: assistantResult.response }];
+    //   });
+    // } catch (err) {
+    //   console.log("Error sending request to model: ", err);
+    // }
+
+    setMessages(prev => [
+      ...prev,
+      { role: 'assistant', content: '' }, // Placeholder for streaming
+    ]);
+
+    let assistantMessage = '';
+
+    window.electron.agi.onWord((word) => {
+      assistantMessage += word;
       setMessages(prev => {
-        const withoutThinking = prev.slice(0, -1);
-        return [...withoutThinking, { role: 'assistant', content: assistantResult.response }];
-      });
+          const updated = [...prev];
+          updated[updated.length - 1] = { role: 'assistant', content: assistantMessage.trim() };
+          return updated;
+        });
+    });
+
+    window.electron.agi.onDone(() => {
+      window.electron.agi.removeListeners();
+    });
+
+    try {
+      await window.electron.agi.sendChatRequest(messageArray);
     } catch (err) {
       console.log("Error sending request to model: ", err);
     }

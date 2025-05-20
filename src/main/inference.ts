@@ -79,6 +79,8 @@ export class InferenceService {
    * Works with both cloud and local inference
    */
   async getChunks(content: string, filename: string) {
+    const localModel = config.getLocalInferenceConfig().model;
+    this.localModel = localModel ? localModel : this.localModel;
     try {
       // Create the prompt for the model
       const prompt = `
@@ -192,7 +194,9 @@ The JSON structure should be:
    * @param messageHistory - Array of message objects with 'role' and 'content'. The user should be the last role.
    * @param options - Additional options for the request
    */
-  async chatCompletion(messageHistory: any[], options: any = {}) {
+  async chatCompletion(messageHistory: any[], options: any = {}, onToken?: (token: string) => void) {
+    const localModel = config.getLocalInferenceConfig().model;
+    this.localModel = localModel ? localModel : this.localModel;
     try {
       const prompt = `
       You are a helpful assistant that provides accurate, concise, and relevant answers based on the given context. 
@@ -222,7 +226,7 @@ The JSON structure should be:
       let aggregatedPrompt = '';
       for (const [i, context] of contextArr.entries()) {
         // Append context to the user prompt
-        aggregatedPrompt += `File ${i}: ${context.filePath}\nContext: ${context.content}\n\n`;
+        aggregatedPrompt += `File ${i+1}: ${context.filePath}\nContext: ${context.content}\n\n`;
       }
       // Append user's query to the prompt
       aggregatedPrompt += `User's query: ${userPrompt}`;
@@ -239,19 +243,32 @@ The JSON structure should be:
             return { response: '' };
           }
         }
+        console.log('inferencing on local');
 
         // Handle streaming if requested
         if (options.stream) {
-          return {
-            responseStream: this.ollamaClient.chat({
-              model: this.localModel,
-              messages: messages,
-              stream: true,
-              options: {
-                temperature: options.temperature || 0.7
-              }
-            })
-          };
+          let fullResponse = '';
+
+          const stream = await this.ollamaClient.chat({
+            model: this.localModel,
+            messages: messages,
+            stream: true,
+            options: {
+              temperature: options.temperature || 0.7
+            }
+          });
+
+          // Stream token by token
+          for await (const chunk of stream) {
+            const token = chunk?.message?.content;
+            if (token) {
+              // 
+              fullResponse += token;
+              onToken(token);
+            }
+          }
+
+          return { response: fullResponse };
         }
 
         // Non-streaming response
@@ -269,18 +286,30 @@ The JSON structure should be:
       } else {
         // Cloud inference using OpenAI SDK - simple pass-through
         const modelName = options.model || config.getLLMConfig().model;
+        console.log('inferencing on cloud');
 
         // Handle streaming if requested
         if (options.stream) {
-          return {
-            responseStream: this.client!.chat.completions.create({
-              model: modelName,
-              messages: messages,
-              temperature: options.temperature || 0.7,
-              max_tokens: options.max_tokens,
-              stream: true
-            })
-          };
+          let fullResponse = '';
+
+          const stream = await this.client!.chat.completions.create({
+            model: modelName,
+            messages: messages,
+            stream: true,
+            temperature: options.temperature || 0.7,
+            max_tokens: options.max_tokens
+          });
+
+          // Stream token by token
+          for await (const chunk of stream) {
+            const token = chunk.choices[0]?.delta?.content;
+            if (token) {
+              fullResponse += token;
+              onToken(token); // Invoke callback function
+            }
+          }
+
+          return { response: fullResponse };
         }
 
         // Non-streaming response
