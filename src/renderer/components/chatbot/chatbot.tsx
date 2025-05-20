@@ -1,6 +1,7 @@
-import React, { useRef, useState, useEffect, useCallback, Dispatch, SetStateAction } from 'react';
+import React, { useRef, useState, useEffect, useCallback, Dispatch, SetStateAction, forwardRef, useImperativeHandle } from 'react';
+import { ChatHeader } from './chatHeader';
+import { ChatMessage, ChatMessageHandle } from './chatMessage';
 import './chatbot.css';
-import Markdown from 'react-markdown';
 
 interface chatUIProps {
     isChatOpen: boolean;
@@ -10,13 +11,13 @@ interface chatUIProps {
     handleSendChatRequest: (messageArray: { role: 'user' | 'assistant'; content: string }[]) => void;
 }
 
-export const ChatUI: React.FC<chatUIProps> = ({ isChatOpen, setIsChatOpen, messages, setMessages, handleSendChatRequest }) => {
+export const ChatUI: React.FC<chatUIProps> = ({ isChatOpen, setIsChatOpen, messages, setMessages }) => {
     const [isDragging, setIsDragging] = useState(false);
     const [position, setPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
     const offset = useRef({ x: 0, y: 0 });
     const [inputValue, setInputValue] = useState('');
     const [isAwaitingResponse, setIsAwaitingResponse] = useState(false);
-    const bottomRef = useRef<HTMLDivElement>(null);
+    const chatRef = useRef<ChatMessageHandle>(null);
 
     const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
         setIsDragging(true);
@@ -58,7 +59,14 @@ export const ChatUI: React.FC<chatUIProps> = ({ isChatOpen, setIsChatOpen, messa
         };
     }, [onMouseMove, onMouseUp]);
 
-    const sendMessage = async () => {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            if (inputValue === "") return;
+                sendMessage();
+        }
+    };
+
+    const sendMessage = () => {
         if (isAwaitingResponse || inputValue.trim() === "") return;
         
         const userMessage: { role: 'user' | 'assistant'; content: string } = {
@@ -67,7 +75,7 @@ export const ChatUI: React.FC<chatUIProps> = ({ isChatOpen, setIsChatOpen, messa
         };
         
         const userMessages = [...messages, userMessage];
-        setMessages(userMessages);
+        chatRef.current?.setDisplayMessageArray(userMessages);
         setInputValue('');
         setIsAwaitingResponse(true);
         
@@ -77,27 +85,16 @@ export const ChatUI: React.FC<chatUIProps> = ({ isChatOpen, setIsChatOpen, messa
         };
         
         setTimeout(() => {
-            setMessages([...userMessages, thinkingMessage]);
+            chatRef.current?.setDisplayMessageArray([...userMessages, thinkingMessage]);
         }, 200);
         
         try {
-            await handleSendChatRequest(userMessages);
+            console.log("Before called");
+            chatRef.current?.handleSendChatRequest(userMessages);
         } finally {
             setIsAwaitingResponse(false);
         }
     };
-      
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            if (inputValue === "") return;
-                sendMessage();
-        }
-    };
-
-    useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, [messages]);
     
 
     if (!isChatOpen) return null;
@@ -109,38 +106,21 @@ export const ChatUI: React.FC<chatUIProps> = ({ isChatOpen, setIsChatOpen, messa
         </svg>
     );
 
-    const CloseIcon = () => (
-        <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-    );
-      
     return (
         <div
         className="chat-floating"
         style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
         >
-            <div className="chat-header" onMouseDown={onMouseDown}>
-                <div>Q&A Chat</div>
-                <div className="chat-buttons">
-                    <button className="clear-button" onClick={() => setMessages([])}>Clear</button>
-                    <button className="exit-button" onClick={() => {setIsChatOpen(false);}} onMouseDown={(e) => e.stopPropagation()}><CloseIcon/></button>
-                </div>
-            </div>
-            <div className="chat-messages-container">
-            {messages.map((msg, i) =>
-                msg.content === 'Thinking...' ? (
-                    <div className="chat-message-bot chat-message"><div key={i} className="dot-loader"></div></div>
-                ) : (
-                    <div
-                        key={i}
-                        className={`chat-message ${msg.role === 'user' ? 'chat-message-user' : 'chat-message-bot'}`}>
-                        <Markdown>{msg.content}</Markdown>
-                    </div>
-                ))}
-                <div ref={bottomRef} />
-            </div>
+            <ChatHeader 
+                setIsChatOpen={setIsChatOpen}
+                onMouseDown={onMouseDown}
+                setMessages={setMessages} 
+            />
+            <ChatMessage
+                setMessages={setMessages} 
+                messages={messages}
+                ref={chatRef}
+            />
             <div className="chat-input-bar">
                 <input className="chat-input" 
                     placeholder="Ask a question" 

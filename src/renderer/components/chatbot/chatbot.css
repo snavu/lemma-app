@@ -11,56 +11,6 @@
     overflow-y: auto;
     resize: both;
 }
-
-.chat-message p {
-    margin: 0;
-}
-
-.chat-header {
-    padding: 10px;
-    background-color: var(--background-primary);
-    font-weight: bold;
-    cursor: move;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    z-index: 1000;
-}
-
-.chat-buttons {
-    display: flex; 
-    gap: 20px;
-}
-
-.clear-button {
-    background-color: transparent;
-    color: #ff4d4f;
-    border: 1px solid #ff4d4f;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background-color 0.2s, color 0.2s;
-}
-
-.clear-button:hover {
-    background-color: #ff4d4f;
-    color: white;
-}
-
-.exit-button {
-    border: none;
-    background-color: transparent;
-    color: var(--text-muted);
-    padding: 0;
-    cursor: pointer;
-}
-
-.exit-button:hover {
-    background-color: var(--interactive-hover);
-    color: var(--text-normal);
-}
   
 .chat-input-bar {
     display: flex;
@@ -99,35 +49,6 @@
 .chat-input:focus {
     outline: solid gray;
   }
-
-.chat-message {
-    /* display: inline-block; */
-    padding: 8px 12px;
-    border-radius: 12px;
-    margin: 0px 10px 20px 10px;
-    word-wrap: break-word;
-}
-  
-  .chat-message-user {
-    align-self: flex-end;
-    background-color: #3f495c;
-    color: white;
-    margin-left: auto;
-}
-  
-  .chat-message-bot {
-    align-self: flex-start;
-    background-color: #e0e0e0;
-    color: black;
-    /* margin-right: auto; */
-}
-
-.chat-messages-container {
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-    height: 500px;
-}
 
 /* HTML: <div class="circle-loader"></div> */
 .circle-loader {
