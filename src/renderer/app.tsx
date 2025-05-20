@@ -119,13 +119,15 @@ export const App = () => {
   const handleSendChatRequest = async (messageArray: { role: 'user' | 'assistant'; content: string }[]) => {
     try {
       const assistantResult = await window.electron.agi.sendChatRequest(messageArray);
-      setMessages(prev => [...prev, { role: 'assistant', content: assistantResult.response}]);
-      console.log(messages);
-      console.log(assistantResult);
+      setMessages(prev => {
+        const withoutThinking = prev.slice(0, -1);
+        return [...withoutThinking, { role: 'assistant', content: assistantResult.response }];
+      });
     } catch (err) {
       console.log("Error sending request to model: ", err);
     }
   }
+  
 
   const handleDeleteFileSync = async (filePath: string) => {
     const success = await handleDeleteFile(filePath);
