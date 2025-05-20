@@ -31,6 +31,12 @@
     height: 500px;
 }
 
+.chat-message pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-x: hidden;
+}
+
 /* HTML: <div class="dot-loader"></div> */
 .dot-loader {
     width: 20px;

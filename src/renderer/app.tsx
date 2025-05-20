@@ -131,8 +131,6 @@ export const App = () => {
     }
   };
 
-  
-
   const handleDeleteFileSync = async (filePath: string) => {
     const success = await handleDeleteFile(filePath);
     if (success) {
