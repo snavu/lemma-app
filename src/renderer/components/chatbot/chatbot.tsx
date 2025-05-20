@@ -9,7 +9,6 @@ interface chatUIProps {
     setIsChatOpen: (bool: boolean) => void;
     messages: { role: 'user' | 'assistant'; content: string }[];
     setMessages: Dispatch<SetStateAction<{ role: 'user' | 'assistant'; content: string }[]>>;
-    handleSendChatRequest: (messageArray: { role: 'user' | 'assistant'; content: string }[]) => void;
 }
 
 export const ChatUI: React.FC<chatUIProps> = ({ isChatOpen, setIsChatOpen, messages, setMessages }) => {
