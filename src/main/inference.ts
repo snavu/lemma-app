@@ -203,7 +203,8 @@ The JSON structure should be:
         { role: "system", content: "You are an AI assistant that specializes in question answering." },
         { role: "user", content: prompt },
         { role: "assistant", content: "Please provide the context for your question." },
-        ...messageHistory
+        ...messageHistory,
+        { role: "assistant", content: "" }
       ];
 
       if (this.isLocalMode) {

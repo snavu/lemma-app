@@ -50,6 +50,7 @@ interface Window {
       syncAgi: () => Promise<boolean>;
       updateFileInAgi: (filename: string) => Promise<boolean>;
       removeFileFromAgi: (filename: string) => Promise<boolean>;
+      sendChatRequest: (messageArray: { role: 'user' | 'assistant'; content: string }[]) => Promise<{response: string}>;
     }
   };
 }

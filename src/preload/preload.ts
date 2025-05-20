@@ -82,6 +82,7 @@ contextBridge.exposeInMainWorld('electron', {
     syncAgi: () => ipcRenderer.invoke('sync-agi'),
     updateFileInAgi: (filename: string) => ipcRenderer.invoke('update-file-in-agi', filename),
     removeFileFromAgi: (filename: string) => ipcRenderer.invoke('delete-file-in-agi', filename),
+    sendChatRequest: (messageArray: { role: 'user' | 'assistant'; content: string }[]) => ipcRenderer.invoke('send-chat-request', messageArray),
   },
 
 });
