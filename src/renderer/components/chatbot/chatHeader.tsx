@@ -23,8 +23,16 @@ export const ChatHeader = forwardRef<ChatMessageHandle, ChatHeaderProps>(
         <div className="chat-header" onMouseDown={onMouseDown}>
             <div>Q&A Chat</div>
             <div className="chat-buttons">
-                <button className="clear-button" onClick={() => {setMessages([]); ChatMessageHandle.current?.setDisplayMessageArray([]); }}>Clear</button>
-                <button className="exit-button" onClick={() => {setMessages(ChatMessageHandle.current?.getLatestMessages); setIsChatOpen(false);}} onMouseDown={(e) => e.stopPropagation()}><CloseIcon/></button>
+                <button className="clear-button" onClick={() => {
+                    window.electron.agi.stopChatResponse();
+                    setMessages([]); 
+                    ChatMessageHandle.current?.setDisplayMessageArray([]);
+                }}>Clear</button>
+                <button className="exit-button" onClick={() => {
+                    setMessages(ChatMessageHandle.current?.getLatestMessages); 
+                    setIsChatOpen(false); 
+                    window.electron.agi.stopChatResponse();
+                }} onMouseDown={(e) => e.stopPropagation()}><CloseIcon/></button>
             </div>
         </div>      
     );

@@ -10,6 +10,7 @@ import * as userAgiSync from './agi-sync';
 import { Config } from './config-service';
 import { InferenceService } from './inference';
 import { viewMode } from 'src/shared/types';
+import { useState } from 'react';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -20,6 +21,12 @@ let mainWindow: BrowserWindow | null = null;
 let database: DbClient;
 export let config: Config;
 export let inferenceService: InferenceService;
+
+// State for LLM generation
+let isStreaming: boolean = false;
+export const startStreaming = (): void => { isStreaming = true };
+export const stopStreaming = (): void => { isStreaming = false };
+export const streamingState = (): boolean => { return isStreaming };
 
 const createWindow = (): void => {
   // Create the browser window
@@ -311,13 +318,21 @@ const setupIpcHandlers = (): void => {
   });
 
   ipcMain.handle('send-chat-request', async (_, messageArray) => {
+    startStreaming();
     const response = await inferenceService.chatCompletion(messageArray, { stream: true }, (token) => {
       // Send each new token back to frontend
       mainWindow.webContents.send('llm-token-received', token);
     });
 
+    stopStreaming();
     mainWindow.webContents.send('llm-response-done');
     return response;
+  });
+
+  ipcMain.handle('stop-chat-response', () => {
+    // Interrupt streaming 
+    stopStreaming();
+    mainWindow.webContents.send('llm-response-done');
   });
 
   ipcMain.handle('get-local-inference-config', () => {

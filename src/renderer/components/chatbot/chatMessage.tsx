@@ -29,32 +29,34 @@ export const ChatMessage = forwardRef<ChatMessageHandle, ChatMessageProps>(
 
 
             const handleSendChatRequest = async (messageArray: { role: 'user' | 'assistant'; content: string }[]) => {
-            setDisplayMessageArray(prev => [...prev, { role: 'assistant', content: '' }]);
-            let assistantMessage = '';
+                setDisplayMessageArray(prev => [...prev, { role: 'assistant', content: '' }]);
+                let assistantMessage = '';
 
-            window.electron.agi.onTokenReceived(token => {
-                assistantMessage += token;
-                setDisplayMessageArray(prev => {
-                    const updated = [...prev];
-                    updated[updated.length - 1] = { role: 'assistant', content: assistantMessage.trim() };
-                    return updated;
+                window.electron.agi.onTokenReceived(token => {
+                    assistantMessage += token;
+                    setDisplayMessageArray(prev => {
+                        const updated = [...prev];
+                        updated[updated.length - 1] = { role: 'assistant', content: assistantMessage.trim() };
+                        return updated;
+                    });
                 });
-            });
 
-            window.electron.agi.onResponseDone(() => {
-                window.electron.agi.removeStreamListeners();
-            });
-
-            try {
-                const assistantResult = await window.electron.agi.sendChatRequest(messageArray);
-                setDisplayMessageArray(prev => {
-                    const withoutThinking = prev.slice(0, -1);
-                    return [...withoutThinking, { role: 'assistant', content: assistantResult.response }];
+                window.electron.agi.onResponseDone(() => {
+                    console.log('remove stream listeners');
+                    window.electron.agi.removeStreamListeners();
                 });
-            } catch (err) {
-                console.log("Error sending request to model: ", err);
-            }
-        };  
+
+                try {
+                    await window.electron.agi.sendChatRequest(messageArray);
+                    // const assistantResult = await window.electron.agi.sendChatRequest(messageArray);
+                    // setDisplayMessageArray(prev => {
+                    //     const withoutThinking = prev.slice(0, -1);
+                    //     return [...withoutThinking, { role: 'assistant', content: assistantResult.response }];
+                    // });
+                } catch (err) {
+                    console.log("Error sending request to model: ", err);
+                }
+            };  
 
         useImperativeHandle(ref, () => ({
             handleSendChatRequest,

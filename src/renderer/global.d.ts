@@ -51,6 +51,7 @@ interface Window {
       updateFileInAgi: (filename: string) => Promise<boolean>;
       removeFileFromAgi: (filename: string) => Promise<boolean>;
       sendChatRequest: (messageArray: { role: 'user' | 'assistant'; content: string }[]) => Promise<{response: string}>;
+      stopChatResponse: () => void;
       onTokenReceived: (callback: (token: string) => void) => Electron.IpcRenderer;
       onResponseDone: (callback: () => void) => Electron.IpcRenderer;
       removeStreamListeners: () => void;

@@ -4,6 +4,7 @@ import { llmConfig} from 'src/shared/types';
 import { Ollama } from "ollama";
 import { DbClient, FileType } from "./database";
 import * as fileService from './file-service';
+import { streamingState } from "./main";
 
 /**
  * Inference service supporting both cloud provider calls and local inference with Ollama
@@ -233,6 +234,7 @@ The JSON structure should be:
       messages[messages.length-2].content = aggregatedPrompt;
 
       console.log(messages[messages.length-2]); // Debugging
+      // console.log(messageHistory);
 
       if (this.isLocalMode) {
         // Local inference using Ollama
@@ -260,6 +262,11 @@ The JSON structure should be:
 
           // Stream token by token
           for await (const chunk of stream) {
+            // If streaming interrupted, break
+            if (!streamingState()) {
+              console.log('generating canceled');
+              break;
+            }
             const token = chunk?.message?.content;
             if (token) {
               fullResponse += token; // Append token to response
@@ -301,6 +308,11 @@ The JSON structure should be:
 
           // Stream token by token
           for await (const chunk of stream) {
+            // If streaming interrupted, break
+            if (!streamingState()) {
+              console.log('generating canceled');
+              break;
+            }
             const token = chunk.choices[0]?.delta?.content;
             if (token) {
               fullResponse += token; // Append token to response
