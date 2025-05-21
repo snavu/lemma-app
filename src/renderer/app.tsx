@@ -47,15 +47,12 @@ export const App = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
 
-  // View mode
-  const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
-
   // Use custom hooks 
   const {
     files,
     notesDirectory,
     graphJsonPath,
-    // viewMode,
+    viewMode,
     toggleViewMode,
     handleSelectDirectory,
     handleDeleteFile,
@@ -176,6 +173,8 @@ export const App = () => {
           setSearchInput={setSearchInput}
           searchResult={searchResult}
           setResults={setResults}
+          viewMode={viewMode}
+          toggleViewMode={toggleViewMode}
         />
         <div className="chat-bubble" onClick={() => setIsChatOpen(true)}>
           <ChatBubbleIcon/>
