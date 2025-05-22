@@ -21,6 +21,7 @@ try {
 
   const pip = isWin ? 'venv\\Scripts\\pip' : 'venv/bin/pip';
   try {
+    // Install both ChromaDB
     execSync(`${pip} install chromadb`, { stdio: 'inherit' });
   } catch (pipError) {
     console.error('Failed to install packages with pip. Trying pip3...');

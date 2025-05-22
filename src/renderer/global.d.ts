@@ -14,15 +14,14 @@ interface Window {
     };
     fs: {
       selectDirectory: () => Promise<string | null>;
-      getFiles: () => Promise<Array<{ name: string; path: string; stats: any }>>;
+      getFiles: (mode: viewMode) => Promise<Array<{ name: string; path: string; stats: any }>>;
       readFile: (filePath: string) => Promise<string>;
       saveFile: (filePath: string, content: string, updateHashtags: string[]) => Promise<{ success: boolean }>;
       createFile: (fileName: string) => Promise<{ success: boolean; filePath: string }>;
       deleteFile: (filePath: string) => Promise<{ success: boolean }>;
-      getNotesDirectory: () => Promise<string | null>;
-      getGeneratedFolderPath: () => Promise<string | null>;
-      getGraphJsonPath: () => Promise<string | null>;
-      getGeneratedGraphJsonPath: () => Promise<string | null>;
+      getGraphJsonPath: (mode: viewMode) => Promise<string | null>;
+      getViewMode: () => Promise<'main' | 'generated'>;
+      setViewMode: (mode: viewMode) => Promise<void>;
     };
     graph: {
       syncGraph: () => Promise<boolean>;
@@ -30,10 +29,34 @@ interface Window {
     on: {
       notesDirectorySelected: (callback: (directory: string) => void) => () => void;
       newNote: (callback: () => void) => () => void;
+      graphRefresh: (callback: () => void) => () => void;
+
     };
     db: {
       queryDBTags: (searchQuery: string, notesDirectory: string) => Promise<Note[]>;
       queryDBKeyWords: (searchQuery: string, notesDirectory: string) => Promise<Note[]>;
     };
+    config: {
+      getMainNotesDirectory: () => Promise<string | null>;
+      getCurrentNotesDirectory: (mode: viewMode ) => Promise<string | null>;
+      getLLMConfig: () => Promise<llmConfig>;
+      setLLMConfig: (llmConfig: llmConfig) => Promise<llmConfig>;
+      getAgiConfig: () => Promise<agiConfig>;
+      setAgiConfig: (agiConfig: agiConfig) => Promise<agiConfig>;
+      getLocalInferenceConfig: () => Promise<localInferenceConfig>;
+      setLocalInferenceConfig: (localInferenceConfig: localInferenceConfig) => Promise<localInferenceConfig>;
+    };
+    agi: {
+      syncAgi: () => Promise<boolean>;
+      updateFileInAgi: (filename: string) => Promise<boolean>;
+      removeFileFromAgi: (filename: string) => Promise<boolean>;
+      sendChatRequest: (messageArray: { role: 'user' | 'assistant'; content: string }[]) => Promise<{response: string}>;
+      stopChatResponse: () => void;
+      onTokenReceived: (callback: (token: string) => void) => Electron.IpcRenderer;
+      onResponseDone: (callback: () => void) => Electron.IpcRenderer;
+      removeStreamListeners: () => void;
+    }
   };
 }
+
+

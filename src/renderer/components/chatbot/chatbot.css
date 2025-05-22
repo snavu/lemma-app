@@ -1,0 +1,14 @@
+.chat-floating {
+    position: fixed;
+    width: 450px;
+    max-height: 700px;
+    background-color: var(--background-secondary);
+    border-radius: 8px;
+    border: solid white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    z-index: 1000;
+    max-height: 700px;
+    overflow-y: auto;
+    resize: both;
+}
+  

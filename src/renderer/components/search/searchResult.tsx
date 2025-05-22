@@ -117,7 +117,7 @@ export const SearchResults: React.FC<SearchResultProps> = ({
         </svg>
     );
       
-  return (
+  return (  
     <div className="search-container">
         <div className="search-result">
             <Search 

@@ -857,7 +857,7 @@ function generateContent(nodeId) {
 }
 
 // Create files in a directory structure
-const baseDir = 'LEMMA Notes';
+const baseDir = process.argv.slice(2)[0] ?? 'LEMMA Notes';
 
 // Create the base directory and required subdirectories
 function createDirectories() {
@@ -865,8 +865,8 @@ function createDirectories() {
     fs.mkdirSync(baseDir);
   }
   
-  // Create the 'generated' subdirectory
-  const generatedDir = path.join(baseDir, 'generated');
+  // Create the 'LEMMA_generated' subdirectory
+  const generatedDir = path.join(baseDir, 'LEMMA_generated');
   if (!fs.existsSync(generatedDir)) {
     fs.mkdirSync(generatedDir);
   }

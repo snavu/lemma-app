@@ -5,6 +5,13 @@
   height: 100%;
 }
 
+.app .chat-bubble {
+  position: absolute;
+  left: 0px;
+  bottom: 0px;
+  z-index: 1000;
+}
+
 /* Header styling */
 .header {
   display: flex;

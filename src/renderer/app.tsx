@@ -5,6 +5,7 @@ import './layout.css';
 import EmptyState from './components/emptystate/EmptyState';
 import { TabBar } from './components/tabs/tab-bar/TabBar';
 import { InlineMarkdownTab } from './components/tabs/markdown/InlineMarkdownTab';
+import { ChatUI } from './components/chatbot/chatbot';
 
 interface FileInfo {
   name: string;
@@ -31,6 +32,7 @@ import { useTabs } from './hooks/useTabs';
 import { useGraphState } from './hooks/useGraphState';
 import { useNotesSync } from './hooks/useNotesSync';
 import KnowledgeGraph from './components/tabs/markdown/graph/KnowledgeGraph';
+import ToastProvider from './components/toast/ToastProvider';
 
 // Memoize the KnowledgeGraph component to prevent unnecessary re-renders
 const MemoizedKnowledgeGraph = memo(KnowledgeGraph);
@@ -41,17 +43,20 @@ export const App = () => {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searchInput, setSearchInput] = useState<string>(''); // For knowing what the input to display
 
-  // View mode
-  const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
+  // State for chatBot
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
 
   // Use custom hooks 
   const {
     files,
     notesDirectory,
     graphJsonPath,
+    viewMode,
+    toggleViewMode,
     handleSelectDirectory,
     handleDeleteFile,
-    handleNewNote
+    handleNewNote,
   } = useFiles();
 
   const {
@@ -84,6 +89,19 @@ export const App = () => {
     const currentTab = tabs.find(tab => tab.id === activeTab);
     return currentTab?.filePath;
   };
+
+
+  useEffect(() => {
+    if (window.electron?.on) {
+      const removeListener = window.electron.on.graphRefresh(() => {
+        triggerGraphRefresh();
+      });
+
+      return () => {
+        removeListener();
+      };
+    }
+  }, [triggerGraphRefresh]);
 
   // Set up new note listener from menu
   useEffect(() => {
@@ -127,6 +145,12 @@ export const App = () => {
     return newFilePath;
   };
 
+  const ChatBubbleIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="gray" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 11.5a8.38 8.38 0 0 1-1.9 5.4c.1 1.1.5 2.1 1.4 3.1-1.5-.2-2.8-.6-3.9-1.4a8.5 8.5 0 1 1 4.4-7.1z" />
+    </svg>
+);
+
   return (
     <div className="app">
       <div className="header">
@@ -149,7 +173,20 @@ export const App = () => {
           setSearchInput={setSearchInput}
           searchResult={searchResult}
           setResults={setResults}
+          viewMode={viewMode}
+          toggleViewMode={toggleViewMode}
         />
+        <div className="chat-bubble" onClick={() => setIsChatOpen(true)}>
+          <ChatBubbleIcon/>
+        </div>
+        {isChatOpen && 
+          <ChatUI
+            isChatOpen={isChatOpen}
+            setIsChatOpen={setIsChatOpen}
+            messages={messages}
+            setMessages={setMessages}
+          />
+        }
         <div className="main-content-wrapper">
           <TabBar
             tabs={tabs}
@@ -166,7 +203,6 @@ export const App = () => {
                   files={files}
                   key={activeTab}
                   initialDoc={getCurrentTabContent()}
-                  viewMode={viewMode}
                   onFileSelect={handleFileSelect}
                   currentFilePath={getCurrentFilePath()}
                   onChange={(content, hashtags) => handleNoteChange(activeTab, content, hashtags)}
@@ -188,7 +224,9 @@ export const App = () => {
             )}
           </div>
         </div>
+        <ToastProvider />
       </div>
+
     </div>
   );
 };

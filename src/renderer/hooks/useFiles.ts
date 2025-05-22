@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useAgi } from './useAgi';
 
 export interface FileInfo {
   name: string;
@@ -10,39 +11,54 @@ export const useFiles = () => {
   const [notesDirectory, setNotesDirectory] = useState<string | null>(null);
   const [graphJsonPath, setGraphJsonPath] = useState<string | null>(null);
   const [files, setFiles] = useState<FileInfo[]>([]);
+  const [viewMode, setViewMode] = useState<'main' | 'generated'>('main');
+  const { syncAgi, updateFileInAgi } = useAgi();
+  const mode = 'main';
 
-  // Check for default directory on initial load
+  // Check for default directory and view mode on initial load
   useEffect(() => {
-    const checkForDefaultDirectory = async () => {
+    const initialize = async () => {
       if (window.electron?.fs) {
         try {
-          const directory = await window.electron.fs.getNotesDirectory();
+          // Get current view mode
+          setViewMode(mode);
+
+          // Get directories
+          const directory = await window.electron.config.getCurrentNotesDirectory(mode);
           if (directory) {
             setNotesDirectory(directory);
-            const path = await window.electron.fs.getGraphJsonPath();
-            if (path) {
-              setGraphJsonPath(path);
-            }
+
+            const path = await window.electron.fs.getGraphJsonPath(mode);
+            setGraphJsonPath(path);
+
           }
         } catch (error) {
-          console.error('Failed to get default notes directory:', error);
+          console.error('Failed to initialize:', error);
         }
       }
     };
 
-    checkForDefaultDirectory();
+    initialize();
   }, []);
 
   // Load files when directory is selected
   useEffect(() => {
     const loadFiles = async () => {
       if (notesDirectory && window.electron?.fs) {
+        console.log('Loading files from directory:', notesDirectory);
         try {
-          const files = await window.electron.fs.getFiles();
+          const files = await window.electron.fs.getFiles(mode);
           setFiles(files);
-          const path = await window.electron.fs.getGraphJsonPath();
+          const path = await window.electron.fs.getGraphJsonPath(mode);
           if (path) {
             setGraphJsonPath(path);
+          }
+          
+          const result = await window.electron.config.getAgiConfig();
+          if (result) {
+            if (result.enableChunking) {
+              syncAgi();
+            }
           }
         } catch (error) {
           console.error('Failed to load files:', error);
@@ -51,6 +67,7 @@ export const useFiles = () => {
     };
 
     if (notesDirectory) {
+      console.log('Loading files from directory:', notesDirectory);
       loadFiles();
     }
   }, [notesDirectory]);
@@ -82,11 +99,19 @@ export const useFiles = () => {
     try {
       // Delete the file
       await window.electron.fs.deleteFile(filePath);
-
       // Refresh the files list
-      const updatedFiles = await window.electron.fs.getFiles();
+      const updatedFiles = await window.electron.fs.getFiles(mode);
       setFiles(updatedFiles);
 
+      // Extract just the filename from the path
+      const filename = filePath.split(/[/\\]/).pop();
+
+      const result = await window.electron.config.getAgiConfig();
+      if (result) {
+        if (result.enabled) {
+          updateFileInAgi(filename);
+        }
+      }
       return true;
     } catch (error) {
       console.error('Failed to delete file:', error);
@@ -102,31 +127,52 @@ export const useFiles = () => {
     try {
       // Create a unique filename
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const fileName = `Note ${timestamp}`;
+      const fileName = `Note ${timestamp}.md`;
 
-      const result = await window.electron.fs.createFile(fileName + ".md");
+      const file = await window.electron.fs.createFile(fileName);
 
       // Refresh files list
-      const newFiles = await window.electron.fs.getFiles();
+      const newFiles = await window.electron.fs.getFiles(mode);
       setFiles(newFiles);
 
-      // Get the notes directory if it's not already set
-      if (!notesDirectory) {
-        const directory = await window.electron.fs.getNotesDirectory();
-        setNotesDirectory(directory);
+      const result = await window.electron.config.getAgiConfig();
+      if (result) {
+        if (result.enabled) {
+          updateFileInAgi(fileName);
+        }
       }
 
-      return result.filePath;
+      return file.filePath;
     } catch (error) {
       console.error('Failed to create new note:', error);
       return null;
     }
   }, [notesDirectory]);
 
+  const toggleViewMode = useCallback(async () => {
+    const newMode = viewMode === 'main' ? 'generated' : 'main';
+
+    // Update local state
+    setViewMode(newMode);
+
+    await window.electron.fs.setViewMode(newMode);
+
+    // Update graph path
+    const path = await window.electron.fs.getGraphJsonPath(newMode)
+    setGraphJsonPath(path);
+
+    // Reload files for the new view
+    const files = await window.electron.fs.getFiles(newMode);
+    setFiles(files);
+  }, [viewMode]);
+
+
   return {
     files,
     notesDirectory,
     graphJsonPath,
+    viewMode,
+    toggleViewMode,
     handleSelectDirectory,
     handleDeleteFile,
     handleNewNote
