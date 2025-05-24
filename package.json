@@ -88,6 +88,7 @@
     "onnxruntime-common": "^1.23.0-dev.20250429-a9a3ad2e0c",
     "onnxruntime-node": "^1.22.0",
     "onnxruntime-web": "^1.22.0",
+    "prop-types": "^15.8.1",
     "re-resizable": "^6.11.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
