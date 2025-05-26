@@ -1,9 +1,9 @@
-import React, { useState, useCallback, ReactNode } from 'react';
+import React, { useState, useCallback, ReactNode , useEffect, useRef, SetStateAction, Dispatch} from 'react';
 import { ContextMenu } from '../context-menu/ContextMenu';
-import './sidebar.css';
 import { SearchResults } from '../search/searchResult';
 import LLMSettingsModal from '../settings-modal/LLMSettingsModal';
 import { viewMode } from 'src/shared/types';
+import './sidebar.css';
 
 interface FileInfo {
   name: string;
@@ -44,6 +44,10 @@ interface SidebarProps {
   setResults: (info: SearchResult[]) => void;
   viewMode: viewMode;
   toggleViewMode: () => void;
+  isChatOpen: boolean;
+  setIsChatOpen: (bool: boolean) => void;
+  messages: { role: 'user' | 'assistant'; content: string }[];
+  setMessages: Dispatch<SetStateAction<{ role: 'user' | 'assistant'; content: string }[]>>;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -63,7 +67,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   searchResult,
   setResults,
   viewMode,
-  toggleViewMode
+  toggleViewMode,
+  isChatOpen,
+  setIsChatOpen,
+  messages,
+  setMessages,
 }) => {
   // State for context menu
   const [contextMenu, setContextMenu] = useState<{
@@ -173,6 +181,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </svg>
   );
 
+  const ChatBubbleIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 11.5a8.38 8.38 0 0 1-1.9 5.4c.1 1.1.5 2.1 1.4 3.1-1.5-.2-2.8-.6-3.9-1.4a8.5 8.5 0 1 1 4.4-7.1z" />
+    </svg>
+  );
+
+  const CollapseIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+      <line x1="9" y1="21" x2="9" y2="3"></line>
+    </svg>
+  );
+
   // Icons for the context menu
   const OpenIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -203,123 +224,180 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
     </svg>
   );
+  
+
+  const sidebarRef = useRef(null);
+  const [isResizing, setIsResizing] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(268);
+
+  const startResizing = React.useCallback((mouseDownEvent: any) => {
+    setIsResizing(true);
+  }, []);
+
+  const stopResizing = React.useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  const resize = React.useCallback(
+    (mouseMoveEvent: any) => {
+      if (isResizing) {
+        setSidebarWidth(
+          mouseMoveEvent.clientX -
+            sidebarRef.current.getBoundingClientRect().left
+        );
+      }
+    },
+    [isResizing]
+  );
+
+  React.useEffect(() => {
+    window.addEventListener("mousemove", resize);
+    window.addEventListener("mouseup", stopResizing);
+    return () => {
+      window.removeEventListener("mousemove", resize);
+      window.removeEventListener("mouseup", stopResizing);
+    };
+  }, [resize, stopResizing]);
 
   return (
-    <div className="sidebar">
-      <div className="sidebar-header">
-        <div className="sidebar-actions">
-          <button onClick={onNewNote} title="New Note">
-            <NewNoteIcon />
-          </button>
-          <button onClick={onSelectDirectory} title="Select Notes Directory">
-            <FolderIcon />
-          </button>
-          <button onClick={() => setSearchresult(true)} title="Search">
-            <SearchIcon />
-          </button>
-          <button onClick={openLLMSettings} title="AI Settings">
-            <AISettingsIcon />
-          </button>
-          <button
-            onClick={toggleViewMode}
-            className={viewMode === 'generated' ? 'active' : ''}
-          >
-            <ViewModeIcon />
-          </button>
+    <div className="sidebar-container">
+      <div className="sidebar"
+        ref={sidebarRef}
+        style={{ width: sidebarWidth }}
+        onMouseDown={(e) => e.preventDefault()}
+      >
+        <div className="vertical-buttons-files">
+          <div className="sidebar-buttons">
+            <div className="sidebar-actions">
+              <button className="collapse" title="collapse">
+                <CollapseIcon/>
+              </button>
+              <button onClick={onNewNote} title="New Note">
+                <NewNoteIcon />
+              </button>
+              <button onClick={onSelectDirectory} title="Select Notes Directory">
+                <FolderIcon />
+              </button>
+              <button onClick={() => setSearchresult(true)} title="Search">
+                <SearchIcon />
+              </button>
+              <button onClick={openLLMSettings} title="AI Settings">
+                <AISettingsIcon />
+              </button>
+              <button
+                onClick={toggleViewMode}
+                className={viewMode === 'generated' ? 'active' : ''}
+                title="Toggle View"
+              >
+                <ViewModeIcon />
+              </button>
+              <button onClick={() => setIsChatOpen(true)} title="ChatBot">
+                <ChatBubbleIcon/>
+              </button>
+            </div>
+          </div>
+
+          <div className="Files-notes-location">
+            {!searchResult && (
+              <>
+                <div className="notes-location">
+                  {notesDirectory ? (
+                    <span title={notesDirectory}>
+                      <FolderIcon /> {notesDirectory.split(/[\\/]/).pop()}
+                    </span>
+                  ) : (
+                    <span>No folder selected</span>
+                  )}
+                </div>
+
+                <div className="files-list">
+                  {files.length === 0 ? (
+                    <div className="no-files">
+                      {notesDirectory
+                        ? 'No notes yet. Create your first note!'
+                        : 'Select a notes folder to get started.'}
+                    </div>
+                  ) : (
+                    <ul>
+                      {files.map((file) => (
+                        <li
+                          key={file.path}
+                          onClick={() => onFileSelect(file.path)}
+                          onContextMenu={(e) => handleContextMenu(e, file.path)}
+                        >
+                          <span className="file-icon"><NoteIcon /></span>
+                          <span className="file-name">{file.name}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                {contextMenu.show && (
+                  <ContextMenu
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    onClose={closeContextMenu}
+                    options={[
+                      {
+                        label: 'Open',
+                        onClick: () => onFileSelect(contextMenu.filePath),
+                        icon: <OpenIcon />
+                      },
+                      {
+                        label: 'Rename',
+                        onClick: () => {
+                          alert('Rename functionality will be implemented soon');
+                        },
+                        icon: <RenameIcon />
+                      },
+                      {
+                        label: 'Duplicate',
+                        onClick: () => {
+                          alert('Duplicate functionality will be implemented soon');
+                        },
+                        icon: <DuplicateIcon />
+                      },
+                      {
+                        isSeparator: true
+                      },
+                      {
+                        label: 'Delete',
+                        onClick: handleDeleteFile,
+                        className: 'danger',
+                        icon: <DeleteIcon />
+                      },
+                    ]}
+                  />
+                )}
+              </>
+            )}
+          </div>
         </div>
+
+
+
+
+
+
+        {searchResult &&
+          <SearchResults
+            handleFileSelect={handleFileSelect}
+            setSearchresult={setSearchresult}
+            results={results}
+            searchInput={searchInput}
+            handleSearch={handleSearch}
+            setSearchInput={setSearchInput}
+            setResults={setResults}
+          />}
+
+        {/* LLM Settings Modal */}
+        <LLMSettingsModal
+          isOpen={isLLMSettingsOpen}
+          onClose={closeLLMSettings}
+        />
       </div>
-
-      {!searchResult && (
-        <>
-          <div className="notes-location">
-            {notesDirectory ? (
-              <span title={notesDirectory}>
-                <FolderIcon /> {notesDirectory.split(/[\\/]/).pop()}
-              </span>
-            ) : (
-              <span>No folder selected</span>
-            )}
-          </div>
-
-          <div className="files-list">
-            {files.length === 0 ? (
-              <div className="no-files">
-                {notesDirectory
-                  ? 'No notes yet. Create your first note!'
-                  : 'Select a notes folder to get started.'}
-              </div>
-            ) : (
-              <ul>
-                {files.map((file) => (
-                  <li
-                    key={file.path}
-                    onClick={() => onFileSelect(file.path)}
-                    onContextMenu={(e) => handleContextMenu(e, file.path)}
-                  >
-                    <span className="file-icon"><NoteIcon /></span>
-                    <span className="file-name">{file.name}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {contextMenu.show && (
-            <ContextMenu
-              x={contextMenu.x}
-              y={contextMenu.y}
-              onClose={closeContextMenu}
-              options={[
-                {
-                  label: 'Open',
-                  onClick: () => onFileSelect(contextMenu.filePath),
-                  icon: <OpenIcon />
-                },
-                {
-                  label: 'Rename',
-                  onClick: () => {
-                    alert('Rename functionality will be implemented soon');
-                  },
-                  icon: <RenameIcon />
-                },
-                {
-                  label: 'Duplicate',
-                  onClick: () => {
-                    alert('Duplicate functionality will be implemented soon');
-                  },
-                  icon: <DuplicateIcon />
-                },
-                {
-                  isSeparator: true
-                },
-                {
-                  label: 'Delete',
-                  onClick: handleDeleteFile,
-                  className: 'danger',
-                  icon: <DeleteIcon />
-                },
-              ]}
-            />
-          )}
-        </>
-      )}
-
-      {searchResult &&
-        <SearchResults
-          handleFileSelect={handleFileSelect}
-          setSearchresult={setSearchresult}
-          results={results}
-          searchInput={searchInput}
-          handleSearch={handleSearch}
-          setSearchInput={setSearchInput}
-          setResults={setResults}
-        />}
-
-      {/* LLM Settings Modal */}
-      <LLMSettingsModal
-        isOpen={isLLMSettingsOpen}
-        onClose={closeLLMSettings}
-      />
+      <div className="resizeable" onMouseDown={startResizing} ></div>
     </div>
   );
 };

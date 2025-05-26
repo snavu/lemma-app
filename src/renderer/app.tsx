@@ -145,12 +145,6 @@ export const App = () => {
     return newFilePath;
   };
 
-  const ChatBubbleIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="gray" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 11.5a8.38 8.38 0 0 1-1.9 5.4c.1 1.1.5 2.1 1.4 3.1-1.5-.2-2.8-.6-3.9-1.4a8.5 8.5 0 1 1 4.4-7.1z" />
-    </svg>
-);
-
   return (
     <div className="app">
       <div className="header">
@@ -175,10 +169,11 @@ export const App = () => {
           setResults={setResults}
           viewMode={viewMode}
           toggleViewMode={toggleViewMode}
+          isChatOpen={isChatOpen}
+          setIsChatOpen={setIsChatOpen}
+          messages={messages}
+          setMessages={setMessages}
         />
-        <div className="chat-bubble" onClick={() => setIsChatOpen(true)}>
-          <ChatBubbleIcon/>
-        </div>
         {isChatOpen && 
           <ChatUI
             isChatOpen={isChatOpen}

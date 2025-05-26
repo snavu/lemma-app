@@ -1,51 +1,22 @@
-.view-controls-container {
-  position: absolute;
-  bottom: 30px;
-  left: 16px;
-  z-index: 10;
-}
-
-.view-controls {
-  display: flex;
-  align-items: center;
-  background-color: var(--background-secondary);
-  border-radius: 6px;
-  padding: 4px;
-}
-
-.view-controls button {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  margin: 0 3px;
-  cursor: pointer;
-}
-
-.view-controls button:hover {
-  background-color: var(--interactive-hover);
-  color: var(--text-normal);
-}
-
-.view-controls button.active {
-  background-color: var(--interactive-normal);
-  color: var(--text-accent);
-}
-
 .sidebar {
   position: relative;
   height: 100%;
   width: 500px;
   background-color: var(--background-secondary);
   border-right: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 12px 0;
+  /* padding: 12px 0; */
   display: flex;
   flex-direction: column;
+  resize: horizontal;
+}
+
+.sidebar-buttons {
+  border-right: 1px solid red;
+}
+
+.sidebar-container {
+  display: flex;
+  /* min-width:  */
 }
 
 /* Sidebar header styling */
@@ -58,6 +29,10 @@
   margin-bottom: 12px;
 }
 
+.vertical-buttons-files {
+  display: flex;
+}
+
 .sidebar-header h3 {
   margin: 0;
   font-size: 16px;
@@ -67,7 +42,8 @@
 
 .sidebar-actions {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 15px;
 }
 
 .sidebar-actions button {
@@ -165,33 +141,26 @@
   font-style: italic;
 }
 
-.sidebar-nav {
-  flex: 1;
-  overflow-y: auto;
+/* .resizeable {
+  flex-grow: 0;
+  flex-shrink: 0;
+  flex-basis: 6px;
+  justify-self: flex-end;
+  cursor: col-resize;
+  resize: horizontal;
+  width: 10px;
 }
 
-.sidebar-nav-item {
-  display: flex;
-  align-items: center;
-  padding: 8px 16px;
-  color: var(--text-muted);
-  cursor: pointer;
-  border-radius: 4px;
-  margin: 2px 8px;
+.sidebar-container .resizable {
+  flex-grow: 0;
+  flex-shrink: 0;
+  flex-basis: 6px;
+  justify-self: flex-end;
+  cursor: col-resize;
+  resize: horizontal;
 }
 
-.sidebar-nav-item:hover {
-  background-color: var(--interactive-hover);
-  color: var(--text-normal);
-}
-
-.sidebar-nav-item.active {
-  background-color: var(--interactive-normal);
-  color: var(--text-normal);
-}
-
-.sidebar-nav-item-icon {
-  width: 18px;
-  height: 18px;
-  margin-right: 8px;
-}
+.sidebar-container .resizable:hover {
+  width: 3px;
+  background: white;
+} */
