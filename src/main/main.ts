@@ -10,6 +10,7 @@ import * as userAgiSync from './agi-sync';
 import { Config } from './config-service';
 import { InferenceService } from './inference';
 import { viewMode } from 'src/shared/types';
+import { startExtensionService } from './extension-service';
 import { useState } from 'react';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
@@ -191,11 +192,11 @@ const selectNotesDirectory = async (): Promise<string | null> => {
 const setupIpcHandlers = (): void => {
 
   ipcMain.handle('tag-search-query', async (_, searchQuery, notesDirectory) => {
-    return await database.queryNotes(notesDirectory, {searchQuery: searchQuery, searchMode: 'tag'});
+    return await database.queryNotes(notesDirectory, { searchQuery: searchQuery, searchMode: 'tag' });
   });
 
   ipcMain.handle('keyword-search-query', async (_, searchQuery, notesDirectory) => {
-    return await database.queryNotes(notesDirectory, {searchQuery: searchQuery, searchMode: 'full-text'});
+    return await database.queryNotes(notesDirectory, { searchQuery: searchQuery, searchMode: 'full-text' });
   });
 
   ipcMain.handle('open-external', async (_, url) => {
@@ -381,6 +382,7 @@ app.on('ready', () => {
   createAppMenu();
   setupIpcHandlers();
   initializeFileSystem();
+  startExtensionService(3001);
   chromaService.startChromaDb();
   database = new DbClient();
   inferenceService = new InferenceService();
