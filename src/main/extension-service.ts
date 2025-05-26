@@ -3,10 +3,12 @@ import { inferenceService } from './main';
 import * as fileService from './file-service';
 import * as graphLoader from './graph-loader';
 import * as path from 'path';
+import { viewMode } from '../shared/types';
 
 const apiApp = express();
 apiApp.use(express.json());
 
+// 1. Respond to queries about web content
 apiApp.post('/api/chat', async (req, res) => {
   const { webContent, query, prevMessages, url } = req.body;
   console.log('Received query from extension:', { webContent, query, prevMessages, url });
@@ -67,18 +69,43 @@ Please provide a helpful response based on the web content and the user's questi
   }
 });
 
+// 2. Save current webpage as a markdown note (with LLM processing)
 apiApp.post('/api/save-note', async (req, res) => {
-  const { webContent, title, URL } = req.body;
-  console.log('Saving note to Lemma:', { title, URL, contentLength: webContent?.length });
+  const { webContent, title, url } = req.body;
+  console.log('Processing and saving note to Lemma:', { title, url, contentLength: webContent?.length });
+  console.log('Web content preview:', webContent?.substring(0, 200) + '...');
 
   try {
     // Validate input
-    if (!title || !webContent) {
+    if (!title) {
       res.status(400).json({
         success: false,
-        error: 'Title and content are required'
+        error: 'Title is required'
       });
       return;
+    }
+
+    if (!webContent || webContent.trim().length === 0) {
+      res.status(400).json({
+        success: false,
+        error: 'Web content is required and cannot be empty'
+      });
+      return;
+    }
+
+    // Process content with the dedicated formatting function
+    const formatResponse = await inferenceService.formatWebContent(webContent, {
+      temperature: 0.2  // Lower temperature for more consistent formatting
+    });
+
+    let processedContent = formatResponse.formattedContent;
+    
+    // Validate LLM response and fallback if needed
+    if (!processedContent || processedContent.trim().length === 0) {
+      console.log('LLM returned empty response, using original content');
+      processedContent = webContent;
+    } else {
+      console.log('LLM processed content preview:', processedContent.substring(0, 200) + '...');
     }
 
     // Sanitize the title for use as filename
@@ -91,18 +118,18 @@ apiApp.post('/api/save-note', async (req, res) => {
     // Create filename with .md extension
     const fileName = `${sanitizedTitle}.md`;
 
-    // Create the note content with metadata
+    // Create the final note content with metadata
     const noteContent = `# ${title}
 
-**Source:** ${URL}
+**Source:** ${url}
 **Saved:** ${new Date().toISOString()}
 
 ---
 
-${webContent}
+${processedContent}
 `;
 
-    // Get the full file path
+    // Get the notes directory
     const notesDirectory = fileService.mainNotesDirectory;
     if (!notesDirectory) {
       res.status(500).json({
@@ -119,16 +146,14 @@ ${webContent}
     
     if (result.success) {
       // Update the graph with the new file
-      const viewMode = 'main';
+      const viewMode: viewMode = 'main';
       await graphLoader.updateFileInGraph(viewMode, fileName);
-      
-      // Note: Database update skipped due to embedding dimension mismatch
 
       res.json({
         success: true,
         fileName: fileName,
         filePath: filePath,
-        message: 'Note saved successfully'
+        message: 'Note processed and saved successfully'
       });
     } else {
       res.status(500).json({
@@ -138,7 +163,7 @@ ${webContent}
     }
 
   } catch (error) {
-    console.error('Error saving note:', error);
+    console.error('Error processing and saving note:', error);
     res.status(500).json({
       success: false,
       error: error.message || 'Internal server error'
