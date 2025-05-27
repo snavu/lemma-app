@@ -45,6 +45,9 @@
     cursor: pointer;
     border-radius: 4px;
     color: var(--text-muted);
+    width: 20px;
+    height: 20px;
+  
   }
   
   .close-button:hover {
