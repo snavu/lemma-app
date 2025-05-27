@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { DbClient, FileType } from '../../src/main/database';
 
-const fixturePath = 'tests/fixtures';
+const fixturePath = 'tests/fixtures/db-test';
 const testFilePaths = fs.readdirSync(fixturePath).filter(file => file.endsWith('.md')).map(file => path.join(fixturePath, file));
 const testFiles = testFilePaths.map((filePath: string) => ({
   filePath: filePath,
@@ -15,10 +15,8 @@ const searchMatch = [
   { file: path.join(fixturePath, 'Propositional Calculus.md'), similarityQuery: 'what is propositional calculus', fullTextQuery: 'The principle of compositionality'},
 ]
 
-const notesDir = 'tests/fixtures';
+const notesDir = fixturePath;
 const database = new DbClient();
-
-jest.setTimeout(20000);
 
 describe('upsertNotes()', () => {
   it('insert note 1', async () => {
