@@ -273,20 +273,22 @@ const KnowledgeGraph = ({
 
   useEffect(() => {
     if (!containerRef.current) return;
-
+  
     const erd = elementResizeDetectorMaker();
-
-    erd.listenTo(containerRef.current, (element) => {
+    const element = containerRef.current;
+  
+    erd.listenTo(element, (el) => {
       setDimensions({
-        width: element.clientWidth,
-        height: element.clientHeight,
+        width: el.clientWidth,
+        height: el.clientHeight,
       });
     });
-
+  
     return () => {
-      erd.removeAllListeners(containerRef.current!);
+      erd.removeAllListeners(element);
     };
   }, []);
+  
 
   return (
     <div className="knowledge-graph" ref={containerRef}>

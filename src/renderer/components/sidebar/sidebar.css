@@ -1,22 +1,70 @@
 .sidebar {
   position: relative;
   height: 100%;
-  width: 500px;
+  width: 250px;
+  min-width: 250px;
+  max-width: 500px;
   background-color: var(--background-secondary);
   border-right: 1px solid rgba(255, 255, 255, 0.1);
-  /* padding: 12px 0; */
+  display: flex;
+  flex-direction: row;
+  resize: horizontal;
+  overflow: hidden;
+}
+
+/* Vertical buttons container */
+.sidebar-actions-container {
   display: flex;
   flex-direction: column;
-  resize: horizontal;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 6px;
+  flex-shrink: 0;
+  width: 44px;
+  align-items: center;
 }
 
-.sidebar-buttons {
-  border-right: 1px solid red;
-}
-
-.sidebar-container {
+/* action buttons */
+.sidebar-actions {
   display: flex;
-  /* min-width:  */
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+/* individual action buttons */
+.sidebar-actions button {
+  background-color: transparent;
+  border: none;
+  color: var(--text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+.sidebar-actions button:hover {
+  background-color: var(--interactive-hover);
+  color: var(--text-normal);
+}
+
+.sidebar-actions button.active {
+  background-color: var(--interactive-active, var(--interactive-hover));
+  color: var(--text-normal);
+}
+
+/* Main content area */
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* Sidebar header styling */
@@ -24,13 +72,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px 12px 16px;
+  padding: 12px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   margin-bottom: 12px;
-}
-
-.vertical-buttons-files {
-  display: flex;
+  flex-shrink: 0;
+  min-width: 0;
 }
 
 .sidebar-header h3 {
@@ -38,35 +84,10 @@
   font-size: 16px;
   font-weight: 600;
   color: var(--text-normal);
-}
-
-.sidebar-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.sidebar-actions button {
-  background-color: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-size: 13px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease;
-}
-
-.sidebar-actions button svg {
-  margin-right: 4px;
-}
-
-.sidebar-actions button:hover {
-  background-color: var(--interactive-hover);
-  color: var(--text-normal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 /* Notes location styling */
@@ -77,29 +98,36 @@
   display: flex;
   align-items: center;
   margin-bottom: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   padding-bottom: 12px;
+  flex-shrink: 0;
+  min-width: 0;
 }
 
 .notes-location span {
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* Files list styling */
 .files-list {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 0 8px;
+  min-width: 0;
 }
 
 .files-list ul {
   list-style: none;
   padding: 0;
   margin: 0;
+  min-width: 0;
 }
 
 .files-list li {
@@ -111,9 +139,7 @@
   border-radius: 4px;
   margin: 2px 0;
   transition: all 0.15s ease;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
 }
 
 .files-list li:hover {
@@ -131,6 +157,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
+  flex: 1;
 }
 
 .no-files {
@@ -140,27 +168,3 @@
   text-align: center;
   font-style: italic;
 }
-
-/* .resizeable {
-  flex-grow: 0;
-  flex-shrink: 0;
-  flex-basis: 6px;
-  justify-self: flex-end;
-  cursor: col-resize;
-  resize: horizontal;
-  width: 10px;
-}
-
-.sidebar-container .resizable {
-  flex-grow: 0;
-  flex-shrink: 0;
-  flex-basis: 6px;
-  justify-self: flex-end;
-  cursor: col-resize;
-  resize: horizontal;
-}
-
-.sidebar-container .resizable:hover {
-  width: 3px;
-  background: white;
-} */
