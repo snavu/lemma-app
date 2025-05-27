@@ -92,6 +92,58 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // State for LLM settings modal
   const [isLLMSettingsOpen, setIsLLMSettingsOpen] = useState(false);
 
+  const [sidebarWidth, setSidebarWidth] = useState(250);
+  const [isResizing, setIsResizing] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+
+  // Resize handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isResizing || !sidebarRef.current) return;
+    
+    const rect = sidebarRef.current.getBoundingClientRect();
+    const newWidth = e.clientX - rect.left;
+    
+    // Set min and max width constraints
+    const minWidth = 42;
+    const maxWidth = 500;
+    
+    if (newWidth >= minWidth && newWidth <= maxWidth) {
+      setSidebarWidth(newWidth);
+    }
+  }, [isResizing]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  // Add event listeners for resize
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+    } else {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing, handleMouseMove, handleMouseUp]);
+
+
   // Handler for right-click on a file
   const handleContextMenu = useCallback(
     (e: React.MouseEvent, filePath: string) => {
@@ -227,9 +279,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
     </svg>
   );
-  
+
   return (
-    <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+    <div 
+      ref={sidebarRef}
+      className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}
+      style={{ width: isCollapsed ? 'auto' : `${sidebarWidth}px` }}
+    >
       {/* Vertical buttons column */}
       <div className="sidebar-actions-container">
         <div className="sidebar-actions">
@@ -318,6 +374,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
       )}
+
+      {/* Resize handle */}
+      {!isCollapsed && (
+        <div 
+          className="resize-handle"
+          onMouseDown={handleMouseDown}
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '4px',
+            height: '100%',
+            cursor: 'ew-resize',
+            backgroundColor: 'transparent',
+            zIndex: 1000,
+          }}
+        />
+      )}
   
       {/* Context Menu */}
       {contextMenu.show && (
@@ -365,5 +439,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       />
     </div>
   );
+
     
 };
