@@ -17,11 +17,6 @@
     cursor: pointer;
 }
 
-.chat-send-button:hover {
-    background-color: green;
-    color: var(--text-normal);
-}
-
 .chat-input {
     width: 400px;
     padding: 8px;
@@ -33,10 +28,9 @@
 }
 
 .chat-input:focus {
-    outline: solid gray;
+    outline: none;
   }
 
-/* HTML: <div class="circle-loader"></div> */
 .circle-loader {
     margin-left: 10px;
     width: 20px;

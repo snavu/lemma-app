@@ -3,7 +3,6 @@
 }
 
 .chat-message {
-    /* display: inline-block; */
     padding: 8px 12px;
     border-radius: 12px;
     margin: 0px 10px 20px 10px;
@@ -19,9 +18,8 @@
   
   .chat-message-bot {
     align-self: flex-start;
-    background-color: #e0e0e0;
-    color: black;
-    /* margin-right: auto; */
+    background-color: #2f3542;
+    color: white;
 }
 
 .chat-messages-container {
@@ -37,7 +35,6 @@
     overflow-x: hidden;
 }
 
-/* HTML: <div class="dot-loader"></div> */
 .dot-loader {
     width: 20px;
     aspect-ratio: 4;

@@ -18,17 +18,30 @@ export const ChatHeader = forwardRef<ChatMessageHandle, ChatHeaderProps>(
             <line x1="6" y1="6" x2="18" y2="18" />
         </svg>
     );
+
+    const TrashIcon = () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14H6L5 6" />
+            <path d="M10 11v6" />
+            <path d="M14 11v6" />
+            <path d="M9 6V4h6v2" />
+        </svg>
+    );
+    
       
     return (
         <div className="chat-header" onMouseDown={onMouseDown}>
             <div>Q&A Chat</div>
             <div className="chat-buttons">
-                <button className="clear-button" onClick={() => {
+                <button onClick={() => {
                     window.electron.agi.stopChatResponse();
                     setMessages([]); 
                     ChatMessageHandle.current?.setDisplayMessageArray([]);
-                }}>Clear</button>
-                <button className="exit-button" onClick={() => {
+                }} onMouseDown={(e) => e.stopPropagation()}>
+                    <TrashIcon/>
+                </button>
+                <button onClick={() => {
                     setMessages(ChatMessageHandle.current?.getLatestMessages); 
                     setIsChatOpen(false); 
                     window.electron.agi.stopChatResponse();
