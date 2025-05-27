@@ -86,6 +86,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     filePath: '',
   });
 
+  // State for collapsing sidebar
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   // State for LLM settings modal
   const [isLLMSettingsOpen, setIsLLMSettingsOpen] = useState(false);
 
@@ -224,14 +227,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
     </svg>
   );
-
+  
   return (
-    <div className="sidebar">
+    <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       {/* Vertical buttons column */}
       <div className="sidebar-actions-container">
         <div className="sidebar-actions">
-          <button className="collapse" title="collapse">
-                <CollapseIcon/>
+          <button 
+            className="collapse" 
+            title={isCollapsed ? "Expand" : "Collapse"}
+            onClick={() => setIsCollapsed(!isCollapsed)}
+          >
+            <CollapseIcon/>
           </button>
           <button onClick={onNewNote} title="New Note">
             <NewNoteIcon />
@@ -258,57 +265,59 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
   
-      {/* Main content area */}
-      <div className="sidebar-content">
-        {!searchResult && (
-          <>
-            <div className="notes-location">
-              {notesDirectory ? (
-                <span title={notesDirectory}>
-                  <FolderIcon /> {notesDirectory.split(/[\\/]/).pop()}
-                </span>
-              ) : (
-                <span>No folder selected</span>
-              )}
-            </div>
+      {/* Main content area*/}
+      {!isCollapsed && (
+        <div className="sidebar-content">
+          {!searchResult && (
+            <>
+              <div className="notes-location">
+                {notesDirectory ? (
+                  <span title={notesDirectory}>
+                    <FolderIcon /> {notesDirectory.split(/[\\/]/).pop()}
+                  </span>
+                ) : (
+                  <span>No folder selected</span>
+                )}
+              </div>
   
-            <div className="files-list">
-              {files.length === 0 ? (
-                <div className="no-files">
-                  {notesDirectory
-                    ? 'No notes yet. Create your first note!'
-                    : 'Select a notes folder to get started.'}
-                </div>
-              ) : (
-                <ul>
-                  {files.map((file) => (
-                    <li
-                      key={file.path}
-                      onClick={() => onFileSelect(file.path)}
-                      onContextMenu={(e) => handleContextMenu(e, file.path)}
-                    >
-                      <span className="file-icon"><NoteIcon /></span>
-                      <span className="file-name">{file.name}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </>
-        )}
+              <div className="files-list">
+                {files.length === 0 ? (
+                  <div className="no-files">
+                    {notesDirectory
+                      ? 'No notes yet. Create your first note!'
+                      : 'Select a notes folder to get started.'}
+                  </div>
+                ) : (
+                  <ul>
+                    {files.map((file) => (
+                      <li
+                        key={file.path}
+                        onClick={() => onFileSelect(file.path)}
+                        onContextMenu={(e) => handleContextMenu(e, file.path)}
+                      >
+                        <span className="file-icon"><NoteIcon /></span>
+                        <span className="file-name">{file.name}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </>
+          )}
   
-        {searchResult && (
-          <SearchResults
-            handleFileSelect={handleFileSelect}
-            setSearchresult={setSearchresult}
-            results={results}
-            searchInput={searchInput}
-            handleSearch={handleSearch}
-            setSearchInput={setSearchInput}
-            setResults={setResults}
-          />
-        )}
-      </div>
+          {searchResult && (
+            <SearchResults
+              handleFileSelect={handleFileSelect}
+              setSearchresult={setSearchresult}
+              results={results}
+              searchInput={searchInput}
+              handleSearch={handleSearch}
+              setSearchInput={setSearchInput}
+              setResults={setResults}
+            />
+          )}
+        </div>
+      )}
   
       {/* Context Menu */}
       {contextMenu.show && (
@@ -355,5 +364,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         onClose={closeLLMSettings}
       />
     </div>
-  );  
+  );
+    
 };
