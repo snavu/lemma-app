@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useLayoutEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -28,9 +28,10 @@ interface EditorProps {
   onChange: (content: string) => void;
   onFileSelect?: (file: string) => void; // its the file path thats the argument
   currentFilePath?: string; // Add current file path prop
+  handleMouseDown: (e: React.MouseEvent) => void;
 }
 
-export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onChange, files, onFileSelect, currentFilePath }) => {
+export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onChange, files, onFileSelect, currentFilePath, handleMouseDown }) => {
   const [markdownContent, setMarkdownContent] = useState(initialData);
   const [isSourceMode, setIsSourceMode] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
@@ -52,7 +53,7 @@ export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onCha
     isLink: false,
     linkUrl: '',
   });
-
+    
   // Create a lowlight instance for syntax highlighting
   const lowlight = createLowlight(all)
 
@@ -446,6 +447,21 @@ export const InlineMarkdownEditor: React.FC<EditorProps> = ({ initialData, onCha
           options={getContextMenuOptions()}
         />
       )}
+
+      <div 
+        className="resize-handle"
+        onMouseDown={handleMouseDown}
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          width: '4px',
+          height: '100%',
+          cursor: 'ew-resize',
+          backgroundColor: 'transparent',
+          zIndex: 1000,
+        }}
+      />
 
       {/* Custom Edit Link Dialog */}
       {showEditDialog && (

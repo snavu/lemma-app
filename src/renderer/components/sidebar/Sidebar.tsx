@@ -109,8 +109,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const newWidth = e.clientX - rect.left;
     
     // Set min and max width constraints
-    const minWidth = 42;
-    const maxWidth = 500;
+    const minWidth = 60;
+    const maxWidth = 1000;
     
     if (newWidth >= minWidth && newWidth <= maxWidth) {
       setSidebarWidth(newWidth);

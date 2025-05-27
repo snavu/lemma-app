@@ -1,4 +1,4 @@
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, memo, useCallback, useLayoutEffect, useRef } from 'react';
 import { Header } from './components/header/page';
 import { Sidebar } from './components/sidebar/Sidebar';
 import './layout.css';
@@ -145,6 +145,67 @@ export const App = () => {
     return newFilePath;
   };
 
+  const [panelWidthPercent, setPanelWidthPercent] = useState<number | undefined>(undefined);
+  const [isResizing, setIsResizing] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null); // Add ref for split-content-area
+  
+  useLayoutEffect(() => {
+    if (panelRef.current && containerRef.current && panelWidthPercent === undefined) {
+      const panelRect = panelRef.current.getBoundingClientRect();
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const initialPercent = (panelRect.width / containerRect.width) * 100;
+      setPanelWidthPercent(initialPercent);
+    }
+  }, [panelWidthPercent]);
+  
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+  
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isResizing || !panelRef.current || !containerRef.current) return;
+    
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const newWidth = e.clientX - containerRect.left;
+    const newWidthPercent = (newWidth / containerRect.width) * 100;
+  
+    const minPercent = 10; // 10% minimum
+    const maxPercent = 90; // 90% maximum (leave 10% for graph)
+  
+    if (newWidthPercent >= minPercent && newWidthPercent <= maxPercent) {
+      setPanelWidthPercent(newWidthPercent);
+    }
+  }, [isResizing]);
+  
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+  
+  // Add event listeners for resize
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+    } else {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+  
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing, handleMouseMove, handleMouseUp]);
+  
+
   return (
     <div className="app">
       <div className="header">
@@ -190,18 +251,20 @@ export const App = () => {
             onTabClose={handleCloseTab}
           />
           {/* Split content area to separate editor and graph */}
-          <div className="split-content-area">
+          <div className="split-content-area" ref={containerRef}>
             {/* Editor section */}
-            <div className={activeTab ? "editor-section" : "full-width-section"}>
+            <div className={activeTab ? "editor-section" : "full-width-section"} ref={panelRef} style={{ width: panelWidthPercent ? `${panelWidthPercent}%` : '50%' }}
+            >
               {activeTab ? (
-                <InlineMarkdownTab
-                  files={files}
-                  key={activeTab}
-                  initialDoc={getCurrentTabContent()}
-                  onFileSelect={handleFileSelect}
-                  currentFilePath={getCurrentFilePath()}
-                  onChange={(content, hashtags) => handleNoteChange(activeTab, content, hashtags)}
-                />
+                  <InlineMarkdownTab
+                    files={files}
+                    key={activeTab}
+                    initialDoc={getCurrentTabContent()}
+                    onFileSelect={handleFileSelect}
+                    currentFilePath={getCurrentFilePath()}
+                    onChange={(content, hashtags) => handleNoteChange(activeTab, content, hashtags)}
+                    handleMouseDown={handleMouseDown}
+                  />
               ) : (
                 <EmptyState onCreateNote={handleNewNote} />
               )}
