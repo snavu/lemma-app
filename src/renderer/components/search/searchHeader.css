@@ -1,22 +1,11 @@
-.chat-header {
-    padding: 10px;
-    background-color: var(--background-primary);
-    font-weight: bold;
-    cursor: move;
+.search-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    z-index: 1000;
-    border-radius: 8px;
+    justify-content: space-between;
+    margin: 15px, 5px, 5px, 15px;
 }
 
-.chat-buttons {
-    display: flex;
-    gap: 15px;
-}
-
-.chat-buttons button {
+.closeX-button {
     background-color: transparent;
     border: none;
     color: var(--text-muted);
@@ -27,12 +16,14 @@
     justify-content: center;
     transition: all 0.15s ease;
     flex-shrink: 0;
-    width: 24px;
-    height: 24px;
+    width: 30px;
+    height: 30px;
     padding: 0;
 }
 
-.chat-buttons button:hover {
+.closeX-button:hover {
     background-color: var(--interactive-hover);
     color: var(--text-normal);
 }
+
+

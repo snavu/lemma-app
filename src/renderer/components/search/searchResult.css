@@ -6,17 +6,6 @@
     padding-left: 9px;
 }
 
-.close-button {
-    background-color: transparent;
-}
-
-.search-result {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 15px;
-}
-
 .select-button {
     display: block;
     border: none;
@@ -32,3 +21,8 @@
     background-color: var(--interactive-hover);
     color: var(--text-normal);
 }
+
+.highlight {
+    background-color: yellow;
+    font-weight: bold;
+  }

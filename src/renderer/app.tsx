@@ -220,7 +220,7 @@ export const App = () => {
           notesDirectory={notesDirectory}
           onDeleteFile={handleDeleteFileSync}
           activeTab={activeTab}
-          setSearchresult={setSearchResult}
+          setSearchResult={setSearchResult}
           handleFileSelect={handleFileSelect}
           results={results}
           searchInput={searchInput}

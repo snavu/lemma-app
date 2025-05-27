@@ -34,7 +34,7 @@ interface SidebarProps {
   onSelectDirectory: () => void;
   onDeleteFile: (filePath: string) => Promise<boolean>;
   activeTab: string | null;
-  setSearchresult: (check: boolean) => void;
+  setSearchResult: (check: boolean) => void;
   results: SearchResult[];
   searchInput: string;
   handleFileSelect: (filePath: string) => void;
@@ -58,7 +58,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectDirectory,
   onDeleteFile,
   activeTab,
-  setSearchresult,
+  setSearchResult,
   results,
   searchInput,
   handleFileSelect,
@@ -302,7 +302,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button onClick={onSelectDirectory} title="Select Notes Directory">
             <FolderIcon />
           </button>
-          <button onClick={() => setSearchresult(true)} title="Search">
+          <button onClick={() => setSearchResult(true)} title="Search">
             <SearchIcon />
           </button>
           <button onClick={openLLMSettings} title="AI Settings">
@@ -364,7 +364,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {searchResult && (
             <SearchResults
               handleFileSelect={handleFileSelect}
-              setSearchresult={setSearchresult}
+              setSearchResult={setSearchResult}
               results={results}
               searchInput={searchInput}
               handleSearch={handleSearch}

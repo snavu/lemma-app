@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './searchResult.css';
-import { Search } from './searchBar';
+import { SearchHeader } from './searchHeader';
+import { findKey } from 'lodash';
 
 interface SearchResult {
     id: string,
@@ -10,7 +11,7 @@ interface SearchResult {
 };
 
 interface SearchResultProps {
-    setSearchresult: (check: boolean) => void;
+    setSearchResult: (check: boolean) => void;
     results: SearchResult[];
     searchInput: string;
     handleFileSelect: (filePath: string) => void;
@@ -23,7 +24,7 @@ export const SearchResults: React.FC<SearchResultProps> = ({
     results, 
     searchInput, 
     handleFileSelect,
-    setSearchresult,
+    setSearchResult,
     handleSearch,
     setSearchInput, 
     setResults,
@@ -110,40 +111,61 @@ export const SearchResults: React.FC<SearchResultProps> = ({
     }
     }, [currentIndex, res]);
 
-    const CloseIcon = () => (
-        <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-    );
+    const findKeywordAndNearbyWords = (
+        content: string,
+        keyword: string,
+        contextWordsCount: number = 10
+      ): string[] => {
+        const result: string[] = [];
+        const words = content.split(/\s+/);
+        const normalizedKeyword = keyword.toLowerCase();
       
-  return (  
-    <div className="search-container">
-        <div className="search-result">
-            <Search 
-                    setSearchresult={setSearchresult}
-                    handleSearch={handleSearch}
-                    setSearchInput={setSearchInput}
-            />
-            <button 
-                onClick={() => {
-                    setSearchresult(false);
-                    setResults([]);
-                    }}                      
-                className="close-button">
-                <CloseIcon/>
-            </button>
-        </div>
-        <div>
+        words.forEach((word, i) => {
+            const normalizedWord = word.replace(/[^\w#]/g, '').toLowerCase();
+            if (normalizedWord === normalizedKeyword) {
+              const start = Math.max(0, i - contextWordsCount);
+              const end = Math.min(words.length, i + contextWordsCount + 1);
+              const contextSlice = words.slice(start, end).join(' ');
+              result.push(contextSlice);
+            }
+          });
+      
+        return result;
+    }
+
+    return (
+        <div className="search-container">
+          <SearchHeader 
+            setSearchResult={setSearchResult} 
+            handleSearch={handleSearch} 
+            setResults={setResults}
+            setSearchInput={setSearchInput}
+          />
+          <div>
             {results.map((result: SearchResult, index) => (
-                <div key={index}>
+              <div key={index}>
                 <div>{result.filePath.split(/[/\\]/).pop()}</div>
-                <button onClick={() => handleClick(result.filePath, searchInput)} className="select-button">
-                    {searchInput}
-                </button>
-                </div>
+                {findKeywordAndNearbyWords(result.content, searchInput).map((context, i) => {
+                  const parts = context.split(new RegExp(`(${searchInput})`, 'gi'));
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleClick(result.filePath, context)}
+                      className="select-button"
+                    >
+                      {parts.map((part, j) =>
+                        part.toLowerCase() === searchInput.toLowerCase() ? (
+                          <span key={j} className="highlight">{part}</span>
+                        ) : (
+                          <span key={j}>{part}</span>
+                        )
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             ))}
+          </div>
         </div>
-    </div>
-  );
+      );
 };
