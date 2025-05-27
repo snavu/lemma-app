@@ -94,7 +94,7 @@
 .close-button:hover {
   background-color: var(--interactive-hover);
   color: var(--text-normal);
-  transform: rotate(90deg);
+  /* transform: rotate(90deg); */
 }
 
 .modal-body {

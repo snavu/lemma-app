@@ -21,6 +21,12 @@ export const Tab: React.FC<TabProps> = ({
     onClose();
   };
 
+  const CloseIcon = () => (
+    <svg viewBox="0 0 12 12" width="12" height="12">
+      <path d="M1,1 L11,11 M1,11 L11,1" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+
   return (
     <div 
       className={`tab ${active ? 'tab-active' : ''}`} 
@@ -31,9 +37,7 @@ export const Tab: React.FC<TabProps> = ({
         {title}
       </span>
       <button className="close-button" onClick={handleClose}>
-        <svg viewBox="0 0 12 12" width="12" height="12">
-          <path d="M1,1 L11,11 M1,11 L11,1" stroke="currentColor" strokeWidth="1.5" />
-        </svg>
+        <CloseIcon/>
       </button>
     </div>
   );
