@@ -1,18 +1,37 @@
+.search-input-container {
+    background-color: var(--background-secondary);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-left: 9px;
+}
+
 .input-field {
-    background-color: rgba(171, 178, 191, 0.1);
+    background: rgba(255, 255, 255, 0.02);
     color: var(--text-normal);
     font-size: 16px;
-    padding: 1px 0px 1px 8px;
-    box-sizing: border-box;
-    border: 3px solid #474747;
-    border-radius: 5px;
-    width: 300px;
     padding: 8px;
-    font-size: 1rem;
+    box-sizing: border-box;
+    border: 1px solid transparent;
     border-radius: 8px;
-    border: none;
+    width: 300px;
     display: flex;
+    transition: all 0.2s ease;
+    line-height: 1.4;
 }
+
 .input-field:focus {
     outline: none;
+    background-color: var(--interactive-hover, rgba(255, 255, 255, 0.08));
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.input-field::placeholder {
+    color: var(--text-muted);
+}
+
+.input-field:hover {
+    background-color: var(--interactive-hover, rgba(255, 255, 255, 0.05));
+    border-color: rgba(255, 255, 255, 0.1);
 }

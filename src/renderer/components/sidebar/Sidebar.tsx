@@ -302,7 +302,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button onClick={onSelectDirectory} title="Select Notes Directory">
             <FolderIcon />
           </button>
-          <button onClick={() => setSearchResult(true)} title="Search">
+          <button
+            onClick={() => {
+              setSearchResult(true);
+              setIsCollapsed(false);
+            }}
+            title="Search"
+          >
             <SearchIcon />
           </button>
           <button onClick={openLLMSettings} title="AI Settings">

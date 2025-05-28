@@ -80,7 +80,7 @@
   background-color: var(--background-secondary);
   overflow-y: auto;
   border-right: 1px solid rgba(255, 255, 255, 0.1);
-  flex-shrink: 0;
+  /* flex-shrink: 0; */
 }
 
 .sidebar-nav {
@@ -228,11 +228,11 @@ html.resizing * {
 }
 
 /* Ensure all transitions are consistent */
-* {
+/* * {
   transition-property: background-color, color, border-color, width;
   transition-duration: 0.2s;
   transition-timing-function: ease;
-}
+} */
 
 /* Override transition for resize operations */
 .editor-container, .preview {

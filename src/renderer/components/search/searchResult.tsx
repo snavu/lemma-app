@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './searchResult.css';
 import { SearchHeader } from './searchHeader';
-import { findKey } from 'lodash';
 
 interface SearchResult {
     id: string,
@@ -29,7 +28,6 @@ export const SearchResults: React.FC<SearchResultProps> = ({
     setSearchInput, 
     setResults,
 }) => {
-    //
     const [currentIndex, setCurrentIndex] = useState<number>(0);
     const [res, setRes] = useState<HTMLElement[] | Element[]>([]);
 
@@ -110,62 +108,25 @@ export const SearchResults: React.FC<SearchResultProps> = ({
         scrollToCurrentResult();
     }
     }, [currentIndex, res]);
-
-    const findKeywordAndNearbyWords = (
-        content: string,
-        keyword: string,
-        contextWordsCount: number = 10
-      ): string[] => {
-        const result: string[] = [];
-        const words = content.split(/\s+/);
-        const normalizedKeyword = keyword.toLowerCase();
       
-        words.forEach((word, i) => {
-            const normalizedWord = word.replace(/[^\w#]/g, '').toLowerCase();
-            if (normalizedWord === normalizedKeyword) {
-              const start = Math.max(0, i - contextWordsCount);
-              const end = Math.min(words.length, i + contextWordsCount + 1);
-              const contextSlice = words.slice(start, end).join(' ');
-              result.push(contextSlice);
-            }
-          });
-      
-        return result;
-    }
-
-    return (
-        <div className="search-container">
-          <SearchHeader 
+  return (  
+    <div className="search-container">
+        <SearchHeader 
             setSearchResult={setSearchResult} 
             handleSearch={handleSearch} 
             setResults={setResults}
             setSearchInput={setSearchInput}
-          />
-          <div>
+        />
+        <div>
             {results.map((result: SearchResult, index) => (
-              <div key={index}>
+                <div key={index}>
                 <div>{result.filePath.split(/[/\\]/).pop()}</div>
-                {findKeywordAndNearbyWords(result.content, searchInput).map((context, i) => {
-                  const parts = context.split(new RegExp(`(${searchInput})`, 'gi'));
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => handleClick(result.filePath, context)}
-                      className="select-button"
-                    >
-                      {parts.map((part, j) =>
-                        part.toLowerCase() === searchInput.toLowerCase() ? (
-                          <span key={j} className="highlight">{part}</span>
-                        ) : (
-                          <span key={j}>{part}</span>
-                        )
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+                <button onClick={() => handleClick(result.filePath, searchInput)} className="select-button">
+                    {searchInput}
+                </button>
+                </div>
             ))}
-          </div>
         </div>
-      );
+    </div>
+  );
 };

@@ -42,7 +42,7 @@ export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch, s
   );
 
   return (
-    <div className="search-container">
+    <div className="search-input-container">
       <input 
         className="input-field"
         type="text"
