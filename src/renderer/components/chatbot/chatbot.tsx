@@ -18,6 +18,7 @@ export const ChatUI: React.FC<chatUIProps> = ({ isChatOpen, setIsChatOpen, messa
     const chatRef = useRef<ChatMessageHandle>(null);
 
     const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+        e.preventDefault();
         setIsDragging(true);
         offset.current = {
             x: e.clientX - position.x,
