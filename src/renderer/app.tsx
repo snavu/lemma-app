@@ -1,4 +1,4 @@
-import { useState, useEffect, memo, useCallback, useLayoutEffect, useRef } from 'react';
+import { useState, useEffect, memo, useCallback, useRef } from 'react';
 import { Header } from './components/header/page';
 import { Sidebar } from './components/sidebar/Sidebar';
 import './layout.css';
@@ -145,44 +145,41 @@ export const App = () => {
     return newFilePath;
   };
 
-  const [panelWidthPercent, setPanelWidthPercent] = useState<number | undefined>(undefined);
+  const ChatBubbleIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="gray" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 11.5a8.38 8.38 0 0 1-1.9 5.4c.1 1.1.5 2.1 1.4 3.1-1.5-.2-2.8-.6-3.9-1.4a8.5 8.5 0 1 1 4.4-7.1z" />
+    </svg>
+);
+
+  const [editorWidth, setEditorWidth] = useState(50);
   const [isResizing, setIsResizing] = useState(false);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null); // Add ref for split-content-area
-  
-  useLayoutEffect(() => {
-    if (panelRef.current && containerRef.current && panelWidthPercent === undefined) {
-      const panelRect = panelRef.current.getBoundingClientRect();
-      const containerRect = containerRef.current.getBoundingClientRect();
-      const initialPercent = (panelRect.width / containerRect.width) * 100;
-      setPanelWidthPercent(initialPercent);
-    }
-  }, [panelWidthPercent]);
-  
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  // Resize handlers
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
   }, []);
-  
+
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isResizing || !panelRef.current || !containerRef.current) return;
-    
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const newWidth = e.clientX - containerRect.left;
-    const newWidthPercent = (newWidth / containerRect.width) * 100;
+    if (!isResizing || !editorRef.current) return;
   
-    const minPercent = 10; // 10% minimum
-    const maxPercent = 90; // 90% maximum (leave 10% for graph)
+    const container = editorRef.current.parentElement;
+    if (!container) return;
   
-    if (newWidthPercent >= minPercent && newWidthPercent <= maxPercent) {
-      setPanelWidthPercent(newWidthPercent);
-    }
+    const containerRect = container.getBoundingClientRect();
+    const newWidthPx = e.clientX - containerRect.left;
+    const newWidthPercent = (newWidthPx / containerRect.width) * 100;
+  
+    const clampedWidth = Math.min(Math.max(newWidthPercent, 10), 90);
+    setEditorWidth(clampedWidth);
   }, [isResizing]);
   
+
   const handleMouseUp = useCallback(() => {
     setIsResizing(false);
   }, []);
-  
+
   // Add event listeners for resize
   useEffect(() => {
     if (isResizing) {
@@ -196,7 +193,7 @@ export const App = () => {
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     }
-  
+
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
@@ -204,7 +201,6 @@ export const App = () => {
       document.body.style.userSelect = '';
     };
   }, [isResizing, handleMouseMove, handleMouseUp]);
-  
 
   return (
     <div className="app">
@@ -251,20 +247,25 @@ export const App = () => {
             onTabClose={handleCloseTab}
           />
           {/* Split content area to separate editor and graph */}
-          <div className="split-content-area" ref={containerRef}>
+          <div className="split-content-area">
             {/* Editor section */}
-            <div className={activeTab ? "editor-section" : "full-width-section"} ref={panelRef} style={{ width: panelWidthPercent ? `${panelWidthPercent}%` : '50%' }}
+            <div
+              className={activeTab ? "editor-section" : "full-width-section"}
+              ref={editorRef}
+              style={{
+                width: activeTab ? `${editorWidth}%` : '100%'
+              }}
             >
               {activeTab ? (
-                  <InlineMarkdownTab
-                    files={files}
-                    key={activeTab}
-                    initialDoc={getCurrentTabContent()}
-                    onFileSelect={handleFileSelect}
-                    currentFilePath={getCurrentFilePath()}
-                    onChange={(content, hashtags) => handleNoteChange(activeTab, content, hashtags)}
-                    handleMouseDown={handleMouseDown}
-                  />
+                <InlineMarkdownTab
+                  files={files}
+                  key={activeTab}
+                  initialDoc={getCurrentTabContent()}
+                  onFileSelect={handleFileSelect}
+                  currentFilePath={getCurrentFilePath()}
+                  onChange={(content, hashtags) => handleNoteChange(activeTab, content, hashtags)}
+                  handleMouseDown={handleMouseDown}
+                />
               ) : (
                 <EmptyState onCreateNote={handleNewNote} />
               )}
