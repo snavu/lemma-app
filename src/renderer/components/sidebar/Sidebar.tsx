@@ -92,7 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // State for LLM settings modal
   const [isLLMSettingsOpen, setIsLLMSettingsOpen] = useState(false);
 
-  const [sidebarWidth, setSidebarWidth] = useState(250);
+  const [sidebarWidth, setSidebarWidth] = useState(20);
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
@@ -104,16 +104,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isResizing || !sidebarRef.current) return;
-    
-    const rect = sidebarRef.current.getBoundingClientRect();
-    const newWidth = e.clientX - rect.left;
-    
-    // Set min and max width constraints
-    const minWidth = 60;
-    const maxWidth = 1000;
-    
-    if (newWidth >= minWidth && newWidth <= maxWidth) {
-      setSidebarWidth(newWidth);
+  
+    const container = sidebarRef.current.parentElement;
+    if (!container) return;
+  
+    const containerRect = container.getBoundingClientRect();
+    const offsetX = e.clientX - containerRect.left;
+    const containerWidth = containerRect.width;
+  
+    const minWidthPercent = 10;
+    const maxWidthPercent = 40;
+    const newWidthPercent = (offsetX / containerWidth) * 100;
+  
+    if (newWidthPercent >= minWidthPercent && newWidthPercent <= maxWidthPercent) {
+      setSidebarWidth(newWidthPercent);
     }
   }, [isResizing]);
 
@@ -284,7 +288,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <div 
       ref={sidebarRef}
       className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}
-      style={{ width: isCollapsed ? 'auto' : `${sidebarWidth}px` }}
+      style={{ width: isCollapsed ? 'auto' : `${sidebarWidth}%` }}
     >
       {/* Vertical buttons column */}
       <div className="sidebar-actions-container">

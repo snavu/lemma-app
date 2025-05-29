@@ -145,12 +145,6 @@ export const App = () => {
     return newFilePath;
   };
 
-  const ChatBubbleIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="gray" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 11.5a8.38 8.38 0 0 1-1.9 5.4c.1 1.1.5 2.1 1.4 3.1-1.5-.2-2.8-.6-3.9-1.4a8.5 8.5 0 1 1 4.4-7.1z" />
-    </svg>
-);
-
   const [editorWidth, setEditorWidth] = useState(50);
   const [isResizing, setIsResizing] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -164,15 +158,20 @@ export const App = () => {
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isResizing || !editorRef.current) return;
   
-    const container = editorRef.current.parentElement;
+    const container = editorRef.current.parentElement;  
     if (!container) return;
-  
+    
     const containerRect = container.getBoundingClientRect();
-    const newWidthPx = e.clientX - containerRect.left;
-    const newWidthPercent = (newWidthPx / containerRect.width) * 100;
+    const offsetX = e.clientX - containerRect.left;
+    const containerWidth = containerRect.width;
   
-    const clampedWidth = Math.min(Math.max(newWidthPercent, 10), 90);
-    setEditorWidth(clampedWidth);
+    const minWidthPercent = 10;
+    const maxWidthPercent = 90;
+    const newWidthPercent = (offsetX / containerWidth) * 100;
+  
+    if (newWidthPercent >= minWidthPercent && newWidthPercent <= maxWidthPercent) {
+      setEditorWidth(newWidthPercent);
+    }
   }, [isResizing]);
   
 
