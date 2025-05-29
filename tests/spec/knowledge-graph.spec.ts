@@ -605,7 +605,7 @@ describe('graph-loader', () => {
 
       // Delete file and remove from graph
       fileService.deleteFile(path.join(fixturePath, testFile.name));
-      const success = await graphLoader.removeFileFromGraph(testMode, testFile.name);
+      const success = graphLoader.removeFileFromGraph(testMode, testFile.name);
       expect(success).toBe(true);
 
       // Check node of file is deleted in graph

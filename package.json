@@ -12,7 +12,7 @@
     "lint": "eslint --ext .ts,.tsx .",
     "python-setup": "node python-setup.js",
     "postinstall": "npm run python-setup",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
     "sample": "node src/lib/sample.js"
   },
   "keywords": [],
