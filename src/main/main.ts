@@ -8,7 +8,7 @@ import * as chromaService from './chroma-service';
 import * as graphLoader from './graph-loader';
 import * as userAgiSync from './agi-sync';
 import { Config } from './config-service';
-import { InferenceService } from './inference';
+import { InferenceService, startStreaming, stopStreaming } from './inference';
 import { viewMode } from 'src/shared/types';
 import { startExtensionService } from './extension-service';
 import { useState } from 'react';
@@ -22,12 +22,6 @@ let mainWindow: BrowserWindow | null = null;
 let database: DbClient;
 export let config: Config;
 export let inferenceService: InferenceService;
-
-// State for LLM generation
-let isStreaming: boolean = false;
-export const startStreaming = (): void => { isStreaming = true };
-export const stopStreaming = (): void => { isStreaming = false };
-export const streamingState = (): boolean => { return isStreaming };
 
 const createWindow = (): void => {
   // Create the browser window

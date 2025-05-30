@@ -4,7 +4,12 @@ import { llmConfig} from 'src/shared/types';
 import { Ollama } from "ollama";
 import { DbClient, FileType } from "./database";
 import * as fileService from './file-service';
-import { streamingState } from "./main";
+
+// State for LLM generation
+let isStreaming: boolean = false;
+export const startStreaming = (): void => { isStreaming = true };
+export const stopStreaming = (): void => { isStreaming = false };
+export const streamingState = (): boolean => { return isStreaming };
 
 /**
  * Inference service supporting both cloud provider calls and local inference with Ollama
