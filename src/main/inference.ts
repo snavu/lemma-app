@@ -76,6 +76,82 @@ export class InferenceService {
   }
 
   /**
+   * Format web content into clean markdown
+   * Specifically designed for processing webpage content into structured notes
+   * 
+   * @param webContent - Raw web content to format
+   * @param options - Additional options for formatting
+   */
+  async formatWebContent(webContent: string, options: any = {}) {
+    const localModel = config.getLocalInferenceConfig().model;
+    this.localModel = localModel ? localModel : this.localModel;
+    
+    try {
+      const formatPrompt = `Convert the following web content into clean, well-structured markdown. DO NOT add commentary, explanations, or responses. ONLY return the formatted content.
+
+Rules:
+- Use proper markdown headings (# ## ###) for structure
+- Create organized bullet points and numbered lists
+- Use **bold** and *italic* for emphasis where appropriate
+- Remove navigation menus, ads, sidebars, and irrelevant content
+- Keep the main content and important information
+- Preserve code blocks, quotes, and data tables if present
+- Ensure the output is clean and readable
+- Do not add introductory text or conclusions
+
+Web content to format:
+${webContent}
+
+Return only the formatted markdown:`;
+
+             const messages: Array<{role: "system" | "user" | "assistant", content: string}> = [
+         { role: "system", content: "You are a content formatting specialist. Format the provided content into clean markdown without adding any commentary." },
+         { role: "user", content: formatPrompt }
+       ];
+
+      if (this.isLocalMode) {
+        // Local inference using Ollama
+        if (!this.ollamaClient) {
+          this.initializeOllamaClient();
+          if (!this.ollamaClient) {
+            console.error('Ollama client initialization failed');
+            return { formattedContent: webContent }; // Fallback to original
+          }
+        }
+
+        const response = await this.ollamaClient.chat({
+          model: this.localModel,
+          messages: messages,
+          options: {
+            temperature: options.temperature || 0.2 // Lower temperature for consistent formatting
+          }
+        });
+
+        return {
+          formattedContent: response.message?.content || webContent
+        };
+      } else {
+        // Cloud inference using OpenAI SDK
+        const modelName = options.model || config.getLLMConfig().model;
+
+        const response = await this.client!.chat.completions.create({
+          model: modelName,
+          messages: messages,
+          temperature: options.temperature || 0.2, // Lower temperature for consistent formatting
+          max_tokens: options.max_tokens
+        });
+
+        return {
+          formattedContent: response.choices[0]?.message.content || webContent
+        };
+      }
+    } catch (error) {
+      console.error('Error in web content formatting:', error);
+      return { formattedContent: webContent }; // Fallback to original content
+    }
+  }
+
+  /**
    * Send a chat completion request to chunk the document
    * Works with both cloud and local inference
    */
