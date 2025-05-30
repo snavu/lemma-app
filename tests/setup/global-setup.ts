@@ -66,6 +66,7 @@ const delFixtures = async (): Promise<void> => {
 module.exports = async () => {
   startChromaDb();
   initSample('sample', path.join(fixtureDir, 'db-test'));
+  initSample('sample-small', path.join(fixtureDir, 'qa-system'))
   // Terminate ChromaDB server if Ctrl+C
   process.once('SIGINT', async () => {
     await endChromaDb();
