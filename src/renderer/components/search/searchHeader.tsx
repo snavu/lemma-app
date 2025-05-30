@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { SearchBar } from './searchBar';
 import './searchHeader.css';
-import { Search } from './searchBar';
 
 interface SearchResult {
   id: string,
@@ -10,10 +10,10 @@ interface SearchResult {
 };
 
 interface SearchHeaderProps {
-  setSearchResult: (check: boolean) => void;
+  setSearchResult: (setResult: boolean) => void;
   handleSearch: (searchQuery: string) => void;
   setSearchInput: (input: string) => void;
-  setResults: (info: SearchResult[]) => void;
+  setResults: (results: SearchResult[]) => void;
 }
 
 export const SearchHeader: React.FC<SearchHeaderProps> = ({ 
@@ -22,6 +22,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
   setSearchInput, 
   setResults,
 }) => {
+
   const CloseIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="18" y1="6" x2="6" y2="18" />
@@ -31,7 +32,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
       
   return (  
     <div className="search-header">
-      <Search 
+      <SearchBar 
         setSearchresult={setSearchResult}
         handleSearch={handleSearch}
         setSearchInput={setSearchInput}

@@ -29,7 +29,6 @@ export const ChatHeader = forwardRef<ChatMessageHandle, ChatHeaderProps>(
         </svg>
     );
     
-      
     return (
         <div className="chat-header" onMouseDown={onMouseDown}>
             <div>Q&A Chat</div>

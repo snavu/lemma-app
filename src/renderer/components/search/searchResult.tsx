@@ -10,13 +10,13 @@ interface SearchResult {
 };
 
 interface SearchResultProps {
-  setSearchResult: (check: boolean) => void;
+  setSearchResult: (setResult: boolean) => void;
   results: SearchResult[];
   searchInput: string;
   handleFileSelect: (filePath: string) => void;
   handleSearch: (searchQuery: string) => void;
   setSearchInput: (input: string) => void;
-  setResults: (info: SearchResult[]) => void;
+  setResults: (results: SearchResult[]) => void;
 }
 
 export const SearchResults: React.FC<SearchResultProps> = ({ 
@@ -34,7 +34,7 @@ export const SearchResults: React.FC<SearchResultProps> = ({
   // Results to display
   const [res, setRes] = useState<HTMLElement[] | Element[]>([]);
 
-    /**
+  /**
    * Opens the given file and searches its content for a keyword or hashtag.
    *
    * - Loads file content from `filePath`
