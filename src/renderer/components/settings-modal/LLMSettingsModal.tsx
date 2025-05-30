@@ -35,6 +35,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
   const [model, setModel] = useState('');
   const [chunkingEnabled, setChunkingEnabled] = useState(false);
   const [liveModeEnabled, setLiveModeEnabled] = useState(false);
+  const [liveModeActuallyEnabled, setLiveModeActuallyEnabled] = useState(false); // Track saved state
   const [localEnabled, setLocalEnabled] = useState(false);
   const [localPort, setLocalPort] = useState(11434);
   const [localModel, setLocalModel] = useState('llama3.2');
@@ -146,6 +147,13 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
     }
   }, [isOpen]);
 
+  // Separate effect to load AGI status when live mode settings change
+  useEffect(() => {
+    if (isOpen) {
+      loadAgiStatus();
+    }
+  }, [isOpen, chunkingEnabled, liveModeEnabled]);
+
   // Listen for AGI status updates
   useEffect(() => {
     if (!isOpen) return;
@@ -168,6 +176,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
       setModel(llmConfig.model);
       setChunkingEnabled(agiConfig.enableChunking);
       setLiveModeEnabled(agiConfig.enableLiveMode);
+      setLiveModeActuallyEnabled(agiConfig.enableLiveMode); // Track saved state
       setLocalEnabled(localInferenceConfig.enabled);
       setLocalPort(localInferenceConfig.port);
 
@@ -245,13 +254,13 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
   // AGI helper functions
   const getStateIcon = (state: string) => {
     switch (state) {
-      case 'idle': return <Clock className="w-4 h-4" />;
-      case 'exploring': return <Eye className="w-4 h-4" />;
-      case 'contemplating': return <Brain className="w-4 h-4" />;
-      case 'synthesizing': return <Zap className="w-4 h-4" />;
-      case 'generating': return <Activity className="w-4 h-4" />;
-      case 'cooldown': return <Pause className="w-4 h-4" />;
-      default: return <Brain className="w-4 h-4" />;
+      case 'idle': return <Clock />;
+      case 'exploring': return <Eye />;
+      case 'contemplating': return <Brain />;
+      case 'synthesizing': return <Zap />;
+      case 'generating': return <Activity />;
+      case 'cooldown': return <Pause />;
+      default: return <Brain />;
     }
   };
 
@@ -264,6 +273,18 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
       case 'generating': return '#10b981';
       case 'cooldown': return '#f97316';
       default: return '#6b7280';
+    }
+  };
+
+  const getStateDescription = (state: string) => {
+    switch (state) {
+      case 'idle': return 'Waiting for the next cycle';
+      case 'exploring': return 'Scanning available notes';
+      case 'contemplating': return 'Analyzing gathered information';
+      case 'synthesizing': return 'Combining insights';
+      case 'generating': return 'Creating new content';
+      case 'cooldown': return 'Processing complete, resting';
+      default: return 'Monitoring system state';
     }
   };
 
@@ -294,6 +315,33 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
       });
 
       setChunkingEnabled(agiResult.enableChunking);
+      
+      // If live mode is being disabled, stop the AGI immediately
+      if (liveModeActuallyEnabled && !agiResult.enableLiveMode) {
+        console.log('Live Mode disabled - stopping AGI');
+        try {
+          await window.electron.agi.stopLiveAgi();
+          await loadAgiStatus(); // Refresh status to show stopped state
+          toast.success('Live AGI stopped successfully');
+        } catch (error) {
+          console.error('Error stopping AGI:', error);
+          toast.error('AGI stopped but there was an error during shutdown');
+        }
+      }
+
+      // If chunking is being disabled (which also disables live mode), stop AGI
+      if (liveModeActuallyEnabled && !agiResult.enableChunking) {
+        console.log('Chunking disabled - stopping AGI');
+        try {
+          await window.electron.agi.stopLiveAgi();
+          await loadAgiStatus(); // Refresh status to show stopped state
+          toast.success('Live AGI stopped (chunking disabled)');
+        } catch (error) {
+          console.error('Error stopping AGI when chunking disabled:', error);
+          toast.error('AGI stopped but there was an error during shutdown');
+        }
+      }
+      setLiveModeActuallyEnabled(agiResult.enableLiveMode); // Update saved state
 
       const localInferenceResult = await window.electron.config.setLocalInferenceConfig({
         enabled: localEnabled,
@@ -304,19 +352,31 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
       if (llmResult && agiResult && localInferenceResult) {
         toast.success('Settings saved successfully!');
 
-        // Close modal after slight delay
-        setTimeout(async () => {
-          setIsSaving(false);
-          handleClose();
+        // Update the actually enabled state immediately after successful save
+        setLiveModeActuallyEnabled(agiResult.enableLiveMode);
 
+        // If live mode was just enabled, load AGI status immediately
+        if (agiResult.enableLiveMode && !liveModeActuallyEnabled) {
+          await loadAgiStatus();
+        }
+
+        // Close modal after slight delay only if live mode is not newly enabled
+        if (!agiResult.enableLiveMode || liveModeActuallyEnabled) {
+          setTimeout(async () => {
+            setIsSaving(false);
+            handleClose();
+
+            if (chunkingEnabled) {
+              await syncAgi();
+            }
+          }, 500);
+        } else {
+          // Live mode was just enabled - keep modal open and show controls
+          setIsSaving(false);
           if (chunkingEnabled) {
             await syncAgi();
           }
-          else {
-            setLiveModeEnabled(false);
-          }
-
-        }, 500);
+        }
       } else {
         toast.error('Failed to save settings');
         setIsSaving(false);
@@ -339,7 +399,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
         <div
           className={`llm-settings-modal ${isClosing ? 'closing' : ''}`}
           onClick={e => e.stopPropagation()}
-          style={{ width: liveModeEnabled && chunkingEnabled ? '700px' : '500px' }}
+          style={{ width: liveModeActuallyEnabled && chunkingEnabled ? '700px' : '500px' }}
         >
           <div className="modal-header">
             <h2>AI Model Settings</h2>
@@ -578,210 +638,119 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                 </div>
               )}
 
-              {/* Live AGI Control Panel - Show when live mode is enabled */}
-              {chunkingEnabled && liveModeEnabled && (
+              {/* Live AGI Control Panel - Show only when live mode is actually saved/enabled */}
+              {chunkingEnabled && liveModeActuallyEnabled && (
                 <>
                   <div className="section-divider"></div>
                   <div className="settings-section">
-                    <h3 className="section-title">  Live AGI Consciousness</h3>
+                    <h3 className="section-title">Live AGI Consciousness</h3>
                     
                     {agiStatus ? (
-                      <div style={{ marginTop: '16px' }}>
-                        {/* Control Button */}
-                        <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
+                      <div className="agi-control-panel">
+                        {/* Main Status Display */}
+                        <div className="agi-main-status">
+                          <div className="agi-status-indicator">
+                            <div className={`agi-pulse ${agiStatus.isRunning ? 'active' : 'inactive'}`}>
+                              <div className="agi-pulse-ring"></div>
+                              <div className="agi-pulse-core" style={{ backgroundColor: getStateColor(agiStatus.state) }}>
+                                {getStateIcon(agiStatus.state)}
+                              </div>
+                            </div>
+                            <div className="agi-status-text">
+                              <h4 className="agi-current-state" style={{ color: getStateColor(agiStatus.state) }}>
+                                {agiStatus.state.charAt(0).toUpperCase() + agiStatus.state.slice(1)}
+                              </h4>
+                              <p className="agi-status-description">
+                                {agiStatus.isRunning ? getStateDescription(agiStatus.state) : 'AGI is offline'}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* Control Button */}
                           <button
                             onClick={toggleAgi}
                             disabled={agiLoading}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              padding: '10px 16px',
-                              borderRadius: '8px',
-                              border: 'none',
-                              fontWeight: '500',
-                              cursor: agiLoading ? 'not-allowed' : 'pointer',
-                              transition: 'all 0.2s ease',
-                              backgroundColor: agiStatus.isRunning ? '#ef4444' : '#10b981',
-                              color: 'white',
-                              opacity: agiLoading ? 0.7 : 1
-                            }}
+                            className={`agi-toggle-button ${agiStatus.isRunning ? 'stop' : 'start'} ${agiLoading ? 'loading' : ''}`}
                           >
                             {agiLoading ? (
-                              <div style={{ 
-                                width: '16px', 
-                                height: '16px', 
-                                border: '2px solid rgba(255, 255, 255, 0.3)', 
-                                borderTop: '2px solid white', 
-                                borderRadius: '50%', 
-                                animation: 'spin 0.8s linear infinite' 
-                              }} />
+                              <div className="button-spinner" />
                             ) : agiStatus.isRunning ? (
-                              <Pause size={16} />
+                              <Pause />
                             ) : (
-                              <Play size={16} />
+                              <Play />
                             )}
-                            <span>{agiStatus.isRunning ? 'Stop' : 'Start'} AGI</span>
+                            <span>{agiStatus.isRunning ? 'Stop' : 'Start'}</span>
                           </button>
                         </div>
 
-                        {/* Status Grid */}
-                        <div style={{ 
-                          display: 'grid', 
-                          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
-                          gap: '12px',
-                          marginBottom: '16px'
-                        }}>
-                          <div style={{
-                            backgroundColor: 'var(--background-secondary)',
-                            padding: '12px',
-                            borderRadius: '8px',
-                            border: '1px solid rgba(255, 255, 255, 0.1)'
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                              <div style={{ color: getStateColor(agiStatus.state) }}>
-                                {getStateIcon(agiStatus.state)}
+                        {/* Status Details Grid */}
+                        <div className="agi-details-grid">
+                          <div className="agi-detail-item">
+                            <div className="agi-detail-icon">
+                              <Eye />
+                            </div>
+                            <div className="agi-detail-content">
+                              <span className="agi-detail-label">Perception Mode</span>
+                              <span className="agi-detail-value">{formatPerceptionMode(agiStatus.perceptionMode)}</span>
+                            </div>
+                          </div>
+
+                          <div className="agi-detail-item">
+                            <div className="agi-detail-icon">
+                              <Activity />
+                            </div>
+                            <div className="agi-detail-content">
+                              <span className="agi-detail-label">Total Thoughts</span>
+                              <span className="agi-detail-value">{agiStatus.thoughtCount}</span>
+                            </div>
+                          </div>
+
+                          {agiStatus.lastGenerationTime && new Date(agiStatus.lastGenerationTime).getTime() > 0 && (
+                            <div className="agi-detail-item full-width">
+                              <div className="agi-detail-icon">
+                                <Clock />
                               </div>
-                              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>State</span>
+                              <div className="agi-detail-content">
+                                <span className="agi-detail-label">Last Activity</span>
+                                <span className="agi-detail-value">{formatTimestamp(agiStatus.lastGenerationTime)}</span>
+                              </div>
                             </div>
-                            <p style={{ 
-                              margin: 0, 
-                              fontWeight: '600', 
-                              textTransform: 'capitalize',
-                              color: getStateColor(agiStatus.state),
-                              fontSize: '14px'
-                            }}>
-                              {agiStatus.state}
-                            </p>
-                          </div>
-
-                          <div style={{
-                            backgroundColor: 'var(--background-secondary)',
-                            padding: '12px',
-                            borderRadius: '8px',
-                            border: '1px solid rgba(255, 255, 255, 0.1)'
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                              <Eye size={14} style={{ color: '#3b82f6' }} />
-                              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Perception</span>
-                            </div>
-                            <p style={{ 
-                              margin: 0, 
-                              fontWeight: '600', 
-                              color: '#3b82f6',
-                              fontSize: '14px'
-                            }}>
-                              {formatPerceptionMode(agiStatus.perceptionMode)}
-                            </p>
-                          </div>
-
-                          <div style={{
-                            backgroundColor: 'var(--background-secondary)',
-                            padding: '12px',
-                            borderRadius: '8px',
-                            border: '1px solid rgba(255, 255, 255, 0.1)'
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                              <Activity size={14} style={{ color: '#10b981' }} />
-                              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Thoughts</span>
-                            </div>
-                            <p style={{ 
-                              margin: 0, 
-                              fontWeight: '600', 
-                              color: '#10b981',
-                              fontSize: '14px'
-                            }}>
-                              {agiStatus.thoughtCount} total
-                            </p>
-                          </div>
+                          )}
                         </div>
 
-                        {/* Running Status */}
+                        {/* State Progress Bar */}
                         {agiStatus.isRunning && (
-                          <div style={{
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                            border: '1px solid rgba(16, 185, 129, 0.3)',
-                            borderRadius: '8px',
-                            padding: '12px',
-                            marginBottom: '16px'
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <div style={{
-                                width: '8px',
-                                height: '8px',
-                                backgroundColor: '#10b981',
-                                borderRadius: '50%',
-                                animation: 'pulse 2s infinite'
-                              }} />
-                              <div>
-                                <p style={{ margin: 0, color: '#10b981', fontWeight: '500', fontSize: '14px' }}>
-                                  AGI is actively thinking...
-                                </p>
-                                <p style={{ margin: '2px 0 0 0', color: '#059669', fontSize: '12px' }}>
-                                  Exploring notes and generating insights
-                                </p>
-                              </div>
+                          <div className="agi-progress-container">
+                            <div className="agi-progress-bar">
+                              <div 
+                                className="agi-progress-fill" 
+                                style={{ 
+                                  backgroundColor: getStateColor(agiStatus.state),
+                                  animation: `progressPulse 2s ease-in-out infinite`
+                                }}
+                              ></div>
                             </div>
+                            <span className="agi-progress-text">
+                              {getStateDescription(agiStatus.state)}
+                            </span>
                           </div>
                         )}
 
-                        {/* Last Generation Time */}
-                        {agiStatus.lastGenerationTime && new Date(agiStatus.lastGenerationTime).getTime() > 0 && (
-                          <div style={{
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                            border: '1px solid rgba(59, 130, 246, 0.3)',
-                            borderRadius: '8px',
-                            padding: '10px',
-                            marginBottom: '16px'
-                          }}>
-                            <p style={{ margin: 0, color: '#3b82f6', fontSize: '12px' }}>
-                              <strong>Last generation:</strong> {formatTimestamp(agiStatus.lastGenerationTime)}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Thought History Button */}
-                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        {/* Actions */}
+                        <div className="agi-actions">
                           <button
                             onClick={loadThoughtHistory}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              padding: '8px 12px',
-                              backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                              border: '1px solid rgba(139, 92, 246, 0.3)',
-                              borderRadius: '6px',
-                              color: '#8b5cf6',
-                              cursor: 'pointer',
-                              fontSize: '12px',
-                              fontWeight: '500',
-                              transition: 'all 0.2s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = 'rgba(139, 92, 246, 0.2)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'rgba(139, 92, 246, 0.1)';
-                            }}
+                            className="agi-secondary-button"
                           >
-                            <Brain size={14} />
+                            <Brain />
                             <span>View Thought History</span>
                           </button>
                         </div>
                       </div>
                     ) : (
-                      <div style={{ 
-                        padding: '16px', 
-                        backgroundColor: 'var(--background-secondary)', 
-                        borderRadius: '8px',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        textAlign: 'center'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                          <Brain size={16} style={{ color: 'var(--text-muted)' }} />
-                          <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Loading AGI status...</span>
-                        </div>
+                      <div className="agi-loading-state">
+                        <div className="agi-loading-spinner"></div>
+                        <span>Connecting to AGI consciousness...</span>
                       </div>
                     )}
                   </div>
@@ -797,15 +766,17 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                 onClick={handleClose}
                 disabled={isSaving}
               >
-                Cancel
+                {liveModeActuallyEnabled && chunkingEnabled ? 'Close' : 'Cancel'}
               </button>
-              <button
-                className={`save-button ${isSaving ? 'is-saving' : ''}`}
-                onClick={saveSettings}
-                disabled={isSaving}
-              >
-                {isSaving ? 'Saving...' : 'Save'}
-              </button>
+              {(!liveModeActuallyEnabled || !chunkingEnabled || liveModeEnabled !== liveModeActuallyEnabled) && (
+                <button
+                  className={`save-button ${isSaving ? 'is-saving' : ''}`}
+                  onClick={saveSettings}
+                  disabled={isSaving}
+                >
+                  {isSaving ? 'Saving...' : 'Save'}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -813,188 +784,57 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
 
       {/* Thought History Modal */}
       {showHistory && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(4px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1001
-          }}
-          onClick={() => setShowHistory(false)}
-        >
-          <div 
-            style={{
-              backgroundColor: 'var(--background-primary)',
-              borderRadius: '12px',
-              padding: '24px',
-              maxWidth: '800px',
-              maxHeight: '80vh',
-              overflow: 'auto',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.4)'
-            }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: 'var(--text-normal)' }}>
-                AGI Thought History
-              </h3>
+        <div className="thought-history-overlay" onClick={() => setShowHistory(false)}>
+          <div className="thought-history-modal" onClick={e => e.stopPropagation()}>
+            <div className="thought-history-header">
+              <h3 className="thought-history-title">AGI Thought History</h3>
               <button
                 onClick={() => setShowHistory(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '18px',
-                  cursor: 'pointer',
-                  color: 'var(--text-muted)',
-                  width: '32px',
-                  height: '32px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '50%',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--interactive-hover)';
-                  e.currentTarget.style.color = 'var(--text-normal)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = 'var(--text-muted)';
-                }}
+                className="thought-history-close"
               >
                 ✕
               </button>
             </div>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="thought-history-content">
               {thoughtHistory.length === 0 ? (
-                <p style={{ 
-                  color: 'var(--text-muted)', 
-                  textAlign: 'center', 
-                  padding: '32px 0', 
-                  margin: 0,
-                  fontSize: '14px'
-                }}>
-                  No thoughts recorded yet
-                </p>
+                <p className="thought-history-empty">No thoughts recorded yet</p>
               ) : (
                 thoughtHistory.slice().reverse().map((thought, index) => (
-                  <div 
-                    key={index} 
-                    style={{
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: '8px',
-                      padding: '16px',
-                      backgroundColor: 'var(--background-secondary)'
-                    }}
-                  >
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'space-between', 
-                      marginBottom: '12px' 
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ color: getStateColor(thought.state) }}>
+                  <div key={index} className="thought-card">
+                    <div className="thought-card-header">
+                      <div className="thought-card-info">
+                        <div className="thought-state-icon" style={{ color: getStateColor(thought.state) }}>
                           {getStateIcon(thought.state)}
                         </div>
-                        <span style={{ 
-                          fontWeight: '500', 
-                          textTransform: 'capitalize',
-                          fontSize: '14px',
-                          color: 'var(--text-normal)'
-                        }}>
-                          {thought.state}
-                        </span>
-                        <span style={{ 
-                          fontSize: '12px', 
-                          color: 'var(--text-muted)',
-                          backgroundColor: 'var(--background-tertiary)',
-                          padding: '2px 6px',
-                          borderRadius: '4px'
-                        }}>
+                        <span className="thought-state-text">{thought.state}</span>
+                        <span className="thought-perception-badge">
                           {formatPerceptionMode(thought.perceptionMode)}
                         </span>
                       </div>
-                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {formatTimestamp(thought.timestamp)}
-                      </span>
+                      <span className="thought-timestamp">{formatTimestamp(thought.timestamp)}</span>
                     </div>
                     
                     {thought.selectedNotes.length > 0 && (
-                      <div style={{ marginBottom: '12px' }}>
-                        <p style={{ 
-                          fontSize: '12px', 
-                          fontWeight: '500', 
-                          color: 'var(--text-muted)', 
-                          margin: '0 0 4px 0' 
-                        }}>
-                          Selected Notes:
-                        </p>
-                        <p style={{ 
-                          fontSize: '12px', 
-                          color: 'var(--text-normal)', 
-                          margin: 0,
-                          backgroundColor: 'var(--background-tertiary)',
-                          padding: '6px 8px',
-                          borderRadius: '4px'
-                        }}>
+                      <div className="thought-section">
+                        <p className="thought-section-label">Selected Notes:</p>
+                        <p className="thought-section-content notes-content">
                           {thought.selectedNotes.map(note => note.split('/').pop()).join(', ')}
                         </p>
                       </div>
                     )}
                     
                     {thought.reasoning && (
-                      <div style={{ marginBottom: '12px' }}>
-                        <p style={{ 
-                          fontSize: '12px', 
-                          fontWeight: '500', 
-                          color: 'var(--text-muted)', 
-                          margin: '0 0 4px 0' 
-                        }}>
-                          Reasoning:
-                        </p>
-                        <p style={{ 
-                          fontSize: '12px', 
-                          color: 'var(--text-normal)', 
-                          margin: 0,
-                          lineHeight: '1.4'
-                        }}>
-                          {thought.reasoning}
-                        </p>
+                      <div className="thought-section">
+                        <p className="thought-section-label">Reasoning:</p>
+                        <p className="thought-section-content">{thought.reasoning}</p>
                       </div>
                     )}
                     
                     {thought.generatedContent && (
-                      <div>
-                        <p style={{ 
-                          fontSize: '12px', 
-                          fontWeight: '500', 
-                          color: 'var(--text-muted)', 
-                          margin: '0 0 4px 0' 
-                        }}>
-                          Generated Content:
-                        </p>
-                        <div style={{ 
-                          fontSize: '12px', 
-                          color: 'var(--text-normal)', 
-                          backgroundColor: 'var(--background-tertiary)', 
-                          padding: '8px', 
-                          borderRadius: '4px', 
-                          maxHeight: '120px', 
-                          overflow: 'auto',
-                          margin: 0,
-                          lineHeight: '1.4'
-                        }}>
+                      <div className="thought-section">
+                        <p className="thought-section-label">Generated Content:</p>
+                        <div className="thought-generated-content">
                           {thought.generatedContent.substring(0, 300)}
                           {thought.generatedContent.length > 300 && '...'}
                         </div>
@@ -1007,18 +847,6 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-        
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
     </>
   );
 };
