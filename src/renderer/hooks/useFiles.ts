@@ -169,6 +169,7 @@ export const useFiles = () => {
 
   return {
     files,
+    setFiles,
     notesDirectory,
     graphJsonPath,
     viewMode,

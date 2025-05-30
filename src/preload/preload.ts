@@ -60,6 +60,12 @@ contextBridge.exposeInMainWorld('electron', {
       return () => {
         ipcRenderer.removeAllListeners('graph-refresh');
       };
+    },
+    generatedFilesRefresh: (callback: () => void) => {
+      ipcRenderer.on('generated-files-refresh', () => callback());
+      return () => {
+        ipcRenderer.removeAllListeners('generated-files-refresh');
+      };
     }
   },
   db: {

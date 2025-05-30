@@ -50,6 +50,7 @@ export const App = () => {
   // Use custom hooks 
   const {
     files,
+    setFiles,
     notesDirectory,
     graphJsonPath,
     viewMode,
@@ -103,6 +104,20 @@ export const App = () => {
     }
   }, [triggerGraphRefresh]);
 
+
+  useEffect(() => {
+    if (window.electron?.on) {
+      const removeListener = window.electron.on.generatedFilesRefresh(async () => {
+        const files = await window.electron.fs.getFiles("generated");
+        setFiles(files);
+      });
+
+      return () => {
+        removeListener();
+      };
+    }
+  }, []);
+
   // Set up new note listener from menu
   useEffect(() => {
     if (window.electron?.on) {
@@ -147,9 +162,9 @@ export const App = () => {
 
   const ChatBubbleIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="gray" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 11.5a8.38 8.38 0 0 1-1.9 5.4c.1 1.1.5 2.1 1.4 3.1-1.5-.2-2.8-.6-3.9-1.4a8.5 8.5 0 1 1 4.4-7.1z" />
+      <path d="M21 11.5a8.38 8.38 0 0 1-1.9 5.4c.1 1.1.5 2.1 1.4 3.1-1.5-.2-2.8-.6-3.9-1.4a8.5 8.5 0 1 1 4.4-7.1z" />
     </svg>
-);
+  );
 
   return (
     <div className="app">
@@ -177,9 +192,9 @@ export const App = () => {
           toggleViewMode={toggleViewMode}
         />
         <div className="chat-bubble" onClick={() => setIsChatOpen(true)}>
-          <ChatBubbleIcon/>
+          <ChatBubbleIcon />
         </div>
-        {isChatOpen && 
+        {isChatOpen &&
           <ChatUI
             isChatOpen={isChatOpen}
             setIsChatOpen={setIsChatOpen}

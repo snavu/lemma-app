@@ -30,7 +30,7 @@ interface Window {
       notesDirectorySelected: (callback: (directory: string) => void) => () => void;
       newNote: (callback: () => void) => () => void;
       graphRefresh: (callback: () => void) => () => void;
-
+      generatedFilesRefresh: (callback: () => void) => () => void;
     };
     db: {
       queryDBTags: (searchQuery: string, notesDirectory: string) => Promise<Note[]>;

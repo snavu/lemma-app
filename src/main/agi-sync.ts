@@ -22,6 +22,16 @@ export const notifyGraphRefresh = throttle(() => {
   }
 }, 300, { leading: true, trailing: true });
 
+// Helper function to send events to all renderer processes
+export const notifyFilesRefresh = throttle(() => {
+  const windows = BrowserWindow.getAllWindows();
+  for (const win of windows) {
+    if (!win.isDestroyed()) {
+      win.webContents.send('generated-files-refresh');
+    }
+  }
+}, 300, { leading: true, trailing: true });
+
 /**
  * Updates a parent note with links to all its chunk files
  */
@@ -190,6 +200,7 @@ export const chunk = async (filename: string, content: string, type: string): Pr
 
       // Write the chunk file
       fs.writeFileSync(chunkPath, chunkContent);
+      notifyFilesRefresh();
 
       // Insert chunk into database
       await agiDatabase.upsertNotes(generatedDir, chunkPath, chunk.content, type as FileType);
@@ -254,7 +265,8 @@ const copyFileToAgi = async (filename: string): Promise<boolean> => {
 
     // Write to the destination file
     fs.writeFileSync(destPath, content);
-
+    notifyFilesRefresh();
+    
     return true;
   } catch (error) {
     console.error(`Error copying file ${filename} to AGI directory: `, error);
