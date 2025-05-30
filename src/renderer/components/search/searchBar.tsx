@@ -10,7 +10,6 @@ interface SearchProps {
 export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch, setSearchInput }) => {
   const [inputValue, setInputValue] = useState('');
 
-  // pulled from app.tsx
   const debounce = (fn: (...args: any[]) => void, ms = 1000) => {
     let timeoutId: ReturnType<typeof setTimeout>;
     return function (this: any, ...args: any[]) {

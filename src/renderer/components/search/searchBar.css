@@ -1,37 +1,37 @@
 .search-input-container {
-    background-color: var(--background-secondary);
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding-left: 9px;
+  background-color: var(--background-secondary);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-left: 9px;
 }
 
 .input-field {
-    background: rgba(255, 255, 255, 0.02);
-    color: var(--text-normal);
-    font-size: 16px;
-    padding: 8px;
-    box-sizing: border-box;
-    border: 1px solid transparent;
-    border-radius: 8px;
-    width: 300px;
-    display: flex;
-    transition: all 0.2s ease;
-    line-height: 1.4;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-normal);
+  font-size: 16px;
+  padding: 8px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  width: 300px;
+  display: flex;
+  transition: all 0.2s ease;
+  line-height: 1.4;
 }
 
 .input-field:focus {
-    outline: none;
-    background-color: var(--interactive-hover, rgba(255, 255, 255, 0.08));
-    border-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  outline: none;
+  background-color: var(--interactive-hover, rgba(255, 255, 255, 0.08));
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .input-field::placeholder {
-    color: var(--text-muted);
+  color: var(--text-muted);
 }
 
 .input-field:hover {
-    background-color: var(--interactive-hover, rgba(255, 255, 255, 0.05));
-    border-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--interactive-hover, rgba(255, 255, 255, 0.05));
+  border-color: rgba(255, 255, 255, 0.1);
 }
