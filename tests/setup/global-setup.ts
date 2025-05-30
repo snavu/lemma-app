@@ -1,6 +1,8 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { ChildProcess, spawn, spawnSync } from 'child_process';
+// const main = require('../../src/main/main');
+import { InferenceService } from '../../src/main/inference';
 import { rm } from 'fs/promises';
 
 let chromaProcess: null | ChildProcess;
@@ -66,7 +68,7 @@ const delFixtures = async (): Promise<void> => {
 module.exports = async () => {
   startChromaDb();
   initSample('sample', path.join(fixtureDir, 'db-test'));
-  initSample('sample-small', path.join(fixtureDir, 'qa-system'))
+  initSample('sample-small', path.join(fixtureDir, 'qa-system'));
   // Terminate ChromaDB server if Ctrl+C
   process.once('SIGINT', async () => {
     await endChromaDb();

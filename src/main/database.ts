@@ -57,7 +57,7 @@ export class DbClient {
   }
 
   // Initializes connection to the collection. Will be done only once
-  private initCollection = async (): Promise<void> => {
+  private async initCollection(): Promise<void> {
     if (!this.collection) {
       try {
         this.collection = await this.client.getOrCreateCollection({
@@ -68,10 +68,10 @@ export class DbClient {
         console.error('Error during ChromaDB initialization:', error);
       }
     }
-  };
+  }
 
   // Initializes embedding function, downloading embedding model if not already installed. Will be done only once.
-  private initEmbeddingFunc = async (): Promise<void> => {
+  private async initEmbeddingFunc(): Promise<void> {
     const modelList = await ollama.list();
     // Model has not been installed yet
     if (!modelList.models.find(obj => obj.model.split(':')[0] === this.modelName)) {
@@ -86,15 +86,15 @@ export class DbClient {
         model: this.modelName
       });
     }
-  };
+  }
 
   // Add/update embeddings for one notes or multiple notes
-  public upsertNotes = async (
+  public async upsertNotes(
     notesDirectory: string, 
     filePath: string | string[], 
     content: string | string[], 
     fileType: FileType | FileType[]
-  ): Promise<void> => {
+  ): Promise<void> {
     let docIds: string[];
     let notesContent: string[];
     let metadatas: any[];
@@ -138,11 +138,11 @@ export class DbClient {
     // Get document from database for debugging
     // const results = await this.queryNotes(notesDirectory, content);
     console.log('Document(s) successfully upserted:', filePath); // Output results
-  };
+  }
 
   // Deletes the document of the specified note(s) in the directory.
   // If no specific document(s) is specified, deletes all documents of each note in the directory
-  public deleteNotes = async (notesDirectory: string, filePath?: string | string[]): Promise<void> => {
+  public async deleteNotes(notesDirectory: string, filePath?: string | string[]): Promise<void> {
     await this.initEmbeddingFunc();
     await this.initCollection();
 
@@ -169,14 +169,14 @@ export class DbClient {
 
     if (filePath) console.log('Document(s) successfully deleted:', filePath);
     else console.log(`All documents successfully deleted from ${notesDirectory}`);
-  };
+  }
 
   // Return a list of notes that matches the search query.
   // If no search query given, return all notes in the directory
-  public queryNotes = async (
+  public async queryNotes(
     notesDirectory: string, 
     { searchQuery, searchMode = 'full-text', filterByType, limit }: Partial<SearchParams> = {}
-  ): Promise<Note[]> => {
+  ): Promise<Note[]> {
     let data: QueryResponse | GetResponse;
 
     let queryParam: QueryRecordsParams | GetParams = {
@@ -252,5 +252,5 @@ export class DbClient {
     });
 
     return results;
-  };
+  }
 }
