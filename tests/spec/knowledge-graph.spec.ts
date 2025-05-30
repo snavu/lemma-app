@@ -4,7 +4,7 @@ import * as graphService from '../../src/main/graph-service';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const fixturePath = path.join('tests', 'fixtures', 'knowledge-graph');;
+const fixturePath = path.join(process.cwd(), 'tests', 'fixtures', 'knowledge-graph');
 
 fileService.MainNotesDirectory(fixturePath);
 fs.mkdirSync(fixturePath, { recursive: true });

@@ -13,7 +13,8 @@
     "python-setup": "node python-setup.js",
     "postinstall": "npm run python-setup",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
-    "sample": "node src/lib/sample.js"
+    "sample": "node src/lib/sample.js",
+    "sample-small": "node src/lib/sample-small.js"
   },
   "keywords": [],
   "author": {
