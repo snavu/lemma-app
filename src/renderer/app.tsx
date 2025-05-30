@@ -31,6 +31,7 @@ import { useFiles } from './hooks/useFiles';
 import { useTabs } from './hooks/useTabs';
 import { useGraphState } from './hooks/useGraphState';
 import { useNotesSync } from './hooks/useNotesSync';
+import { useResizePanel } from './hooks/useResizePanel';
 import KnowledgeGraph from './components/tabs/markdown/graph/KnowledgeGraph';
 import ToastProvider from './components/toast/ToastProvider';
 
@@ -82,6 +83,14 @@ export const App = () => {
     hasGraphChanged,
     triggerGraphRefresh
   );
+
+  const editorRef = useRef<HTMLDivElement>(null);
+  const { width: editorWidth, handleMouseDown: handleMouseDown } = useResizePanel({
+    panelRef: editorRef,
+    defaultWidthPercent: 50,
+    minPercent: 10,
+    maxPercent: 90,
+  });
 
   // Get current file path for the active tab
   const getCurrentFilePath = () => {
@@ -144,62 +153,6 @@ export const App = () => {
     }
     return newFilePath;
   };
-
-  const [editorWidth, setEditorWidth] = useState(50);
-  const [isResizing, setIsResizing] = useState(false);
-  const editorRef = useRef<HTMLDivElement>(null);
-
-  // Resize handlers
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-  }, []);
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isResizing || !editorRef.current) return;
-  
-    const container = editorRef.current.parentElement;  
-    if (!container) return;
-    
-    const containerRect = container.getBoundingClientRect();
-    const offsetX = e.clientX - containerRect.left;
-    const containerWidth = containerRect.width;
-  
-    const minWidthPercent = 10;
-    const maxWidthPercent = 90;
-    const newWidthPercent = (offsetX / containerWidth) * 100;
-  
-    if (newWidthPercent >= minWidthPercent && newWidthPercent <= maxWidthPercent) {
-      setEditorWidth(newWidthPercent);
-    }
-  }, [isResizing]);
-  
-
-  const handleMouseUp = useCallback(() => {
-    setIsResizing(false);
-  }, []);
-
-  // Add event listeners for resize
-  useEffect(() => {
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'ew-resize';
-      document.body.style.userSelect = 'none';
-    } else {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-  }, [isResizing, handleMouseMove, handleMouseUp]);
 
   return (
     <div className="app">

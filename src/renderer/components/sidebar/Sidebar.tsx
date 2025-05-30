@@ -2,6 +2,7 @@ import React, { useState, useCallback, ReactNode , useEffect, useRef, SetStateAc
 import { ContextMenu } from '../context-menu/ContextMenu';
 import { SearchResults } from '../search/searchResult';
 import LLMSettingsModal from '../settings-modal/LLMSettingsModal';
+import { useResizePanel } from '../../hooks/useResizePanel';
 import { viewMode } from 'src/shared/types';
 import './sidebar.css';
 
@@ -92,60 +93,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // State for LLM settings modal
   const [isLLMSettingsOpen, setIsLLMSettingsOpen] = useState(false);
 
-  const [sidebarWidth, setSidebarWidth] = useState(20);
-  const [isResizing, setIsResizing] = useState(false);
+  // custom hook for resizePanel
   const sidebarRef = useRef<HTMLDivElement>(null);
-
-  // Resize handlers
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-  }, []);
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isResizing || !sidebarRef.current) return;
-  
-    const container = sidebarRef.current.parentElement;
-    if (!container) return;
-  
-    const containerRect = container.getBoundingClientRect();
-    const offsetX = e.clientX - containerRect.left;
-    const containerWidth = containerRect.width;
-  
-    const minWidthPercent = 10;
-    const maxWidthPercent = 40;
-    const newWidthPercent = (offsetX / containerWidth) * 100;
-  
-    if (newWidthPercent >= minWidthPercent && newWidthPercent <= maxWidthPercent) {
-      setSidebarWidth(newWidthPercent);
-    }
-  }, [isResizing]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsResizing(false);
-  }, []);
-
-  // Add event listeners for resize
-  useEffect(() => {
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'ew-resize';
-      document.body.style.userSelect = 'none';
-    } else {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-  }, [isResizing, handleMouseMove, handleMouseUp]);
+  const { width: sidebarWidth, handleMouseDown: handleMouseDown } = useResizePanel({
+    panelRef: sidebarRef,
+    defaultWidthPercent: 20,
+    minPercent: 10,
+    maxPercent: 40,
+  });
 
 
   // Handler for right-click on a file
