@@ -3,6 +3,12 @@ import * as fs from 'fs';
 import { app } from 'electron';
 import { agiConfig, llmConfig, localInferenceConfig, viewMode } from 'src/shared/types';
 
+/**
+ * AGI sync state for individual files
+ */
+export interface AgiSyncState {
+  [filename: string]: boolean; // true = synced, false = not synced yet
+}
 
 /**
  * Configuration service for managing app settings
@@ -14,6 +20,7 @@ export class Config {
     llm: llmConfig;
     agi: agiConfig;
     local: localInferenceConfig;
+    agiSyncState: AgiSyncState;
   };
 
   private configPath: string | null;
@@ -159,6 +166,76 @@ export class Config {
   }
 
   /**
+   * Get the AGI sync state for all files
+   */
+  getAgiSyncState(): AgiSyncState {
+    return this.config.agiSyncState || {};
+  }
+
+  /**
+   * Check if a specific file is synced with AGI
+   */
+  isFileSynced(filename: string): boolean {
+    return this.config.agiSyncState?.[filename] === true;
+  }
+
+  /**
+   * Set the sync state for a specific file
+   */
+  setFileSyncState(filename: string, synced: boolean) {
+    if (!this.config.agiSyncState) {
+      this.config.agiSyncState = {};
+    }
+    this.config.agiSyncState[filename] = synced;
+    this.saveConfig();
+  }
+
+  /**
+   * Set the sync state for multiple files
+   */
+  setMultipleFileSyncStates(files: { [filename: string]: boolean }) {
+    if (!this.config.agiSyncState) {
+      this.config.agiSyncState = {};
+    }
+    Object.assign(this.config.agiSyncState, files);
+    this.saveConfig();
+  }
+
+  /**
+   * Remove a file from the sync state tracking
+   */
+  removeFileSyncState(filename: string) {
+    if (this.config.agiSyncState && this.config.agiSyncState[filename] !== undefined) {
+      delete this.config.agiSyncState[filename];
+      this.saveConfig();
+    }
+  }
+
+  /**
+   * Get all unsynced files
+   */
+  getUnsyncedFiles(): string[] {
+    const syncState = this.getAgiSyncState();
+    return Object.keys(syncState).filter(filename => syncState[filename] === false);
+  }
+
+  /**
+   * Get all synced files
+   */
+  getSyncedFiles(): string[] {
+    const syncState = this.getAgiSyncState();
+    return Object.keys(syncState).filter(filename => syncState[filename] === true);
+  }
+
+  /**
+   * Clear all sync state (useful for resetting AGI sync)
+   */
+  clearAgiSyncState() {
+    this.config.agiSyncState = {};
+    this.saveConfig();
+  }
+
+  /**
    * Initialize the config file if it doesn't exist or ensure it has the correct structure
    */
   ensureConfigFile() {
@@ -184,7 +261,8 @@ export class Config {
         enabled: false,
         port: 11434,
         model: 'llama3.2'
-      }
+      },
+      agiSyncState: {}
     };
 
     try {
@@ -208,7 +286,8 @@ export class Config {
             viewMode: existingConfig.viewMode || defaultConfig.viewMode,
             llm: { ...defaultConfig.llm, ...existingConfig.llm },
             agi: { ...defaultConfig.agi, ...existingConfig.agi },
-            local: { ...defaultConfig.local, ...existingConfig.local }
+            local: { ...defaultConfig.local, ...existingConfig.local },
+            agiSyncState: existingConfig.agiSyncState || {}
           };
 
           console.log('Updated existing config structure');
@@ -228,9 +307,6 @@ export class Config {
       console.error('Error creating or updating config file:', error);
     }
   }
-
-
-
 
   /**
    * Reload configuration from disk
