@@ -66,6 +66,13 @@ contextBridge.exposeInMainWorld('electron', {
       return () => {
         ipcRenderer.removeAllListeners('generated-files-refresh');
       };
+    },
+    // Add Live AGI status change listener
+    agiStatusChanged: (callback: (status: any) => void) => {
+      ipcRenderer.on('agi-status-changed', (_, status) => callback(status));
+      return () => {
+        ipcRenderer.removeAllListeners('agi-status-changed');
+      };
     }
   },
   db: {
@@ -96,7 +103,22 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.removeAllListeners('llm-token-received');
       ipcRenderer.removeAllListeners('llm-response-done');
     },
-
+    // Live AGI operations
+    startLiveAgi: () => ipcRenderer.invoke('start-live-agi'),
+    stopLiveAgi: () => ipcRenderer.invoke('stop-live-agi'),
+    getLiveAgiStatus: () => ipcRenderer.invoke('get-live-agi-status'),
+    getAgiThoughtHistory: () => ipcRenderer.invoke('get-agi-thought-history'),
+    updateAgiConfig: (configUpdates: any) => ipcRenderer.invoke('update-agi-config', configUpdates),
   },
+});
 
+// Also expose the electronAPI for compatibility with the integrated modal
+contextBridge.exposeInMainWorld('electronAPI', {
+  invoke: (channel: string, ...args: any[]) => ipcRenderer.invoke(channel, ...args),
+  on: (channel: string, callback: (...args: any[]) => void) => {
+    ipcRenderer.on(channel, callback);
+  },
+  removeListener: (channel: string, callback: (...args: any[]) => void) => {
+    ipcRenderer.removeListener(channel, callback);
+  }
 });

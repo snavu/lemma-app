@@ -235,79 +235,92 @@ export class Config {
     this.saveConfig();
   }
 
-  /**
-   * Initialize the config file if it doesn't exist or ensure it has the correct structure
-   */
-  ensureConfigFile() {
-    if (!this.configPath) {
-      console.error('Cannot initialize config: Config path not available');
-      return;
-    }
-
-    // Define default config structure
-    const defaultConfig = {
-      notesDirectory: '',
-      viewMode: 'main' as viewMode,
-      llm: {
-        endpoint: 'https://api.deepseek.com',
-        apiKey: '',
-        model: 'deepseek-chat'
-      },
-      agi: {
-        enableChunking: false,
-        enableLiveMode: false
-      },
-      local: {
-        enabled: false,
-        port: 11434,
-        model: 'llama3.2'
-      },
-      agiSyncState: {}
-    };
-
-    try {
-      // Ensure directory exists
-      const configDir = path.dirname(this.configPath);
-      if (!fs.existsSync(configDir)) {
-        fs.mkdirSync(configDir, { recursive: true });
-      }
-
-      let currentConfig = defaultConfig;
-
-      // If file exists, read it and merge with default config
-      if (fs.existsSync(this.configPath)) {
-        try {
-          const data = fs.readFileSync(this.configPath, 'utf8');
-          const existingConfig = JSON.parse(data);
-
-          // Merge with default config to ensure all required fields are present
-          currentConfig = {
-            notesDirectory: existingConfig.notesDirectory,
-            viewMode: existingConfig.viewMode || defaultConfig.viewMode,
-            llm: { ...defaultConfig.llm, ...existingConfig.llm },
-            agi: { ...defaultConfig.agi, ...existingConfig.agi },
-            local: { ...defaultConfig.local, ...existingConfig.local },
-            agiSyncState: existingConfig.agiSyncState || {}
-          };
-
-          console.log('Updated existing config structure');
-        } catch (parseError) {
-          console.error('Error parsing existing config, using default:', parseError);
-        }
-      } else {
-        console.log(`Created default config file at ${this.configPath}`);
-      }
-
-      // Write the config back to file
-      fs.writeFileSync(this.configPath, JSON.stringify(currentConfig, null, 2));
-
-      // Update in-memory config
-      this.config = currentConfig;
-    } catch (error) {
-      console.error('Error creating or updating config file:', error);
-    }
+/**
+ * Initialize the config file if it doesn't exist or ensure it has the correct structure
+ */
+ensureConfigFile() {
+  if (!this.configPath) {
+    console.error('Cannot initialize config: Config path not available');
+    return;
   }
 
+  // Define default config structure
+  const defaultConfig = {
+    notesDirectory: '',
+    viewMode: 'main' as viewMode,
+    llm: {
+      endpoint: 'https://api.deepseek.com',
+      apiKey: '',
+      model: 'deepseek-chat'
+    },
+    agi: {
+      enableChunking: false,
+      enableLiveMode: false, // Add this new property
+      liveAgiSettings: {
+        minGenerationInterval: 1 * 1000, // 1 second
+        maxGenerationInterval: 30 * 60 * 1000, // 30 minutes
+        stateTransitionInterval: 1 * 1000, // 1 second
+        notesPerSynthesis: 3,
+        thoughtHistoryLimit: 100
+      }
+    },
+    local: {
+      enabled: false,
+      port: 11434,
+      model: 'llama3.2'
+    },
+    agiSyncState: {}
+  };
+
+  try {
+    // Ensure directory exists
+    const configDir = path.dirname(this.configPath);
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+
+    let currentConfig = defaultConfig;
+
+    // If file exists, read it and merge with default config
+    if (fs.existsSync(this.configPath)) {
+      try {
+        const data = fs.readFileSync(this.configPath, 'utf8');
+        const existingConfig = JSON.parse(data);
+
+        // Merge with default config to ensure all required fields are present
+        currentConfig = {
+          notesDirectory: existingConfig.notesDirectory,
+          viewMode: existingConfig.viewMode || defaultConfig.viewMode,
+          llm: { ...defaultConfig.llm, ...existingConfig.llm },
+          agi: { 
+            ...defaultConfig.agi, 
+            ...existingConfig.agi,
+            liveAgiSettings: {
+              ...defaultConfig.agi.liveAgiSettings,
+              ...(existingConfig.agi?.liveAgiSettings || {})
+            }
+          },
+          local: { ...defaultConfig.local, ...existingConfig.local },
+          agiSyncState: existingConfig.agiSyncState || {}
+        };
+
+        console.log('Updated existing config structure');
+      } catch (parseError) {
+        console.error('Error parsing existing config, using default:', parseError);
+      }
+    } else {
+      console.log(`Created default config file at ${this.configPath}`);
+    }
+
+    // Write the config back to file
+    fs.writeFileSync(this.configPath, JSON.stringify(currentConfig, null, 2));
+
+    // Update in-memory config
+    this.config = currentConfig;
+  } catch (error) {
+    console.error('Error creating or updating config file:', error);
+  }
+}
   /**
    * Reload configuration from disk
    */

@@ -277,7 +277,7 @@ const copyFileToAgi = async (filename: string): Promise<boolean> => {
 /**
  * Create or update a node in the AGI graph
  */
-const createNodeInAgiGraph = (filename: string, linkedFiles: string[], type: string): boolean => {
+export const createNodeInAgiGraph = (filename: string, linkedFiles: string[], type: string): boolean => {
   try {
     // Get path to the AGI graph.json
     const agiGraphPath = fileService.getGeneratedGraphJsonPath();
@@ -358,7 +358,7 @@ const createNodeInAgiGraph = (filename: string, linkedFiles: string[], type: str
 /**
  * Update links in the AGI graph
  */
-const updateLinksInAgiGraph = (nodeId: number, linkedFiles: string[], type: string): boolean => {
+export const updateLinksInAgiGraph = (nodeId: number, linkedFiles: string[], type: string): boolean => {
   try {
     // Get path to the AGI graph.json
     const agiGraphPath = fileService.getGeneratedGraphJsonPath();
@@ -512,7 +512,7 @@ export const syncAgi = async (): Promise<boolean> => {
     try {
       const agiFiles = fs.readdirSync(generatedDir);
       agiFiles.forEach(file => {
-        if (file.toLowerCase().endsWith('.md') && !file.startsWith('generated_')) {
+        if (file.toLowerCase().endsWith('.md') && !file.startsWith('generated_') && !file.startsWith('fully_generated_')) {
           agiFilenames.push(file);
         }
       });
