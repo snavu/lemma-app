@@ -134,6 +134,13 @@ const cleanupChunkFiles = async (filename: string): Promise<void> => {
  */
 export const chunk = async (filename: string, content: string, type: string): Promise<boolean> => {
   try {
+
+    const isChunkingEnabled = config.getAgiConfig().enableChunking;
+
+    if(!isChunkingEnabled){
+      console.log(`Chunking disabled, skipping file: ${filename}`);
+      return false;
+    }
     // Mark file as being processed (not synced yet)
     config.setFileSyncState(filename, false);
 

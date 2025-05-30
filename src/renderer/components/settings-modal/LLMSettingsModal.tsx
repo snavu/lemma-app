@@ -179,6 +179,8 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
         enableLiveMode: chunkingEnabled ? liveModeEnabled : false
       });
 
+      setChunkingEnabled(agiResult.enableChunking);
+
       const localInferenceResult = await window.electron.config.setLocalInferenceConfig({
         enabled: localEnabled,
         port: localPort,
@@ -188,17 +190,18 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
       if (llmResult && agiResult && localInferenceResult) {
         toast.success('Settings saved successfully!');
 
-        if (chunkingEnabled) {
-          await syncAgi();
-        }
-        else {
-          setLiveModeEnabled(false);
-        }
-
         // Close modal after slight delay
-        setTimeout(() => {
+        setTimeout(async () => {
           setIsSaving(false);
           handleClose();
+
+          if (chunkingEnabled) {
+            await syncAgi();
+          }
+          else {
+            setLiveModeEnabled(false);
+          }
+
         }, 500);
       } else {
         toast.error('Failed to save settings');
@@ -292,7 +295,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
             )}
 
             {!localEnabled && (<div className="section-divider"></div>)}
-            
+
 
             {/* Local Inference Section */}
             <div className="settings-section">
