@@ -207,16 +207,19 @@ export class LiveAgiService {
       return;
     }
 
-    // Calculate probability of starting based on time and note count
-    const timeFactor = Math.min(timeSinceLastGeneration / this.config.minGenerationInterval, 1);
-    const noteFactor = Math.min(noteCount / 10, 1); // More notes = higher probability
-    const baseProb = 0.9; // 90% base chance per cycle
-    const probability = baseProb * timeFactor * noteFactor;
+    this.transitionToState(AgiState.EXPLORING);
 
-    if (Math.random() < probability) {
-      console.log('  AGI: Entering exploration mode');
-      this.transitionToState(AgiState.EXPLORING);
-    }
+
+    // // Calculate probability of starting based on time and note count
+    // const timeFactor = Math.min(timeSinceLastGeneration / this.config.minGenerationInterval, 1);
+    // const noteFactor = Math.min(noteCount / 10, 1); // More notes = higher probability
+    // const baseProb = 0.9; // 90% base chance per cycle
+    // const probability = baseProb * timeFactor * noteFactor;
+
+    // if (Math.random() < probability) {
+    //   console.log('  AGI: Entering exploration mode');
+    //   this.transitionToState(AgiState.EXPLORING);
+    // }
   }
 
   /**
