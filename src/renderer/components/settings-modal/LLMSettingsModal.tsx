@@ -222,7 +222,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
   // Live AGI control functions
   const toggleAgi = async () => {
     if (!agiStatus) return;
-    
+
     setAgiLoading(true);
     try {
       let newStatus: AgiStatus;
@@ -289,7 +289,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
   };
 
   const formatPerceptionMode = (mode: string) => {
-    return mode.split('_').map(word => 
+    return mode.split('_').map(word =>
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
   };
@@ -315,7 +315,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
       });
 
       setChunkingEnabled(agiResult.enableChunking);
-      
+
       // If live mode is being disabled, stop the AGI immediately
       if (liveModeActuallyEnabled && !agiResult.enableLiveMode) {
         console.log('Live Mode disabled - stopping AGI');
@@ -644,7 +644,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                   <div className="section-divider"></div>
                   <div className="settings-section">
                     <h3 className="section-title">Live AGI Consciousness</h3>
-                    
+
                     {agiStatus ? (
                       <div className="agi-control-panel">
                         {/* Main Status Display */}
@@ -665,7 +665,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                               </p>
                             </div>
                           </div>
-                          
+
                           {/* Control Button */}
                           <button
                             onClick={toggleAgi}
@@ -701,30 +701,34 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                             </div>
                             <div className="agi-detail-content">
                               <span className="agi-detail-label">Total Thoughts</span>
-                              <span className="agi-detail-value">{agiStatus.thoughtCount}</span>
+                              <span className="agi-detail-value">{agiStatus.thoughtCount || 0}</span>
                             </div>
                           </div>
 
-                          {agiStatus.lastGenerationTime && new Date(agiStatus.lastGenerationTime).getTime() > 0 && (
-                            <div className="agi-detail-item full-width">
-                              <div className="agi-detail-icon">
-                                <Clock />
-                              </div>
-                              <div className="agi-detail-content">
-                                <span className="agi-detail-label">Last Activity</span>
-                                <span className="agi-detail-value">{formatTimestamp(agiStatus.lastGenerationTime)}</span>
-                              </div>
+                          <div className="agi-detail-item full-width">
+                            <div className="agi-detail-icon">
+                              <Clock />
                             </div>
-                          )}
+                            <div className="agi-detail-content">
+                              <span className="agi-detail-label">Last Activity</span>
+                              <span className="agi-detail-value">
+                                {agiStatus.lastGenerationTime &&
+                                  new Date(agiStatus.lastGenerationTime).getTime() > 0
+                                  ? formatTimestamp(agiStatus.lastGenerationTime)
+                                  : 'No activity yet'
+                                }
+                              </span>
+                            </div>
+                          </div>
                         </div>
 
                         {/* State Progress Bar */}
                         {agiStatus.isRunning && (
                           <div className="agi-progress-container">
                             <div className="agi-progress-bar">
-                              <div 
-                                className="agi-progress-fill" 
-                                style={{ 
+                              <div
+                                className="agi-progress-fill"
+                                style={{
                                   backgroundColor: getStateColor(agiStatus.state),
                                   animation: `progressPulse 2s ease-in-out infinite`
                                 }}
@@ -795,7 +799,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                 ✕
               </button>
             </div>
-            
+
             <div className="thought-history-content">
               {thoughtHistory.length === 0 ? (
                 <p className="thought-history-empty">No thoughts recorded yet</p>
@@ -814,7 +818,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                       </div>
                       <span className="thought-timestamp">{formatTimestamp(thought.timestamp)}</span>
                     </div>
-                    
+
                     {thought.selectedNotes.length > 0 && (
                       <div className="thought-section">
                         <p className="thought-section-label">Selected Notes:</p>
@@ -823,14 +827,14 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                         </p>
                       </div>
                     )}
-                    
+
                     {thought.reasoning && (
                       <div className="thought-section">
                         <p className="thought-section-label">Reasoning:</p>
                         <p className="thought-section-content">{thought.reasoning}</p>
                       </div>
                     )}
-                    
+
                     {thought.generatedContent && (
                       <div className="thought-section">
                         <p className="thought-section-label">Generated Content:</p>
