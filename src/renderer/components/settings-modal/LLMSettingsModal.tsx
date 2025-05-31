@@ -44,6 +44,20 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
   const closeTimeoutRef = useRef<number | null>(null);
   const { syncAgi } = useAgi();
 
+  // Add saved state tracking for all settings
+  const [savedSettings, setSavedSettings] = useState({
+    endpoint: '',
+    apiKey: '',
+    model: '',
+    chunkingEnabled: false,
+    liveModeEnabled: false,
+    localEnabled: false,
+    localPort: 11434,
+    localModel: 'llama3.2',
+    customModel: '',
+    customLocalModel: ''
+  });
+
   // Live AGI state
   const [agiStatus, setAgiStatus] = useState<AgiStatus | null>(null);
   const [thoughtHistory, setThoughtHistory] = useState<AgiThought[]>([]);
@@ -102,6 +116,21 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
 
   // State for custom model input
   const [customLocalModel, setCustomLocalModel] = useState('');
+
+  // Function to check if settings have changed
+  const hasSettingsChanged = () => {
+    const currentModel = model === 'custom' ? customModel : model;
+    const currentLocalModel = localModel === 'custom' ? customLocalModel : localModel;
+    
+    return endpoint !== savedSettings.endpoint ||
+           apiKey !== savedSettings.apiKey ||
+           currentModel !== savedSettings.model ||
+           chunkingEnabled !== savedSettings.chunkingEnabled ||
+           liveModeEnabled !== savedSettings.liveModeEnabled ||
+           localEnabled !== savedSettings.localEnabled ||
+           localPort !== savedSettings.localPort ||
+           currentLocalModel !== savedSettings.localModel;
+  };
 
   // Handle close with animation
   const handleClose = () => {
@@ -216,23 +245,41 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
 
       //Handle cloud model: could be a predefined or custom model
       const savedCloudModel = llmConfig.model;
+      let cloudCustomModel = '';
       if (getModelOptions().includes(savedCloudModel)) {
         setModel(savedCloudModel);
         setCustomModel('');
       } else {
         setModel('custom');
         setCustomModel(savedCloudModel);
+        cloudCustomModel = savedCloudModel;
       }
 
       // Handle local model: could be a predefined or custom model
-      const savedLocalModel = localInferenceConfig.model;
-      if (localModelOptions.includes(savedLocalModel)) {
-        setLocalModel(savedLocalModel);
+      const savedLocalModelName = localInferenceConfig.model;
+      let localCustomModel = '';
+      if (localModelOptions.includes(savedLocalModelName)) {
+        setLocalModel(savedLocalModelName);
         setCustomLocalModel('');
       } else {
         setLocalModel('custom');
-        setCustomLocalModel(savedLocalModel);
+        setCustomLocalModel(savedLocalModelName);
+        localCustomModel = savedLocalModelName;
       }
+
+      // Update saved settings state
+      setSavedSettings({
+        endpoint: llmConfig.endpoint,
+        apiKey: llmConfig.apiKey,
+        model: savedCloudModel,
+        chunkingEnabled: agiConfig.enableChunking,
+        liveModeEnabled: agiConfig.enableLiveMode,
+        localEnabled: localInferenceConfig.enabled,
+        localPort: localInferenceConfig.port,
+        localModel: savedLocalModelName,
+        customModel: cloudCustomModel,
+        customLocalModel: localCustomModel
+      });
     } catch (error) {
       console.error('Error loading settings:', error);
       toast.error('Failed to load settings');
@@ -395,13 +442,30 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
         // Update the actually enabled state immediately after successful save
         setLiveModeActuallyEnabled(agiResult.enableLiveMode);
 
+        // Update saved settings state with current values
+        const currentModel = model === 'custom' ? customModel : model;
+        const currentLocalModel = localModel === 'custom' ? customLocalModel : localModel;
+        
+        setSavedSettings({
+          endpoint,
+          apiKey,
+          model: currentModel,
+          chunkingEnabled: agiResult.enableChunking,
+          liveModeEnabled: agiResult.enableLiveMode,
+          localEnabled,
+          localPort,
+          localModel: currentLocalModel,
+          customModel: model === 'custom' ? customModel : '',
+          customLocalModel: localModel === 'custom' ? customLocalModel : ''
+        });
+
         // If live mode was just enabled, load AGI status immediately
         if (agiResult.enableLiveMode && !liveModeActuallyEnabled) {
           await loadAgiStatus();
         }
 
-        // Close modal after slight delay only if live mode is not newly enabled
-        if (!agiResult.enableLiveMode || liveModeActuallyEnabled) {
+        // Only close modal if AGI features are not enabled
+        if (!agiResult.enableLiveMode && !agiResult.enableChunking) {
           setTimeout(async () => {
             setIsSaving(false);
             handleClose();
@@ -411,7 +475,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
             }
           }, 500);
         } else {
-          // Live mode was just enabled - keep modal open and show controls
+          // AGI features are enabled - keep modal open and show controls
           setIsSaving(false);
           if (chunkingEnabled) {
             await syncAgi();
@@ -816,7 +880,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
               >
                 {liveModeActuallyEnabled && chunkingEnabled ? 'Close' : 'Cancel'}
               </button>
-              {(!liveModeActuallyEnabled || !chunkingEnabled || liveModeEnabled !== liveModeActuallyEnabled) && (
+              {hasSettingsChanged() && (
                 <button
                   className={`save-button ${isSaving ? 'is-saving' : ''}`}
                   onClick={saveSettings}

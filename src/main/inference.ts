@@ -85,6 +85,7 @@ export class InferenceService {
   async formatWebContent(webContent: string, options: any = {}) {
     const localModel = config.getLocalInferenceConfig().model;
     this.localModel = localModel ? localModel : this.localModel;
+    this.isLocalMode = config.getLocalInferenceConfig().enabled;
 
     try {
       const formatPrompt = `Convert the following web content into clean, well-structured markdown. DO NOT add commentary, explanations, or responses. ONLY return the formatted content.
@@ -158,6 +159,8 @@ Return only the formatted markdown:`;
   async getChunks(content: string, filename: string) {
     const localModel = config.getLocalInferenceConfig().model;
     this.localModel = localModel ? localModel : this.localModel;
+    this.isLocalMode = config.getLocalInferenceConfig().enabled;
+
     try {
       // Create the prompt for the model
       const prompt = `
@@ -274,6 +277,7 @@ The JSON structure should be:
   async chatCompletion(messageHistory: any[], options: any = {}, onToken?: (token: string) => void) {
     const localModel = config.getLocalInferenceConfig().model;
     this.localModel = localModel ? localModel : this.localModel;
+    this.isLocalMode = config.getLocalInferenceConfig().enabled;
     try {
       const prompt = `
       You are a helpful assistant that provides accurate, concise, and relevant answers based on the given context. 
@@ -400,15 +404,14 @@ The JSON structure should be:
         }
 
         // Non-streaming response
-        const response = await this.client!.chat.completions.create({
+        const response = await this.client!.responses.create({
           model: modelName,
-          messages: messages,
+          input: messages,
           temperature: options.temperature || 0.7,
-          max_tokens: options.max_tokens
         });
 
         return {
-          response: response.choices[0]?.message.content || ''
+          response: response.output_text || ''
         };
       }
     } catch (error) {
@@ -429,6 +432,7 @@ The JSON structure should be:
   async synthesisCompletion(synthesisPrompt: string, options: any = {}) {
     const localModel = config.getLocalInferenceConfig().model;
     this.localModel = localModel ? localModel : this.localModel;
+    this.isLocalMode = config.getLocalInferenceConfig().enabled;
 
     try {
       // Simple system message for synthesis - no Q&A context retrieval
