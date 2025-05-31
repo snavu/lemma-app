@@ -94,7 +94,7 @@ contextBridge.exposeInMainWorld('electron', {
   agi: {
     syncAgi: () => ipcRenderer.invoke('sync-agi'),
     updateFileInAgi: (filename: string) => ipcRenderer.invoke('update-file-in-agi', filename),
-    removeFileFromAgi: (filename: string) => ipcRenderer.invoke('delete-file-in-agi', filename),
+    removeFileFromAgi: (filename: string) => ipcRenderer.invoke('remove-file-from-agi', filename),
     sendChatRequest: (messageArray: { role: 'user' | 'assistant'; content: string }[]) => ipcRenderer.invoke('send-chat-request', messageArray),
     stopChatResponse: () => ipcRenderer.invoke('stop-chat-response'),
     onTokenReceived: (callback: (token: string) => void) => ipcRenderer.on('llm-token-received', (_event, token) => callback(token)),
