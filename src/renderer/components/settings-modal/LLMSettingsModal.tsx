@@ -50,6 +50,10 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
   const [showHistory, setShowHistory] = useState(false);
   const [agiLoading, setAgiLoading] = useState(false);
 
+  // Persistent tracking state
+  const [persistentThoughtCount, setPersistentThoughtCount] = useState(0);
+  const [persistentLastActivity, setPersistentLastActivity] = useState<Date | null>(null);
+
   // Common models for different providers
   const modelOptions = {
     'OpenAI': ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo', 'custom'],
@@ -165,6 +169,36 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
     return cleanup;
   }, [isOpen]);
 
+  // Handle AGI status updates and maintain persistence
+  useEffect(() => {
+    if (!agiStatus) return;
+
+    // Update persistent thought count - only increase, never decrease unless explicitly reset
+    if (agiStatus.thoughtCount > persistentThoughtCount) {
+      setPersistentThoughtCount(agiStatus.thoughtCount);
+    }
+
+    // Update persistent last activity - only update if we have a valid new timestamp
+    if (agiStatus.lastGenerationTime && 
+        new Date(agiStatus.lastGenerationTime).getTime() > 0) {
+      const newTimestamp = new Date(agiStatus.lastGenerationTime);
+      
+      // Only update if this is a newer timestamp
+      if (!persistentLastActivity || newTimestamp > persistentLastActivity) {
+        setPersistentLastActivity(newTimestamp);
+      }
+    }
+  }, [agiStatus, persistentThoughtCount, persistentLastActivity]);
+
+  // Reset persistent data when AGI is stopped/started
+  useEffect(() => {
+    if (!agiStatus?.isRunning) {
+      // When AGI stops, reset the persistent counters
+      setPersistentThoughtCount(0);
+      setPersistentLastActivity(null);
+    }
+  }, [agiStatus?.isRunning]);
+
   const loadSettings = async () => {
     try {
       const llmConfig = await window.electron.config.getLLMConfig();
@@ -222,14 +256,20 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
   // Live AGI control functions
   const toggleAgi = async () => {
     if (!agiStatus) return;
-
+    
     setAgiLoading(true);
     try {
       let newStatus: AgiStatus;
       if (agiStatus.isRunning) {
         newStatus = await window.electron.agi.stopLiveAgi();
+        // Reset persistent data when stopping
+        setPersistentThoughtCount(0);
+        setPersistentLastActivity(null);
       } else {
         newStatus = await window.electron.agi.startLiveAgi();
+        // Reset persistent data when starting fresh
+        setPersistentThoughtCount(0);
+        setPersistentLastActivity(null);
       }
       setAgiStatus(newStatus);
     } catch (error) {
@@ -289,7 +329,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
   };
 
   const formatPerceptionMode = (mode: string) => {
-    return mode.split('_').map(word =>
+    return mode.split('_').map(word => 
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
   };
@@ -315,7 +355,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
       });
 
       setChunkingEnabled(agiResult.enableChunking);
-
+      
       // If live mode is being disabled, stop the AGI immediately
       if (liveModeActuallyEnabled && !agiResult.enableLiveMode) {
         console.log('Live Mode disabled - stopping AGI');
@@ -644,7 +684,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                   <div className="section-divider"></div>
                   <div className="settings-section">
                     <h3 className="section-title">Live AGI Consciousness</h3>
-
+                    
                     {agiStatus ? (
                       <div className="agi-control-panel">
                         {/* Main Status Display */}
@@ -665,7 +705,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                               </p>
                             </div>
                           </div>
-
+                          
                           {/* Control Button */}
                           <button
                             onClick={toggleAgi}
@@ -701,7 +741,9 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                             </div>
                             <div className="agi-detail-content">
                               <span className="agi-detail-label">Total Thoughts</span>
-                              <span className="agi-detail-value">{agiStatus.thoughtCount || 0}</span>
+                              <span className="agi-detail-value">
+                                {Math.max(persistentThoughtCount, agiStatus.thoughtCount || 0)}
+                              </span>
                             </div>
                           </div>
 
@@ -712,10 +754,12 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                             <div className="agi-detail-content">
                               <span className="agi-detail-label">Last Activity</span>
                               <span className="agi-detail-value">
-                                {agiStatus.lastGenerationTime &&
-                                  new Date(agiStatus.lastGenerationTime).getTime() > 0
-                                  ? formatTimestamp(agiStatus.lastGenerationTime)
-                                  : 'No activity yet'
+                                {persistentLastActivity 
+                                  ? formatTimestamp(persistentLastActivity)
+                                  : (agiStatus.lastGenerationTime && new Date(agiStatus.lastGenerationTime).getTime() > 0
+                                      ? formatTimestamp(agiStatus.lastGenerationTime)
+                                      : 'No activity yet'
+                                    )
                                 }
                               </span>
                             </div>
@@ -726,9 +770,9 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                         {agiStatus.isRunning && (
                           <div className="agi-progress-container">
                             <div className="agi-progress-bar">
-                              <div
-                                className="agi-progress-fill"
-                                style={{
+                              <div 
+                                className="agi-progress-fill" 
+                                style={{ 
                                   backgroundColor: getStateColor(agiStatus.state),
                                   animation: `progressPulse 2s ease-in-out infinite`
                                 }}
@@ -799,7 +843,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                 ✕
               </button>
             </div>
-
+            
             <div className="thought-history-content">
               {thoughtHistory.length === 0 ? (
                 <p className="thought-history-empty">No thoughts recorded yet</p>
@@ -818,7 +862,7 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                       </div>
                       <span className="thought-timestamp">{formatTimestamp(thought.timestamp)}</span>
                     </div>
-
+                    
                     {thought.selectedNotes.length > 0 && (
                       <div className="thought-section">
                         <p className="thought-section-label">Selected Notes:</p>
@@ -827,14 +871,14 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                         </p>
                       </div>
                     )}
-
+                    
                     {thought.reasoning && (
                       <div className="thought-section">
                         <p className="thought-section-label">Reasoning:</p>
                         <p className="thought-section-content">{thought.reasoning}</p>
                       </div>
                     )}
-
+                    
                     {thought.generatedContent && (
                       <div className="thought-section">
                         <p className="thought-section-label">Generated Content:</p>
