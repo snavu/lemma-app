@@ -1,45 +1,46 @@
 .chat-message p {
-    margin: 0;
+  margin: 0;
 }
 
 .chat-message {
-    padding: 8px 12px;
-    border-radius: 12px;
-    margin: 0px 10px 20px 10px;
-    word-wrap: break-word;
+  padding: 8px 12px;
+  border-radius: 12px;
+  margin: 0px 10px 20px 10px;
+  word-wrap: break-word;
 }
-  
-  .chat-message-user {
-    align-self: flex-end;
-    background-color: #3f495c;
-    color: white;
-    margin-left: auto;
+
+.chat-message-user {
+  align-self: flex-end;
+  background-color: #3f495c;
+  color: white;
+  margin-left: auto;
 }
-  
-  .chat-message-bot {
-    align-self: flex-start;
-    background-color: #2f3542;
-    color: white;
+
+.chat-message-bot {
+  align-self: flex-start;
+  background-color: #2f3542;
+  color: white;
 }
 
 .chat-messages-container {
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-    height: 500px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  height: 500px;
 }
 
 .chat-message pre {
-    white-space: pre-wrap;
-    word-break: break-word;
-    overflow-x: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: hidden;
 }
 
 .dot-loader {
-    width: 20px;
-    aspect-ratio: 4;
-    background: radial-gradient(circle closest-side,#000 90%,#0000) 0/calc(100%/3) 100% space;
-    clip-path: inset(0 100% 0 0);
-    animation: l1 1s steps(4) infinite;
+  width: 20px;
+  aspect-ratio: 4;
+  background: radial-gradient(circle closest-side, #fff 90%, #0000) 0/calc(100%/3) 100% space;
+  clip-path: inset(0 100% 0 0);
+  animation: l1 1s steps(4) infinite;
 }
+
 @keyframes l1 {to{clip-path: inset(0 -34% 0 0)}}
