@@ -50,6 +50,10 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
   const [showHistory, setShowHistory] = useState(false);
   const [agiLoading, setAgiLoading] = useState(false);
 
+  // Persistent tracking state
+  const [persistentThoughtCount, setPersistentThoughtCount] = useState(0);
+  const [persistentLastActivity, setPersistentLastActivity] = useState<Date | null>(null);
+
   // Common models for different providers
   const modelOptions = {
     'OpenAI': ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo', 'custom'],
@@ -165,6 +169,36 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
     return cleanup;
   }, [isOpen]);
 
+  // Handle AGI status updates and maintain persistence
+  useEffect(() => {
+    if (!agiStatus) return;
+
+    // Update persistent thought count - only increase, never decrease unless explicitly reset
+    if (agiStatus.thoughtCount > persistentThoughtCount) {
+      setPersistentThoughtCount(agiStatus.thoughtCount);
+    }
+
+    // Update persistent last activity - only update if we have a valid new timestamp
+    if (agiStatus.lastGenerationTime && 
+        new Date(agiStatus.lastGenerationTime).getTime() > 0) {
+      const newTimestamp = new Date(agiStatus.lastGenerationTime);
+      
+      // Only update if this is a newer timestamp
+      if (!persistentLastActivity || newTimestamp > persistentLastActivity) {
+        setPersistentLastActivity(newTimestamp);
+      }
+    }
+  }, [agiStatus, persistentThoughtCount, persistentLastActivity]);
+
+  // Reset persistent data when AGI is stopped/started
+  useEffect(() => {
+    if (!agiStatus?.isRunning) {
+      // When AGI stops, reset the persistent counters
+      setPersistentThoughtCount(0);
+      setPersistentLastActivity(null);
+    }
+  }, [agiStatus?.isRunning]);
+
   const loadSettings = async () => {
     try {
       const llmConfig = await window.electron.config.getLLMConfig();
@@ -228,8 +262,14 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
       let newStatus: AgiStatus;
       if (agiStatus.isRunning) {
         newStatus = await window.electron.agi.stopLiveAgi();
+        // Reset persistent data when stopping
+        setPersistentThoughtCount(0);
+        setPersistentLastActivity(null);
       } else {
         newStatus = await window.electron.agi.startLiveAgi();
+        // Reset persistent data when starting fresh
+        setPersistentThoughtCount(0);
+        setPersistentLastActivity(null);
       }
       setAgiStatus(newStatus);
     } catch (error) {
@@ -701,21 +741,29 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
                             </div>
                             <div className="agi-detail-content">
                               <span className="agi-detail-label">Total Thoughts</span>
-                              <span className="agi-detail-value">{agiStatus.thoughtCount}</span>
+                              <span className="agi-detail-value">
+                                {Math.max(persistentThoughtCount, agiStatus.thoughtCount || 0)}
+                              </span>
                             </div>
                           </div>
 
-                          {agiStatus.lastGenerationTime && new Date(agiStatus.lastGenerationTime).getTime() > 0 && (
-                            <div className="agi-detail-item full-width">
-                              <div className="agi-detail-icon">
-                                <Clock />
-                              </div>
-                              <div className="agi-detail-content">
-                                <span className="agi-detail-label">Last Activity</span>
-                                <span className="agi-detail-value">{formatTimestamp(agiStatus.lastGenerationTime)}</span>
-                              </div>
+                          <div className="agi-detail-item full-width">
+                            <div className="agi-detail-icon">
+                              <Clock />
                             </div>
-                          )}
+                            <div className="agi-detail-content">
+                              <span className="agi-detail-label">Last Activity</span>
+                              <span className="agi-detail-value">
+                                {persistentLastActivity 
+                                  ? formatTimestamp(persistentLastActivity)
+                                  : (agiStatus.lastGenerationTime && new Date(agiStatus.lastGenerationTime).getTime() > 0
+                                      ? formatTimestamp(agiStatus.lastGenerationTime)
+                                      : 'No activity yet'
+                                    )
+                                }
+                              </span>
+                            </div>
+                          </div>
                         </div>
 
                         {/* State Progress Bar */}

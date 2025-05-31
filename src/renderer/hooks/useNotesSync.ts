@@ -48,7 +48,7 @@ export const useNotesSync = (
       
       const result = await window.electron.config.getAgiConfig();
       if (result) {
-        if (result.enabled) {
+        if (result.enableChunking) {
           updateFileInAgi(filename);
         }
       }
