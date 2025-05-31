@@ -1,3 +1,23 @@
+// Add these type definitions to your global.ts or types file
+
+interface AgiStatus {
+  isRunning: boolean;
+  state: string;
+  perceptionMode: string;
+  thoughtCount: number;
+  lastGenerationTime: Date;
+}
+
+interface AgiThought {
+  timestamp: Date;
+  state: string;
+  perceptionMode: string;
+  selectedNotes: string[];
+  synthesisPrompt?: string;
+  generatedContent?: string;
+  reasoning?: string;
+}
+
 interface Window {
   electron: {
     shell: {
@@ -30,7 +50,8 @@ interface Window {
       notesDirectorySelected: (callback: (directory: string) => void) => () => void;
       newNote: (callback: () => void) => () => void;
       graphRefresh: (callback: () => void) => () => void;
-
+      generatedFilesRefresh: (callback: () => void) => () => void;
+      agiStatusChanged: (callback: (status: AgiStatus) => void) => () => void; // Add this
     };
     db: {
       queryDBTags: (searchQuery: string, notesDirectory: string) => Promise<Note[]>;
@@ -38,7 +59,7 @@ interface Window {
     };
     config: {
       getMainNotesDirectory: () => Promise<string | null>;
-      getCurrentNotesDirectory: (mode: viewMode ) => Promise<string | null>;
+      getCurrentNotesDirectory: (mode: viewMode) => Promise<string | null>;
       getLLMConfig: () => Promise<llmConfig>;
       setLLMConfig: (llmConfig: llmConfig) => Promise<llmConfig>;
       getAgiConfig: () => Promise<agiConfig>;
@@ -55,8 +76,18 @@ interface Window {
       onTokenReceived: (callback: (token: string) => void) => Electron.IpcRenderer;
       onResponseDone: (callback: () => void) => Electron.IpcRenderer;
       removeStreamListeners: () => void;
+      // Live AGI methods
+      startLiveAgi: () => Promise<AgiStatus>;
+      stopLiveAgi: () => Promise<AgiStatus>;
+      getLiveAgiStatus: () => Promise<AgiStatus>;
+      getAgiThoughtHistory: () => Promise<AgiThought[]>;
+      updateAgiConfig: (config: Partial<agiConfig>) => Promise<AgiStatus>; 
     }
   };
+  // Add electronAPI for compatibility with integrated modal
+  electronAPI?: {
+    invoke: (channel: string, ...args: any[]) => Promise<any>;
+    on: (channel: string, callback: (...args: any[]) => void) => void;
+    removeListener: (channel: string, callback: (...args: any[]) => void) => void;
+  };
 }
-
-

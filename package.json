@@ -88,6 +88,7 @@
     "i": "^0.3.7",
     "lodash": "^4.17.21",
     "lowlight": "^3.3.0",
+    "lucide-react": "^0.511.0",
     "ollama": "^0.5.15",
     "onnxruntime-common": "^1.23.0-dev.20250429-a9a3ad2e0c",
     "onnxruntime-node": "^1.22.0",

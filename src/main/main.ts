@@ -11,7 +11,7 @@ import { Config } from './config-service';
 import { InferenceService, startStreaming, stopStreaming } from './inference';
 import { viewMode } from 'src/shared/types';
 import { startExtensionService } from './extension-service';
-import { useState } from 'react';
+import { LiveAgiService } from './live-agi-service';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -22,6 +22,7 @@ let mainWindow: BrowserWindow | null = null;
 let database: DbClient;
 export let config: Config;
 export let inferenceService: InferenceService;
+export let liveAgiService: LiveAgiService;
 
 const createWindow = (): void => {
   // Create the browser window
@@ -347,6 +348,31 @@ const setupIpcHandlers = (): void => {
     return config.setViewMode(mode);
   });
 
+   // Live AGI handlers
+   ipcMain.handle('start-live-agi', () => {
+    liveAgiService.start();
+    return liveAgiService.getStatus();
+  });
+
+  ipcMain.handle('stop-live-agi', () => {
+    liveAgiService.stop();
+    return liveAgiService.getStatus();
+  });
+
+  ipcMain.handle('get-live-agi-status', () => {
+    return liveAgiService.getStatus();
+  });
+
+  ipcMain.handle('get-agi-thought-history', () => {
+    return liveAgiService.getThoughtHistory();
+  });
+
+  ipcMain.handle('update-agi-config', (_, configUpdates) => {
+    liveAgiService.updateConfig(configUpdates);
+    return liveAgiService.getStatus();
+  });
+
+
   // Window control messages
   ipcMain.on('window-control', (_, command) => {
     if (!mainWindow) return;
@@ -380,6 +406,7 @@ app.on('ready', () => {
   chromaService.startChromaDb();
   database = new DbClient();
   inferenceService = new InferenceService();
+  liveAgiService = new LiveAgiService(inferenceService);
 
 });
 

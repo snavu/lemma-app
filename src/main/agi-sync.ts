@@ -23,6 +23,16 @@ export const notifyGraphRefresh = throttle(() => {
   }
 }, 300, { leading: true, trailing: true });
 
+// Helper function to send events to all renderer processes
+export const notifyFilesRefresh = throttle(() => {
+  const windows = BrowserWindow.getAllWindows();
+  for (const win of windows) {
+    if (!win.isDestroyed()) {
+      win.webContents.send('generated-files-refresh');
+    }
+  }
+}, 300, { leading: true, trailing: true });
+
 /**
  * Updates a parent note with links to all its chunk files
  */
@@ -129,26 +139,22 @@ const cleanupChunkFiles = async (filename: string): Promise<void> => {
   }
 };
 
-/**
- * Helper function to extract linked references from content
- */
-const extractLinkedReferences = (content: string): string[] => {
-  const linkedRefs: string[] = [];
-  const regex = /\[\[(.*?)\]\]/g;
-
-  let match;
-  while ((match = regex.exec(content)) !== null) {
-    linkedRefs.push(match[1]);
-  }
-
-  return linkedRefs;
-};
 
 /**
  * Call the LLM API to get semantic chunking recommendations
  */
 export const chunk = async (filename: string, content: string, type: string): Promise<boolean> => {
   try {
+
+    const isChunkingEnabled = config.getAgiConfig().enableChunking;
+
+    if(!isChunkingEnabled){
+      console.log(`Chunking disabled, skipping file: ${filename}`);
+      return false;
+    }
+    // Mark file as being processed (not synced yet)
+    config.setFileSyncState(filename, false);
+
     // Get generated directory
     const generatedDir = fileService.getGeneratedFolderPath();
     if (!generatedDir) {
@@ -171,9 +177,9 @@ export const chunk = async (filename: string, content: string, type: string): Pr
 
     if (!chunkResults || !chunkResults.chunks || chunkResults.chunks.length === 0) {
       console.error('Failed to get chunk recommendations from LLM');
+      // Keep file marked as unsynced
       return false;
     }
-
 
     // Create files for each chunk
     const chunkFilenames: string[] = [];
@@ -195,6 +201,7 @@ export const chunk = async (filename: string, content: string, type: string): Pr
 
       // Write the chunk file
       fs.writeFileSync(chunkPath, chunkContent);
+      notifyFilesRefresh();
 
       // Insert chunk into database
       await agiDatabase.upsertNotes(generatedDir, chunkPath, chunk.content, type as FileType);
@@ -205,7 +212,6 @@ export const chunk = async (filename: string, content: string, type: string): Pr
       chunkFilenames.push(chunkFilename);
     }
 
-
     for (let i = 0; i < chunkResults.chunks.length; i++) {
       const chunk = chunkResults.chunks[i];
       // Extract linked references to add to graph
@@ -215,7 +221,6 @@ export const chunk = async (filename: string, content: string, type: string): Pr
 
       // Add to graph
       createNodeInAgiGraph(chunkFilenames[i], linkedFiles, 'assisted');
-
     }
 
     // Update the parent note with links to all chunks
@@ -223,9 +228,14 @@ export const chunk = async (filename: string, content: string, type: string): Pr
       await updateParentWithChunkLinks(filename, chunkFilenames);
     }
 
+    // Mark file as successfully synced
+    config.setFileSyncState(filename, true);
+
     return true;
   } catch (error) {
     console.error('Error chunking file:', error);
+    // Keep file marked as unsynced so it can be retried
+    config.setFileSyncState(filename, false);
     return false;
   }
 };
@@ -256,7 +266,8 @@ const copyFileToAgi = async (filename: string): Promise<boolean> => {
 
     // Write to the destination file
     fs.writeFileSync(destPath, content);
-
+    notifyFilesRefresh();
+    
     return true;
   } catch (error) {
     console.error(`Error copying file ${filename} to AGI directory: `, error);
@@ -267,7 +278,7 @@ const copyFileToAgi = async (filename: string): Promise<boolean> => {
 /**
  * Create or update a node in the AGI graph
  */
-const createNodeInAgiGraph = (filename: string, linkedFiles: string[], type: string): boolean => {
+export const createNodeInAgiGraph = (filename: string, linkedFiles: string[], type: string): boolean => {
   try {
     // Get path to the AGI graph.json
     const agiGraphPath = fileService.getGeneratedGraphJsonPath();
@@ -348,7 +359,7 @@ const createNodeInAgiGraph = (filename: string, linkedFiles: string[], type: str
 /**
  * Update links in the AGI graph
  */
-const updateLinksInAgiGraph = (nodeId: number, linkedFiles: string[], type: string): boolean => {
+export const updateLinksInAgiGraph = (nodeId: number, linkedFiles: string[], type: string): boolean => {
   try {
     // Get path to the AGI graph.json
     const agiGraphPath = fileService.getGeneratedGraphJsonPath();
@@ -502,7 +513,7 @@ export const syncAgi = async (): Promise<boolean> => {
     try {
       const agiFiles = fs.readdirSync(generatedDir);
       agiFiles.forEach(file => {
-        if (file.toLowerCase().endsWith('.md') && !file.startsWith('generated_')) {
+        if (file.toLowerCase().endsWith('.md') && !file.startsWith('generated_') && !file.startsWith('fully_generated_')) {
           agiFilenames.push(file);
         }
       });
@@ -511,11 +522,10 @@ export const syncAgi = async (): Promise<boolean> => {
       return false;
     }
 
-
-    // Step 3: For each AGI filename not in user directory, delete AGI files
+    // Step 3: For each AGI filename not in user directory, delete AGI files and remove from sync state
     for (const filename of agiFilenames) {
       if (!userFilenames.includes(filename)) {
-        console.log(`Removing AGI file not in user directory: ${filename} `);
+        console.log(`Removing AGI file not in user directory: ${filename}`);
 
         // Delete file from AGI directory
         const filePath = path.join(generatedDir, filename);
@@ -528,6 +538,9 @@ export const syncAgi = async (): Promise<boolean> => {
         // Delete the node from AGI graph
         deleteNodeFromAgiGraph(filename);
 
+        // Remove from sync state tracking
+        config.removeFileSyncState(filename);
+
         // Also delete any generated files related to this filename
         try {
           const generatedFiles = fs.readdirSync(generatedDir);
@@ -535,7 +548,7 @@ export const syncAgi = async (): Promise<boolean> => {
             if (file.startsWith(`generated_${filename.split('.')[0]} `) && file.endsWith('.md')) {
               const generatedFilePath = path.join(generatedDir, file);
               fs.unlinkSync(generatedFilePath);
-              console.log(`Deleted related generated file: ${file} `);
+              console.log(`Deleted related generated file: ${file}`);
             }
           });
         } catch (error) {
@@ -544,41 +557,59 @@ export const syncAgi = async (): Promise<boolean> => {
       }
     }
 
-
-    let newFileNames = [];
-    // Step 3: For each user file not in AGI directory, copy user files to AGI directory
+    // Step 4: Identify files that need to be synced
+    const filesToSync: string[] = [];
+    
+    // Add new files (not in AGI directory)
     for (const filename of userFilenames) {
       if (!agiFilenames.includes(filename)) {
-        console.log(`Syncing user file to AGI: ${filename} `);
+        filesToSync.push(filename);
+        // Mark as unsynced initially
+        config.setFileSyncState(filename, false);
+      }
+    }
+
+    // Add files that were previously unsynced (interrupted sync)
+    const unsyncedFiles = config.getUnsyncedFiles();
+    for (const filename of unsyncedFiles) {
+      if (userFilenames.includes(filename) && !filesToSync.includes(filename)) {
+        filesToSync.push(filename);
+        console.log(`Resuming sync for previously unsynced file: ${filename}`);
+      }
+    }
+
+    // Step 5: Process each file that needs to be synced
+    for (const filename of filesToSync) {
+      try {
+        console.log(`Syncing user file to AGI: ${filename}`);
 
         // Copy file to AGI directory
         await copyFileToAgi(filename);
-        newFileNames.push(filename);
+
+        // Read file content
+        const filePath = path.join(notesDir, filename);
+        const content = fileService.readFile(filePath);
+
+        // Parse file links
+        const linkedFiles = parseFileLinks(content, userFilenames);
+
+        // Create node in AGI graph
+        createNodeInAgiGraph(filename, linkedFiles, 'user');
+
+        // Chunk the file (this will set the sync state to true if successful)
+        const result = await chunk(filename, content, 'assisted');
+
+        if (!result) {
+          console.error(`Error chunking file: ${filename}`);
+          // File remains marked as unsynced for retry next time
+        }
+      } catch (error) {
+        console.error(`Error processing file ${filename}:`, error);
+        // Mark as unsynced for retry
+        config.setFileSyncState(filename, false);
       }
     }
 
-    // Step 4: For each new file
-    for (const filename of newFileNames) {
-
-      // Read file content
-      const filePath = path.join(notesDir, filename);
-      const content = fileService.readFile(filePath);
-
-      // Parse file links
-      const linkedFiles = parseFileLinks(content, userFilenames);
-
-      // Create node in AGI graph
-      createNodeInAgiGraph(filename, linkedFiles, 'user');
-
-      // Chunk the file
-      const result = await chunk(filename, content, 'assisted');
-
-      if (!result) {
-        console.error(`Error chunking file: ${filename} `);
-        return false;
-      }
-
-    }
     notifyGraphRefresh();
 
     return true;
@@ -593,6 +624,9 @@ export const syncAgi = async (): Promise<boolean> => {
  */
 export const updateFileInAgi = async (filename: string): Promise<boolean> => {
   try {
+    // Mark file as being processed
+    config.setFileSyncState(filename, false);
+
     // Get notes directory
     const notesDir = config.getMainNotesDirectory();
     if (!notesDir) {
@@ -635,17 +669,19 @@ export const updateFileInAgi = async (filename: string): Promise<boolean> => {
     // Update the node in AGI graph
     createNodeInAgiGraph(filename, linkedFiles, 'user');
 
-    // Chunk the file
+    // Chunk the file (this will set sync state appropriately)
     const result = await chunk(filename, content, 'assisted');
 
     if (!result) {
-      console.error(`Error chunking file: ${filename} `);
+      console.error(`Error chunking file: ${filename}`);
       return false;
     }
 
     return true;
   } catch (error) {
     console.error('Error updating file in AGI:', error);
+    // Mark as unsynced for retry
+    config.setFileSyncState(filename, false);
     return false;
   }
 };
@@ -666,7 +702,7 @@ export const removeFileFromAgi = async (filename: string): Promise<boolean> => {
     const agiFilePath = path.join(generatedDir, filename);
     if (fs.existsSync(agiFilePath)) {
       fs.unlinkSync(agiFilePath);
-      console.log(`Deleted file from AGI directory: ${filename} `);
+      console.log(`Deleted file from AGI directory: ${filename}`);
     }
 
     // Delete the node from AGI graph
@@ -674,6 +710,9 @@ export const removeFileFromAgi = async (filename: string): Promise<boolean> => {
 
     // Clean up any chunk files
     await cleanupChunkFiles(filename);
+
+    // Remove from sync state tracking
+    config.removeFileSyncState(filename);
 
     return true;
   } catch (error) {
