@@ -18,6 +18,14 @@ interface UseAgiReturn {
   updateFileInAgi: (filename: string, showToast?: boolean) => Promise<boolean>;
 
   /**
+   * Removes a file from AGI
+   * @param filename The name of the file to remove from AGI
+   * @param showToast Whether to show toast notifications during the removal process
+   * @returns Promise that resolves to a boolean indicating success
+   */
+  removeFileFromAgi: (filename: string, showToast?: boolean) => Promise<boolean>;
+
+  /**
    * Whether a sync or update operation is currently in progress
    */
   isSyncing: boolean;
@@ -116,5 +124,47 @@ export const useAgi = (): UseAgiReturn => {
     }
   };
 
-  return { syncAgi, updateFileInAgi, isSyncing, error };
+  const removeFileFromAgi = async (filename: string, showToast = true): Promise<boolean> => {
+    if (!filename) {
+      throw new Error('Filename is required to remove a file from AGI');
+    }
+
+    setIsSyncing(true);
+    setError(null);
+
+    try {
+      let removePromise = window.electron.agi.removeFileFromAgi(filename);
+
+      if (showToast) {
+        toast.loading('Removing file from AGI...');
+      }
+
+      const result = await removePromise;
+
+      if (showToast) {
+        toast.dismiss();
+        if (result) {
+          toast.success('File removed from AGI successfully!');
+        } else {
+          toast.error('Failed to remove file from AGI');
+        }
+      }
+
+      setIsSyncing(false);
+      return result;
+    } catch (err) {
+      if (showToast) {
+        toast.dismiss();
+        toast.error('Failed to remove file from AGI');
+      }
+
+      const removeError = err instanceof Error ? err : new Error(`Unknown error removing ${filename} from AGI`);
+      setError(removeError);
+      console.error(`Error removing file ${filename} from AGI:`, removeError);
+      setIsSyncing(false);
+      throw removeError;
+    }
+  }
+
+  return { syncAgi, updateFileInAgi,removeFileFromAgi, isSyncing, error };
 };
