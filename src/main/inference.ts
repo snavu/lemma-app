@@ -4,6 +4,7 @@ import { llmConfig } from 'src/shared/types';
 import { Ollama } from "ollama";
 import { DbClient, FileType } from "./database";
 import * as fileService from './file-service';
+import * as path from 'path';
 
 // State for LLM generation
 let isStreaming: boolean = false;
@@ -308,7 +309,10 @@ The JSON structure should be:
       let aggregatedPrompt = '';
       for (const [i, context] of contextArr.entries()) {
         // Append context to the user prompt
-        aggregatedPrompt += `File ${i + 1}: ${context.filePath}\nContext: ${context.content}\n\n`;
+        aggregatedPrompt += `Document title ${i + 1}: ${path.basename(context.filePath)}
+        Context:
+        ${context.content}\n
+        ----------------------`;
       }
       // Append user's query to the prompt
       aggregatedPrompt += `User's query: ${userPrompt}`;
@@ -342,6 +346,7 @@ The JSON structure should be:
           });
 
           // Stream token by token
+          startStreaming();
           for await (const chunk of stream) {
             // If streaming interrupted, break
             if (!streamingState()) {
@@ -355,6 +360,7 @@ The JSON structure should be:
             }
           }
 
+          stopStreaming();
           return { response: fullResponse };
         }
 
@@ -388,6 +394,7 @@ The JSON structure should be:
           });
 
           // Stream token by token
+          startStreaming();
           for await (const chunk of stream) {
             // If streaming interrupted, break
             if (!streamingState()) {
@@ -401,6 +408,7 @@ The JSON structure should be:
             }
           }
 
+          stopStreaming();
           return { response: fullResponse };
         }
 

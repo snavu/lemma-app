@@ -8,7 +8,7 @@ import * as chromaService from './chroma-service';
 import * as graphLoader from './graph-loader';
 import * as userAgiSync from './agi-sync';
 import { Config } from './config-service';
-import { InferenceService, startStreaming, stopStreaming } from './inference';
+import { InferenceService, stopStreaming } from './inference';
 import { viewMode } from 'src/shared/types';
 import { startExtensionService } from './extension-service';
 import { LiveAgiService } from './live-agi-service';
@@ -314,13 +314,11 @@ const setupIpcHandlers = (): void => {
   });
 
   ipcMain.handle('send-chat-request', async (_, messageArray) => {
-    startStreaming();
     const response = await inferenceService.chatCompletion(messageArray, { stream: true }, (token) => {
       // Send each new token back to frontend
       mainWindow.webContents.send('llm-token-received', token);
     });
 
-    stopStreaming();
     mainWindow.webContents.send('llm-response-done');
     return response;
   });
