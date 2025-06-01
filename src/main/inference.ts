@@ -215,7 +215,7 @@ Return a JSON object with an array of chunks, where each chunk has:
 1. A 'title' field with a descriptive title
 2. A 'content' field with the complete content for that chunk, including any necessary markdown formatting and context headers
 
-The JSON structure should be:
+Here is an example of the JSON structure:
 {
   "chunks": [
     {
@@ -256,6 +256,7 @@ The JSON structure should be:
             temperature: 0.2
           },
           stream: true,
+          keep_alive: 30,
         });
         
         try {
@@ -315,6 +316,14 @@ The JSON structure should be:
 
       const responseContent = fullResponse;
       try {
+        const chunkJson: { 'chunks': { 'title': string, 'content': string }[] } = JSON.parse(responseContent);
+        // Check if there is a 'chunks' field
+        if (!chunkJson.chunks) throw SyntaxError('No defined property of \'chunks\'');
+        // Check if there is a 'title' and 'content' field for each chunk
+        chunkJson.chunks.map((chunk) => {
+          chunk.title = (!chunk.title) ? '' : chunk.title;
+          chunk.content = (!chunk.content) ? '' : chunk.content;
+        });
         return JSON.parse(responseContent);
       } catch (error) {
         console.error('Failed to parse LLM response as JSON', error);
