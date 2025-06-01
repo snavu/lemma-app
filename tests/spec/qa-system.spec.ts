@@ -1,19 +1,16 @@
 import * as fileService from '../../src/main/file-service';
 import { InferenceService, startStreaming, stopStreaming } from '../../src/main/inference';
+import { EvalInferenceService } from '../helpers/eval-inference';
 const { DbClient } = require('../../src/main/database');
-import { Config } from '../../src/main/config-service';
 const main = require('../../src/main/main');
 import * as userAgiSync from '../../src/main/agi-sync';
 import * as fs from 'fs';
 import * as path from 'path';
 
 const fixturePath = path.join(process.cwd(), 'tests', 'fixtures', 'qa-system');
-const evalPath = path.join(process.cwd(), 'tests', 'fixtures', 'evaluation');
-const helpersPath = path.join(process.cwd(), 'tests', 'helpers');
-// const configPath = path.join(process.cwd(), 'tests', 'fixtures', 'config');
+const logPath = path.join(process.cwd(), 'tests', 'logs');
+if (!fs.existsSync(logPath)) fs.mkdirSync(logPath);
 
-fs.mkdirSync(fixturePath, { recursive: true });
-fs.mkdirSync(evalPath, { recursive: true });
 fileService.MainNotesDirectory(fixturePath);
 
 // Spy on database
@@ -23,30 +20,27 @@ const dbSpy = jest.spyOn(DbClient.prototype, 'queryNotes');
 const testInferenceService = new InferenceService();
 main.inferenceService = testInferenceService;
 
-const testData: { question: string[], answer: string[], contexts: string[] } = {
-  question: [
+// Initialize inference service for evaluation
+const evalInferenceService = new EvalInferenceService();
+const testQuries = [
     'What are the four properties of mutual exclusion?',
     'What happens in a deadlock?',
-    'What is the procedure of the Bakery Algorithm?'
-  ],
-  answer: [],
-  contexts: []
-};
+    'What is the pseudocode of the Bakery Algorithm?',
+    'What does a semphore have?'
+];
+const evaluationScores: number[] = [];
 
 const chatResponse = async (query: string) => {
-  startStreaming();
   const result = await main.inferenceService.chatCompletion(
     [{ role: 'user', content: query }],
-    { stream: true },
-    () => {}
+    { stream: true }
   );
-  stopStreaming();
 
   return result;
 };
 
-describe('syncAgi()', () => {
-  it('sync files to agi', async () => {
+describe('Set up files', () => {
+  it('chunk and embed files', async () => {
     // Sync files to AGI
     const success = await userAgiSync.syncAgi();
 
@@ -59,39 +53,36 @@ describe('syncAgi()', () => {
 });
 
 describe('chatCompletion()', () => {
-  it('question and answer 1', async () => {
-    const result = await chatResponse(testData.question[0]);
+  for (const [i, userQuery] of testQuries.entries()) {
+    it(`question and answer ${i+1}`, async () => {
+      // Send a query to the inference model
+      const result = await chatResponse(userQuery);
 
-    expect(dbSpy).toHaveBeenCalled();
-    const contextData = await dbSpy.mock.results[0].value;
-    testData.contexts.push(contextData.map((data: any) => data.content));
-    testData.answer.push(result.response);
+      expect(result.response).not.toBeUndefined();
+      expect(result.response.length).toBeGreaterThan(0);
 
-    // fs.writeFileSync(path.join(helpersPath, 'evaluation.json'), JSON.stringify(testData, null, 2));
-    dbSpy.mockClear();
-  });
+      // Inference service executed semantic search over the vector database
+      expect(dbSpy).toHaveBeenCalled();
+      // Get retrieved context from spy
+      const contextData = await dbSpy.mock.results[0].value;
 
-  it('question and answer 2', async () => {
-    const result = await chatResponse(testData.question[1]);
+      // Evaluate response by checking if response is consistent with retrieved context
+      const evaluation = await evalInferenceService.evaluateFaithfulness(userQuery, result.response, contextData);
+      console.log(evaluation.score, evaluation.reason);
 
-    expect(dbSpy).toHaveBeenCalled();
-    const contextData = await dbSpy.mock.results[0].value;
-    testData.contexts.push(contextData.map((data: any) => data.content));
-    testData.answer.push(result.response);
+      // Log test data
+      const fileOut = { query: userQuery, context: contextData.map((data: any) => data.content), response: result.response, evaluation: evaluation };
+      fs.writeFileSync(path.join(logPath, `eval${i+1}.json`), JSON.stringify(fileOut, null, 2));
 
-    // fs.writeFileSync(path.join(helpersPath, 'evaluation.json'), JSON.stringify(testData, null, 2));
-    dbSpy.mockClear();
-  });
+      evaluationScores.push(evaluation.score);
 
-  it('question and answer 3', async () => {
-    const result = await chatResponse(testData.question[2]);
+      dbSpy.mockClear();
+    });
+  }
 
-    expect(dbSpy).toHaveBeenCalled();
-    const contextData = await dbSpy.mock.results[0].value;
-    testData.contexts.push(contextData.map((data: any) => data.content));
-    testData.answer.push(result.response);
-
-    // fs.writeFileSync(path.join(helpersPath, 'evaluation.json'), JSON.stringify(testData, null, 2));
-    dbSpy.mockClear();
+  it('responses consistent with retrieved context', () => {
+    // Take average score
+    const avgEvalScore = evaluationScores.reduce((acc, val) => acc + val, 0) / evaluationScores.length;
+    expect(avgEvalScore).toBeGreaterThanOrEqual(0.5);
   });
 });

@@ -223,34 +223,6 @@ describe('queryNotes()', () => {
     await database.deleteNotes(notesDir);
 
   });
-
-  // it('tag search 1', async () => {
-  //   // Insert test notes into database
-  //   await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }), Array(testFiles.length).fill('user'));
-
-  //   // Query the note by tag
-  //   const data = await database.queryNotes(notesDir, 'motherboard', 'tag');
-  //   expect(data.length).toBeGreaterThanOrEqual(1);
-  //   expect(data[0].filePath).toBe('tests/fixtures/computer.md');
-
-  //   await database.deleteNotes(notesDir);
-  // });
-
-  // it('tag search 2', async () => {
-  //   // Insert test notes into database
-  //   await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }), Array(testFiles.length).fill('user'));
-
-  //   // Query the note by tag
-  //   const searchQueries = ['ohms-law', 'kirchhoff']
-
-  //   await Promise.all(searchQueries.map(async value => {
-  //     const data = await database.queryNotes(notesDir, value, 'tag');
-  //     expect(data.length).toBeGreaterThanOrEqual(1);
-  //     expect(data[0].filePath).toBe('tests/fixtures/circuits.md');
-  //   }));
-
-  //   await database.deleteNotes(notesDir);
-  // });
 });
 
 describe('deleteNotes()', () => {

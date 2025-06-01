@@ -279,8 +279,9 @@ The JSON structure should be:
    * 
    * @param messageHistory - Array of message objects with 'role' and 'content'. The user should be the last role.
    * @param options - Additional options for the request
+   * @param onToken - Callback function for handling each generated token if streaming is enabled
    */
-  async chatCompletion(messageHistory: any[], options: any = {}, onToken?: (token: string) => void) {
+  async chatCompletion(messageHistory: any[], options: any = {}, onToken: (token: string) => void = () => {}) {
     const localModel = config.getLocalInferenceConfig().model;
     this.localModel = localModel ? localModel : this.localModel;
     this.isLocalMode = config.getLocalInferenceConfig().enabled;
@@ -314,15 +315,16 @@ The JSON structure should be:
       for (const [i, context] of contextArr.entries()) {
         // Append context to the user prompt
         aggregatedPrompt += `Document title ${i + 1}: ${path.basename(context.filePath)}
-        Context:
-        ${context.content}\n
-        ----------------------`;
+Context:
+${context.content}\n
+----------------------
+`;
       }
       // Append user's query to the prompt
       aggregatedPrompt += `User's query: ${userPrompt}`;
       messages[messages.length - 2].content = aggregatedPrompt;
 
-      console.log(messages[messages.length - 2]); // Debugging
+      // console.log(messages[messages.length - 2]); // Debugging
       // console.log(messageHistory);
 
       if (this.isLocalMode) {
