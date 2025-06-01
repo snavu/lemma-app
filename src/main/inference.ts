@@ -13,9 +13,15 @@ export const stopStreaming = (): void => { isStreaming = false };
 export const streamingState = (): boolean => { return isStreaming };
 
 const chunkProcesses: Map<string, number> = new Map();
-// const lastestChunkPid = (directory: string, filename: string): number | undefined => {
-
-// }
+const sanitizeJSONInput = (raw: string): string => {
+  return raw
+    // Remove non-printable control characters (except newline and tab)
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+    // Replace mojibake or malformed Unicode artifacts
+    .replace(/ΓÇÖ/g, "'")
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"');
+};
 
 /**
  * Inference service supporting both cloud provider calls and local inference with Ollama
@@ -174,7 +180,7 @@ Return only the formatted markdown:`;
     
     const currentDirectory = fileService.getCurrentNotesDirectory('main');
     const filePath = path.join(currentDirectory, filename);
-    let chunkPid = chunkProcesses.get(path.join(currentDirectory, filename));
+    let chunkPid = chunkProcesses.get(filePath);
     // Check if another process is already chunking this file
     // If so, update pid
     if (chunkPid) {
@@ -229,7 +235,9 @@ The JSON structure should be:
         { role: "user", content: prompt }
       ];
 
+      let fullResponse = '';
       if (this.isLocalMode) {
+        console.log('chunking on local');
         // Local inference using Ollama
         if (!this.ollamaClient) {
           this.initializeOllamaClient();
@@ -240,7 +248,6 @@ The JSON structure should be:
         }
 
         // Request JSON format output from Ollama
-        let fullResponse = '';
         const stream = await this.ollamaClient.chat({
           model: this.localModel,
           messages: messages,
@@ -251,33 +258,27 @@ The JSON structure should be:
           stream: true,
         });
         
-        for await (const chunk of stream) {
-          // If id of this process not equal to latest id, stop
-          if (chunkPid !== chunkProcesses.get(filePath)) {
-            console.log('chunking aborted');
-            this.ollamaClient.abort();
-            return { chunks: [{ title: '<chunk_aborted>', content: '<chunk_aborted>'}], canceled: true };
-          }
-
-          const token = chunk?.message?.content;
-          if (token) fullResponse += token;
-        }
-        
-        const responseContent = fullResponse || '';
-        // const responseContent = response.message?.content || '';
-
         try {
-          return JSON.parse(responseContent);
-        } catch (error) {
-          console.error('Failed to parse LLM response as JSON', error);
-          console.log('Raw response:', responseContent);
-          return { chunks: [] };
+          for await (const chunk of stream) {
+            // If id of this process not equal to latest id, abort stream
+            if (chunkPid !== chunkProcesses.get(filePath)) {
+              stream.abort();
+              console.log(`chunking aborted on ${filePath}`);
+              return { chunks: [{ title: '<chunk_aborted>', content: '<chunk_aborted>' }], canceled: true };
+            }
+
+            const token = chunk?.message?.content;
+            if (token) fullResponse += token;
+          }
+        } catch (e) {
+          console.log(`chunking aborted on ${filePath}`);
+          return { chunks: [{ title: '<chunk_aborted>', content: '<chunk_aborted>' }], canceled: true };
         }
       } else {
+        console.log('chunking on cloud');
         // Cloud inference using OpenAI SDK
         const modelName = config.getLLMConfig().model;
 
-        let fullResponse = '';
         const stream = await this.client!.chat.completions.create({
           model: modelName,
           messages: [
@@ -289,29 +290,36 @@ The JSON structure should be:
           stream: true
         });
 
-
-        for await (const chunk of stream) {
-          // If id of this process not equal to lastest id, stop
-          if (chunkPid !== chunkProcesses.get(filePath)) {
-            console.log('chunking canceled');
-            return { chunks: [] };
-          }
-
-          const token = chunk.choices[0]?.delta?.content;
-          if (token) fullResponse += token;
-        }
-
-        const responseContent = fullResponse;
-        // Parse the response content
-        // const responseContent = response.choices[0]?.message.content || "";
-
         try {
-          return JSON.parse(responseContent);
-        } catch (error) {
-          console.error('Failed to parse LLM response as JSON', error);
-          console.log('Raw response:', responseContent);
-          return { chunks: [] };
+          for await (const chunk of stream) {
+            // If id of this process not equal to lastest id, abort connection
+            if (chunkPid !== chunkProcesses.get(filePath)) {
+              stream.controller.abort();
+              console.log(`chunking aborted on ${filePath}`);
+              return { chunks: [{ title: '<chunk_aborted>', content: '<chunk_aborted>' }], canceled: true };
+            }
+
+            const token = chunk.choices[0]?.delta?.content;
+            if (token) fullResponse += token;
+          }
+        } catch (e) {
+          console.log(`chunking aborted on ${filePath}`);
+          return { chunks: [{ title: '<chunk_aborted>', content: '<chunk_aborted>' }], canceled: true };
         }
+      }
+
+      // Delete entry of file if this is the latest process
+      if (chunkProcesses.get(filePath) === chunkPid) {
+        chunkProcesses.delete(filePath);
+      }
+
+      const responseContent = fullResponse;
+      try {
+        return JSON.parse(responseContent);
+      } catch (error) {
+        console.error('Failed to parse LLM response as JSON', error);
+        console.log('Raw response:', responseContent);
+        return { chunks: [] };
       }
     } catch (error) {
       console.error('Error in document chunking:', error);
@@ -403,8 +411,8 @@ ${context.content}\n
           for await (const chunk of stream) {
             // If streaming interrupted, break
             if (!streamingState()) {
-              console.log('generating canceled');
-              this.ollamaClient.abort();
+              stream.abort();
+              console.log('generating aborted');
               break;
             }
             const token = chunk?.message?.content;
@@ -452,7 +460,8 @@ ${context.content}\n
           for await (const chunk of stream) {
             // If streaming interrupted, break
             if (!streamingState()) {
-              console.log('generating canceled');
+              stream.controller.abort();
+              console.log('generating aborted');
               break;
             }
             const token = chunk.choices[0]?.delta?.content;
