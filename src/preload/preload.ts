@@ -76,6 +76,7 @@ contextBridge.exposeInMainWorld('electron', {
     }
   },
   db: {
+    syncDb: (notesDirectory: string) => ipcRenderer.invoke('sync-db', notesDirectory),
     queryDBTags: (searchQuery: string, notesDirectory: string) => ipcRenderer.invoke('tag-search-query', searchQuery, notesDirectory),
     queryDBKeyWords: (searchQuery: string, notesDirectory: string) => ipcRenderer.invoke('keyword-search-query', searchQuery, notesDirectory),
   },

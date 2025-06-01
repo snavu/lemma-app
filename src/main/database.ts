@@ -1,5 +1,5 @@
 const { OllamaEmbeddingFunction } = require('chromadb');
-import { ChromaClient, Collection, GetResponse, Metadata, GetParams, QueryRecordsParams, QueryResponse } from 'chromadb';
+import { ChromaClient, Collection, GetResponse, Metadata, GetParams, QueryRecordsParams, QueryResponse, ChromaConnectionError } from 'chromadb';
 import os from 'os';
 import ollama from 'ollama';
 
@@ -22,6 +22,10 @@ interface SearchParams {
 
 const defaultModelName = 'nomic-embed-text';
 const primaryCollection = 'notes';
+
+const sleep = async (ms: number): Promise<void> => {
+  return new Promise(resolve => setTimeout(resolve, ms));
+};
 
 // Get file or collection ID based on file or directory path
 // Replace all forbidden characters for specifying a collection ID
@@ -56,17 +60,25 @@ export class DbClient {
     this.collectionName = collection;
   }
 
-  // Initializes connection to the collection. Will be done only once
+  // Initializes connection to the collection. Will be done only once.
+  // Will retry 5 times for 5 seconds
   private async initCollection(): Promise<void> {
-    if (!this.collection) {
+    let retries = 0;
+    let error: ChromaConnectionError;
+    while (!this.collection && retries < 5) {
       try {
         this.collection = await this.client.getOrCreateCollection({
           name: this.collectionName,
           embeddingFunction: this.embedFunc,
         });
-      } catch (error) {
-        console.error('Error during ChromaDB initialization:', error);
+      } catch (e) {
+        error = e;
       }
+      sleep(1000);
+      retries++;
+    }
+    if (!this.collection) {
+      console.error('Error during ChromaDB initialization:', error);
     }
   }
 
@@ -127,6 +139,7 @@ export class DbClient {
 
     await this.initEmbeddingFunc();
     await this.initCollection();
+    if (!this.collection) return;
 
     // Add/update notes to vector database
     await this.collection.upsert({
@@ -145,6 +158,7 @@ export class DbClient {
   public async deleteNotes(notesDirectory: string, filePath?: string | string[]): Promise<void> {
     await this.initEmbeddingFunc();
     await this.initCollection();
+    if (!this.collection) return;
 
     if (filePath) {
       if (Array.isArray(filePath)) {
@@ -193,7 +207,8 @@ export class DbClient {
 
     await this.initEmbeddingFunc();
     await this.initCollection();
-    
+    if (!this.collection) return [];
+
     if (searchQuery) {
       if (searchMode === 'similarity') {
         queryParam = { 

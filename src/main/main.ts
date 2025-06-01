@@ -185,6 +185,27 @@ const selectNotesDirectory = async (): Promise<string | null> => {
 
 // Set up IPC handlers for main process communication with renderer
 const setupIpcHandlers = (): void => {
+  ipcMain.handle('sync-db', async (_, notesDirectory) => {
+    try {
+      // Query all documents belonging to current directory from vector db,
+      // and get file paths of each document
+      const documents = await database.queryNotes(notesDirectory);
+      const docFilePaths = documents.map(doc => doc.filePath);
+      // Get all file paths of all files of current directory
+      const currentFiles = await fileService.getFilesFromDirectory('main' as viewMode);
+      const currentFilePaths = currentFiles.map(file => file.path);
+      // Filter out any documents not in the files of current directory and delete them
+      const nonExistentFiles = docFilePaths.filter(filePath => !currentFilePaths.includes(filePath));
+      if (nonExistentFiles.length > 0) await database.deleteNotes(notesDirectory, nonExistentFiles);
+      // Finally, update all files of current directory
+      const currentFileContent = currentFilePaths.map(filePath => fs.readFileSync(filePath, 'utf-8'));
+      await database.upsertNotes(notesDirectory, currentFilePaths, currentFileContent, new Array(currentFilePaths.length).fill('user'));
+
+      console.log('Successfully synced user notes database');
+    } catch (error) {
+      console.error('Failed to sync user notes database:', error);
+    }
+  });
 
   ipcMain.handle('tag-search-query', async (_, searchQuery, notesDirectory) => {
     return await database.queryNotes(notesDirectory, { searchQuery: searchQuery, searchMode: 'tag' });

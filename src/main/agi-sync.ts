@@ -544,13 +544,15 @@ export const syncAgi = async (): Promise<boolean> => {
         // Also delete any generated files related to this filename
         try {
           const generatedFiles = fs.readdirSync(generatedDir);
-          generatedFiles.forEach(file => {
-            if (file.startsWith(`generated_${filename.split('.')[0]} `) && file.endsWith('.md')) {
+          for (const file of generatedFiles) {
+            if (file.startsWith(`generated_${filename.split('.')[0]}_`) && file.endsWith('.md')) {
               const generatedFilePath = path.join(generatedDir, file);
               fs.unlinkSync(generatedFilePath);
               console.log(`Deleted related generated file: ${file}`);
+
+              await agiDatabase.deleteNotes(generatedDir, generatedFilePath);
             }
-          });
+          }
         } catch (error) {
           console.error(`Error deleting related generated files for ${filename}: `, error);
         }
