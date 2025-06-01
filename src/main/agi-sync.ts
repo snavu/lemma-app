@@ -180,6 +180,9 @@ export const chunk = async (filename: string, content: string, type: string): Pr
       // Keep file marked as unsynced
       return false;
     }
+    else if (chunkResults.canceled) {
+      return true;
+    }
 
     // Create files for each chunk
     const chunkFilenames: string[] = [];

@@ -12,6 +12,11 @@ export const startStreaming = (): void => { isStreaming = true };
 export const stopStreaming = (): void => { isStreaming = false };
 export const streamingState = (): boolean => { return isStreaming };
 
+const chunkProcesses: Map<string, number> = new Map();
+// const lastestChunkPid = (directory: string, filename: string): number | undefined => {
+
+// }
+
 /**
  * Inference service supporting both cloud provider calls and local inference with Ollama
  */
@@ -166,6 +171,18 @@ Return only the formatted markdown:`;
     const localModel = config.getLocalInferenceConfig().model;
     this.localModel = localModel ? localModel : this.localModel;
     this.isLocalMode = config.getLocalInferenceConfig().enabled;
+    
+    const currentDirectory = fileService.getCurrentNotesDirectory('main');
+    const filePath = path.join(currentDirectory, filename);
+    let chunkPid = chunkProcesses.get(path.join(currentDirectory, filename));
+    // Check if another process is already chunking this file
+    // If so, update pid
+    if (chunkPid) {
+      chunkProcesses.set(filePath, ++chunkPid);
+    } else {
+      chunkProcesses.set(filePath, 1);
+      chunkPid = 1;
+    }
 
     try {
       // Create the prompt for the model
@@ -223,16 +240,31 @@ The JSON structure should be:
         }
 
         // Request JSON format output from Ollama
-        const response = await this.ollamaClient.chat({
+        let fullResponse = '';
+        const stream = await this.ollamaClient.chat({
           model: this.localModel,
           messages: messages,
           format: "json",
           options: {
             temperature: 0.2
-          }
+          },
+          stream: true,
         });
+        
+        for await (const chunk of stream) {
+          // If id of this process not equal to latest id, stop
+          if (chunkPid !== chunkProcesses.get(filePath)) {
+            console.log('chunking aborted');
+            this.ollamaClient.abort();
+            return { chunks: [{ title: '<chunk_aborted>', content: '<chunk_aborted>'}], canceled: true };
+          }
 
-        const responseContent = response.message?.content || '';
+          const token = chunk?.message?.content;
+          if (token) fullResponse += token;
+        }
+        
+        const responseContent = fullResponse || '';
+        // const responseContent = response.message?.content || '';
 
         try {
           return JSON.parse(responseContent);
@@ -245,18 +277,33 @@ The JSON structure should be:
         // Cloud inference using OpenAI SDK
         const modelName = config.getLLMConfig().model;
 
-        const response = await this.client!.chat.completions.create({
+        let fullResponse = '';
+        const stream = await this.client!.chat.completions.create({
           model: modelName,
           messages: [
             { role: "system", content: "You are an AI assistant that specializes in semantic document chunking." },
             { role: "user", content: prompt }
           ],
           temperature: 0.2,
-          response_format: { type: "json_object" }
+          response_format: { type: "json_object" },
+          stream: true
         });
 
+
+        for await (const chunk of stream) {
+          // If id of this process not equal to lastest id, stop
+          if (chunkPid !== chunkProcesses.get(filePath)) {
+            console.log('chunking canceled');
+            return { chunks: [] };
+          }
+
+          const token = chunk.choices[0]?.delta?.content;
+          if (token) fullResponse += token;
+        }
+
+        const responseContent = fullResponse;
         // Parse the response content
-        const responseContent = response.choices[0]?.message.content || "";
+        // const responseContent = response.choices[0]?.message.content || "";
 
         try {
           return JSON.parse(responseContent);
@@ -357,6 +404,7 @@ ${context.content}\n
             // If streaming interrupted, break
             if (!streamingState()) {
               console.log('generating canceled');
+              this.ollamaClient.abort();
               break;
             }
             const token = chunk?.message?.content;
