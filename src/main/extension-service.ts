@@ -9,7 +9,7 @@ import { FileType } from './database';
 import * as userAgiSync from './agi-sync';
 
 const apiApp = express();
-apiApp.use(express.json());
+apiApp.use(express.json({ limit: '100mb' }));
 
 // 1. Respond to queries about web content
 apiApp.post('/api/chat', async (req, res) => {
@@ -76,7 +76,7 @@ Please provide a helpful response based on the web content and the user's questi
 apiApp.post('/api/save-note', async (req, res) => {
   const { webContent, title, url } = req.body;
   console.log('Processing and saving note to Lemma:', { title, url, contentLength: webContent?.length });
-  console.log('Web content preview:', webContent?.substring(0, 200) + '...');
+  // console.log('Web content preview:', webContent?.substring(0, 200) + '...');
 
   try {
     // Validate input
@@ -155,7 +155,12 @@ ${processedContent}
       await database.upsertNotes(notesDirectory, filePath, noteContent, 'main' as FileType);
 
       // Sync agi
-      await userAgiSync.syncAgi();
+      const syncSuccess = await userAgiSync.syncAgi();
+      if (syncSuccess) {
+        console.log('User successfully synced all files with AGI');
+      } else {
+        console.error('Failed to sync user with AGI');
+      }
 
       res.json({
         success: true,

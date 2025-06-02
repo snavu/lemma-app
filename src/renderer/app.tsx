@@ -125,6 +125,16 @@ export const App = () => {
         removeListener();
       };
     }
+    else if (window.electron?.on && viewMode === 'main') {
+      const removeListener = window.electron.on.generatedFilesRefresh(async () => {
+        const files = await window.electron.fs.getFiles("main");
+        setFiles(files);
+      });
+
+      return () => {
+        removeListener();
+      };
+    }
   }, [viewMode, setFiles]);
 
   // Set up new note listener from menu
