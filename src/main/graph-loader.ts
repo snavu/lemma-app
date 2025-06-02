@@ -142,14 +142,11 @@ export const updateFileInGraph = async (mode: viewMode, filename: string): Promi
     // Parse file to find linked files
     const linkedFiles = graphService.parse_file_links(content, filenames);
 
-    let type = type;
-    if (mode === 'generated') {
-      type = 'generated';
-    }
+  
 
     if (!node) {
       // Create new node if it doesn't exist
-      graphService.create_node(mode, filename, linkedFiles, type);
+      graphService.create_node(mode, filename, linkedFiles, 'user');
       return true;
     }
 
@@ -168,7 +165,7 @@ export const updateFileInGraph = async (mode: viewMode, filename: string): Promi
     // Add new links
     for (const linkedFile of linkedFiles) {
       if (!currentTargets.includes(linkedFile)) {
-        graphService.create_link(mode, node.id, linkedFile, type);
+        graphService.create_link(mode, node.id, linkedFile, 'user');
       }
     }
 
