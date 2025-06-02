@@ -47,13 +47,13 @@ export const SearchResults: React.FC<SearchResultProps> = ({
 
   const extractNearbyInputs = () => {
     setNearbyResults([]);
-    if (!searchInput.trim() || results.length === 0) {
+    if (!searchInput || results.length === 0) {
       return [];
     }
 
     const mappedResults: NearbyResult[] = [];
     const contextWindow = 4;
-    const searchTerm = searchInput.toLowerCase().trim();
+    const searchTerm = searchInput.toLowerCase();
     
     results.forEach(file => {
       const plainText = markdownToTxt(file.content);
@@ -232,7 +232,7 @@ export const SearchResults: React.FC<SearchResultProps> = ({
   }, [scrollToCurrentResult]);
 
   const highlightText = (text: string, searchTerm: string) => {
-    if (!searchTerm.trim()) return text;
+    if (!searchTerm) return text;
     
     const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
     const parts = text.split(regex);
