@@ -50,10 +50,10 @@ export class DbClient {
   // private embedFunc: typeof DefaultEmbeddingFunction;
   private embedFunc: typeof OllamaEmbeddingFunction | null;
   private modelName: string;
-  private client: ChromaClient;
+  private client: ChromaClient | null;
 
   constructor(collection: string = primaryCollection, model: string = defaultModelName) {
-    this.client = new ChromaClient();
+    this.client = null;
     this.embedFunc = null;
     this.modelName = model;
     this.collection = null;
@@ -67,15 +67,17 @@ export class DbClient {
     let error: ChromaConnectionError;
     while (!this.collection && retries < 5) {
       try {
+        this.client = new ChromaClient();
         this.collection = await this.client.getOrCreateCollection({
           name: this.collectionName,
           embeddingFunction: this.embedFunc,
         });
+        break;
       } catch (e) {
         error = e;
+        await sleep(1000);
+        retries++;
       }
-      sleep(1000);
-      retries++;
     }
     if (!this.collection) {
       console.error('Error during ChromaDB initialization:', error);

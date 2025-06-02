@@ -52,8 +52,8 @@ const endChromaDb = async (): Promise<void> => {
   }
 };
 
-const initSample = (sample: string, path: string): void => {
-  const child = spawn('npm', ['run', sample, '--', path], { stdio: 'inherit', shell: true });
+const initSeed = (seed: string, path: string): void => {
+  const child = spawn('npm', ['run', seed, '--', path], { stdio: 'inherit', shell: true });
   child.on('exit', () => console.log('Initialized fixtures'));
 }
 
@@ -67,8 +67,8 @@ const delFixtures = async (): Promise<void> => {
 
 module.exports = async () => {
   startChromaDb();
-  initSample('sample', path.join(fixtureDir, 'db-test'));
-  initSample('sample-small', path.join(fixtureDir, 'qa-system'));
+  initSeed('seed', path.join(fixtureDir, 'db-test'));
+  initSeed('seed-small', path.join(fixtureDir, 'qa-system'));
   // Terminate ChromaDB server if Ctrl+C
   process.once('SIGINT', async () => {
     await endChromaDb();
