@@ -78,7 +78,7 @@ export const useNotesSync = (
       // Set a new timeout
       saveTimeoutRef.current = setTimeout(() => {
         saveAndCheckGraph(tabToUpdate.filePath, newContent, hashtags);
-      }, 200);
+      }, 1000);
     }
   }, [tabs, updateTabContent, saveAndCheckGraph]);
 

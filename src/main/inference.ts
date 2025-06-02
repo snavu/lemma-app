@@ -200,6 +200,7 @@ You are an expert in knowledge management and information chunking. Your task is
 - Ensure chunks follow natural semantic boundaries in the content
 - Handle formatting elements like bullet points, code blocks, and tables appropriately
 - Only return the JSON object with the chunks, do not include any additional text or explanations
+- Ignore "related notes" sections, focus on the main content of the note
 
 # Document Title: ${filename.replace(/\.md$/, '')}
 

@@ -319,8 +319,6 @@ const setupIpcHandlers = (): void => {
   
   ipcMain.handle('sync-agi', async () => {
     try {
-      // Clear all pending requests when doing a full sync
-      config.clearAllRequests();
       
       const success = await userAgiSync.syncAgi();
       if (success) {
@@ -338,9 +336,7 @@ const setupIpcHandlers = (): void => {
   
   ipcMain.handle('remove-file-from-agi', async (_, filename) => {
     try {
-      // Clear any pending requests for this file
-      config.clearFileRequest(filename);
-      
+
       const success = await userAgiSync.removeFileFromAgi(filename);
       if (success) {
         console.log('User successfully removed file from AGI');
