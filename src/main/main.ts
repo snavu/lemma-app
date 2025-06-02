@@ -285,39 +285,61 @@ const setupIpcHandlers = (): void => {
     return result;
   });
 
-  ipcMain.handle('sync-agi', async () => {
-    // Sync user with AGI
-    const success = await userAgiSync.syncAgi();
-    if (success) {
-      console.log('User successfully synced all files with AGI');
-      return true;
-    } else {
-      console.error('Failed to sync user with AGI');
-      return false;
-    }
-  });
-
   ipcMain.handle('update-file-in-agi', async (_, filename) => {
-    const success = await userAgiSync.updateFileInAgi(filename);
-    if (success) {
-      console.log('User successfully synced file with AGI');
-      return true;
-    } else {
-      console.error('Failed to sync file with AGI');
+    try {
+      const success = await userAgiSync.updateFileInAgi(filename);
+      
+      if (success) {
+        console.log('User successfully synced file with AGI');
+        return true;
+      } else {
+        console.error('Failed to sync file with AGI');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error in updateFileInAgi:', error);
       return false;
     }
   });
-
+  
+  ipcMain.handle('sync-agi', async () => {
+    try {
+      // Clear all pending requests when doing a full sync
+      config.clearAllRequests();
+      
+      const success = await userAgiSync.syncAgi();
+      if (success) {
+        console.log('User successfully synced all files with AGI');
+        return true;
+      } else {
+        console.error('Failed to sync user with AGI');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error in syncAgi:', error);
+      return false;
+    }
+  });
+  
   ipcMain.handle('remove-file-from-agi', async (_, filename) => {
-    const success = await userAgiSync.removeFileFromAgi(filename);
-    if (success) {
-      console.log('User successfully removed file with AGI');
-      return true;
-    } else {
-      console.error('Failed to remvoe file from AGI');
+    try {
+      // Clear any pending requests for this file
+      config.clearFileRequest(filename);
+      
+      const success = await userAgiSync.removeFileFromAgi(filename);
+      if (success) {
+        console.log('User successfully removed file from AGI');
+        return true;
+      } else {
+        console.error('Failed to remove file from AGI');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error in removeFileFromAgi:', error);
       return false;
     }
   });
+  
 
   ipcMain.handle('send-chat-request', async (_, messageArray) => {
     startStreaming();

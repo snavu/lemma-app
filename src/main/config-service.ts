@@ -10,6 +10,13 @@ export interface AgiSyncState {
   [filename: string]: boolean; // true = synced, false = not synced yet
 }
 
+export interface AgiRequestState {
+  [filename: string]: {
+    requestId: string;
+    timestamp: number;
+  };
+}
+
 /**
  * Configuration service for managing app settings
  */
@@ -21,6 +28,8 @@ export class Config {
     agi: agiConfig;
     local: localInferenceConfig;
     agiSyncState: AgiSyncState;
+    agiRequestState: AgiRequestState;
+
   };
 
   private configPath: string | null;
@@ -235,6 +244,56 @@ export class Config {
     this.saveConfig();
   }
 
+  /**
+   * Generate a new request ID for a file operation
+   */
+  startFileRequest(filename: string): string {
+    const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    if (!this.config.agiRequestState) {
+      this.config.agiRequestState = {};
+    }
+    
+    this.config.agiRequestState[filename] = {
+      requestId,
+      timestamp: Date.now()
+    };
+    
+    // Don't save to disk for request tracking - keep it in memory only for performance
+    return requestId;
+  }
+
+  /**
+   * Check if a request is still the most recent for a file
+   */
+  isRequestCurrent(filename: string, requestId: string): boolean {
+    const currentRequest = this.config.agiRequestState?.[filename];
+    return currentRequest?.requestId === requestId;
+  }
+
+  /**
+   * Clear request tracking for a file (when operation completes or fails)
+   */
+  clearFileRequest(filename: string) {
+    if (this.config.agiRequestState) {
+      delete this.config.agiRequestState[filename];
+    }
+  }
+
+  /**
+   * Get all active requests (for debugging)
+   */
+  getActiveRequests(): AgiRequestState {
+    return this.config.agiRequestState || {};
+  }
+
+  /**
+   * Clear all request tracking
+   */
+  clearAllRequests() {
+    this.config.agiRequestState = {};
+  }
+
 /**
  * Initialize the config file if it doesn't exist or ensure it has the correct structure
  */
@@ -269,7 +328,8 @@ ensureConfigFile() {
       port: 11434,
       model: 'llama3.2'
     },
-    agiSyncState: {}
+    agiSyncState: {},
+    agiRequestState: {}
   };
 
   try {
@@ -301,7 +361,8 @@ ensureConfigFile() {
             }
           },
           local: { ...defaultConfig.local, ...existingConfig.local },
-          agiSyncState: existingConfig.agiSyncState || {}
+          agiSyncState: existingConfig.agiSyncState || {},
+          agiRequestState: existingConfig.agiRequestState || {}
         };
 
         console.log('Updated existing config structure');

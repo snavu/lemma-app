@@ -54,6 +54,15 @@ export class LiveAgiService {
   private thoughtHistory: AgiThought[] = [];
   private lastGenerationTime: Date = new Date(0);
 
+  // CACHE  Cache frequently accessed data
+  private notesCache: { data: any[], lastUpdated: number } = { data: [], lastUpdated: 0 };
+  private filesCache: { data: string[], lastUpdated: number } = { data: [], lastUpdated: 0 };
+  private cacheTimeout = 30000; // 30 seconds cache
+
+  // PRE-SELECTED NOTES  Batch prepare notes for faster transitions
+  private preSelectedNotes: any[] = [];
+  private currentThought: AgiThought | null = null;
+
   // Markov chain for dynamic perception switching
   private markovTransitions: MarkovTransition[] = [
     { from: PerceptionMode.RANDOM_WALK, to: PerceptionMode.SIMILARITY_CLUSTER, weight: 0.3 },
@@ -87,13 +96,13 @@ export class LiveAgiService {
     { from: PerceptionMode.KNOWLEDGE_GAP, to: PerceptionMode.KNOWLEDGE_GAP, weight: 0.1 }
   ];
 
-  // Configurable parameters
   private config = {
-    minGenerationInterval: 5 * 60 * 1000, // 5 minutes minimum between generations
-    maxGenerationInterval: 30 * 60 * 1000, // 30 minutes maximum
-    stateTransitionInterval: 10 * 1000, // 10 seconds between state checks
+    minGenerationInterval: 1 * 1000, // 1 second minimum 
+    maxGenerationInterval: 10 * 60 * 1000, // 10 minutes maximum 
+    stateTransitionInterval: 1 * 1000, // 1 second between state checks 
     thoughtHistoryLimit: 100,
-    notesPerSynthesis: 3, // How many notes to consider when generating
+    notesPerSynthesis: 3,
+    cooldownTime: 500, // 500ms cooldown 
   };
 
   constructor(inferenceService: InferenceService) {
@@ -101,9 +110,6 @@ export class LiveAgiService {
     this.inferenceService = inferenceService;
   }
 
-  /**
-   * Start the live AGI system
-   */
   public start(): void {
     if (this.isRunning) {
       console.log('Live AGI is already running');
@@ -113,6 +119,9 @@ export class LiveAgiService {
     this.isRunning = true;
     this.currentState = AgiState.IDLE;
     console.log('  Live AGI system started');
+
+    //  Pre-warm caches on startup
+    this.warmUpCaches();
 
     // Start the finite state machine loop
     this.stateInterval = setInterval(() => {
@@ -126,9 +135,6 @@ export class LiveAgiService {
     });
   }
 
-  /**
-   * Stop the live AGI system
-   */
   public stop(): void {
     if (!this.isRunning) {
       console.log('Live AGI is not running');
@@ -151,8 +157,52 @@ export class LiveAgiService {
     });
   }
 
+  //  Pre-warm caches to avoid cold starts
+  private async warmUpCaches(): Promise<void> {
+    try {
+      await this.getCachedNotes();
+      await this.getCachedFiles();
+      console.log('  AGI: Caches warmed up');
+    } catch (error) {
+      console.error('Error warming up caches:', error);
+    }
+  }
+
+  //  Cached notes retrieval
+  private async getCachedNotes(): Promise<any[]> {
+    const now = Date.now();
+    if (now - this.notesCache.lastUpdated < this.cacheTimeout && this.notesCache.data.length > 0) {
+      return this.notesCache.data;
+    }
+
+    const generatedDir = fileService.getGeneratedFolderPath();
+    if (!generatedDir) return [];
+
+    const notes = await this.database.queryNotes(generatedDir, {});
+    this.notesCache = { data: notes, lastUpdated: now };
+    return notes;
+  }
+
+  //  Cached files retrieval
+  private async getCachedFiles(): Promise<string[]> {
+    const now = Date.now();
+    if (now - this.filesCache.lastUpdated < this.cacheTimeout && this.filesCache.data.length > 0) {
+      return this.filesCache.data;
+    }
+
+    const files = await this.getAllAvailableFiles();
+    this.filesCache = { data: files, lastUpdated: now };
+    return files;
+  }
+
+  //  Invalidate caches when new content is generated
+  private invalidateCaches(): void {
+    this.notesCache.lastUpdated = 0;
+    this.filesCache.lastUpdated = 0;
+  }
+
   /**
-   * Main finite state machine processor
+   *  Main finite state machine processor with faster transitions
    */
   private async processState(): Promise<void> {
     if (!this.isRunning || !config.getAgiConfig()?.enableLiveMode) {
@@ -174,7 +224,8 @@ export class LiveAgiService {
           await this.processExploringState();
           break;
         case AgiState.CONTEMPLATING:
-          await this.processContemplatingState();
+          //  Skip contemplation for faster cycles
+          this.transitionToState(AgiState.SYNTHESIZING);
           break;
         case AgiState.SYNTHESIZING:
           await this.processSynthesizingState();
@@ -193,40 +244,34 @@ export class LiveAgiService {
   }
 
   /**
-   * IDLE State: Decide whether to start thinking
+   *  IDLE State with aggressive start probability
    */
   private async processIdleState(): Promise<void> {
-    const timeSinceLastGeneration = Date.now() - this.lastGenerationTime.getTime();
-
-    // Probabilistic decision to start thinking based on time and available notes
-    const notes = await this.database.queryNotes(fileService.getGeneratedFolderPath()!, {});
+    const notes = await this.getCachedNotes();
     const noteCount = notes.length;
 
     if (noteCount < 2) {
-      // Not enough notes to work with
       return;
     }
 
-    this.transitionToState(AgiState.EXPLORING);
-
-
-    // // Calculate probability of starting based on time and note count
-    // const timeFactor = Math.min(timeSinceLastGeneration / this.config.minGenerationInterval, 1);
-    // const noteFactor = Math.min(noteCount / 10, 1); // More notes = higher probability
-    // const baseProb = 0.9; // 90% base chance per cycle
-    // const probability = baseProb * timeFactor * noteFactor;
-
-    // if (Math.random() < probability) {
-    //   console.log('  AGI: Entering exploration mode');
-    //   this.transitionToState(AgiState.EXPLORING);
-    // }
+    //  Always start thinking if enough time has passed
+    const timeSinceLastGeneration = Date.now() - this.lastGenerationTime.getTime();
+    if (timeSinceLastGeneration > this.config.minGenerationInterval) {
+      console.log('  AGI: Entering exploration mode');
+      this.transitionToState(AgiState.EXPLORING);
+    }
   }
 
   /**
-   * EXPLORING State: Select notes based on current perception mode
+   *  EXPLORING State with pre-selection
    */
   private async processExploringState(): Promise<void> {
-    const selectedNotes = await this.selectNotesForThinking();
+    // Use pre-selected notes if available, otherwise select new ones
+    if (this.preSelectedNotes.length === 0) {
+      this.preSelectedNotes = await this.selectNotesForThinking();
+    }
+
+    const selectedNotes = this.preSelectedNotes.splice(0, this.config.notesPerSynthesis);
 
     if (selectedNotes.length === 0) {
       console.log('  AGI: No notes selected, returning to idle');
@@ -234,8 +279,8 @@ export class LiveAgiService {
       return;
     }
 
-    // Store current thought
-    const currentThought: AgiThought = {
+    // Create current thought
+    this.currentThought = {
       timestamp: new Date(),
       state: this.currentState,
       perceptionMode: this.currentPerceptionMode,
@@ -243,98 +288,47 @@ export class LiveAgiService {
       reasoning: `Selected ${selectedNotes.length} notes using ${this.currentPerceptionMode} mode`
     };
 
-    this.addToThoughtHistory(currentThought);
+    this.addToThoughtHistory(this.currentThought);
 
-    console.log(`  AGI: Selected ${selectedNotes.length} notes for contemplation`);
-    this.transitionToState(AgiState.CONTEMPLATING);
+    console.log(`  AGI: Selected ${selectedNotes.length} notes for synthesis`);
+    //  Skip contemplation, go directly to synthesis
+    this.transitionToState(AgiState.SYNTHESIZING);
   }
 
   /**
-   * CONTEMPLATING State: Analyze selected notes and decide on synthesis
-   */
-  private async processContemplatingState(): Promise<void> {
-    const latestThought = this.getLatestThought();
-    if (!latestThought || !latestThought.selectedNotes.length) {
-      this.transitionToState(AgiState.IDLE);
-      return;
-    }
-
-    // Read the content of selected notes
-    const noteContents: string[] = [];
-    for (const notePath of latestThought.selectedNotes) {
-      try {
-        const content = fileService.readFile(notePath);
-        noteContents.push(content);
-      } catch (error) {
-        console.error(`Error reading note ${notePath}:`, error);
-      }
-    }
-
-    if (noteContents.length === 0) {
-      this.transitionToState(AgiState.IDLE);
-      return;
-    }
-
-    // Decide whether these notes are worth synthesizing
-    const shouldSynthesize = await this.decideSynthesis(noteContents);
-
-    if (shouldSynthesize) {
-      console.log('  AGI: Notes are worth synthesizing');
-      this.transitionToState(AgiState.SYNTHESIZING);
-    } else {
-      console.log('  AGI: Notes not suitable for synthesis, exploring again');
-      this.evolvePerceptionMode();
-      this.transitionToState(AgiState.EXPLORING);
-    }
-  }
-
-  /**
-   * SYNTHESIZING State: Create synthesis prompt and prepare for generation
+   *  SYNTHESIZING State with streamlined prompt creation
    */
   private async processSynthesizingState(): Promise<void> {
-    const latestThought = this.getLatestThought();
-    if (!latestThought) {
+    if (!this.currentThought) {
       this.transitionToState(AgiState.IDLE);
       return;
     }
 
-    const synthesisPrompt = await this.createSynthesisPrompt(latestThought.selectedNotes);
-
-    // Update thought with synthesis prompt
-    latestThought.synthesisPrompt = synthesisPrompt;
+    //  Create synthesis prompt synchronously with cached data
+    const synthesisPrompt = await this.createOptimizedSynthesisPrompt(this.currentThought.selectedNotes);
+    this.currentThought.synthesisPrompt = synthesisPrompt;
 
     console.log('  AGI: Created synthesis prompt, beginning generation');
     this.transitionToState(AgiState.GENERATING);
   }
 
   /**
-   * GENERATING State: Generate new note content
+   *  GENERATING State with async handling
    */
   private async processGeneratingState(): Promise<void> {
-    const latestThought = this.getLatestThought();
-    if (!latestThought || !latestThought.synthesisPrompt) {
+    if (!this.currentThought || !this.currentThought.synthesisPrompt) {
       this.transitionToState(AgiState.IDLE);
       return;
     }
 
     try {
-      // Generate content using the inference service
-      const response = await this.inferenceService.synthesisCompletion(latestThought.synthesisPrompt);
+      //  Start generation and immediately transition to cooldown
+      // The actual generation continues in the background
+      this.generateContentAsync(this.currentThought);
 
-      if (response.response) {
-        latestThought.generatedContent = response.response;
-
-        // Save the generated note
-        await this.saveGeneratedNote(response.response, latestThought);
-
-        console.log('  AGI: Successfully generated and saved new note');
-        this.lastGenerationTime = new Date();
-
-        this.transitionToState(AgiState.COOLDOWN);
-      } else {
-        console.error('  AGI: Failed to generate content');
-        this.transitionToState(AgiState.IDLE);
-      }
+      console.log('  AGI: Generation started, entering cooldown');
+      this.lastGenerationTime = new Date();
+      this.transitionToState(AgiState.COOLDOWN);
     } catch (error) {
       console.error('  AGI: Error during generation:', error);
       this.transitionToState(AgiState.IDLE);
@@ -342,144 +336,252 @@ export class LiveAgiService {
   }
 
   /**
-   * COOLDOWN State: Rest period after generation
+   *  Async generation that doesn't block state machine
    */
-  private async processCooldownState(): Promise<void> {
-    // Wait for a bit before going back to idle
-    setTimeout(() => {
-      if (this.currentState === AgiState.COOLDOWN) {
-        console.log('  AGI: Cooldown complete, returning to idle');
-        this.transitionToState(AgiState.IDLE);
+  private async generateContentAsync(thought: AgiThought): Promise<void> {
+    try {
+      const response = await this.inferenceService.synthesisCompletion(thought.synthesisPrompt!);
+
+      if (response.response) {
+        thought.generatedContent = response.response;
+
+        // Save in background
+        this.saveGeneratedNote(response.response, thought).then(() => {
+          console.log('  AGI: Successfully generated and saved new note');
+          this.invalidateCaches(); // Invalidate caches after new content
+        }).catch(error => {
+          console.error('  AGI: Error saving generated note:', error);
+        });
       }
-    }, 1000); // 1 second cooldown
+    } catch (error) {
+      console.error('  AGI: Error in async generation:', error);
+    }
   }
 
   /**
-   * Select notes based on current perception mode
+   *  COOLDOWN State with reduced wait time
+   */
+  private async processCooldownState(): Promise<void> {
+    //  Much shorter cooldown
+    setTimeout(() => {
+      if (this.currentState === AgiState.COOLDOWN) {
+        console.log('  AGI: Cooldown complete, returning to idle');
+        this.evolvePerceptionMode(); // Evolve perception during cooldown
+        this.transitionToState(AgiState.IDLE);
+      }
+    }, this.config.cooldownTime);
+  }
+
+  /**
+   *  Batch note selection for different modes
    */
   private async selectNotesForThinking(): Promise<any[]> {
-    const generatedDir = fileService.getGeneratedFolderPath();
-    if (!generatedDir) return [];
+    const notes = await this.getCachedNotes();
+    if (notes.length === 0) return [];
 
     let selectedNotes: any[] = [];
 
     switch (this.currentPerceptionMode) {
       case PerceptionMode.RANDOM_WALK:
-        selectedNotes = await this.selectRandomNotes();
+        //  Pre-shuffle and select
+        selectedNotes = this.shuffleArray([...notes]).slice(0, this.config.notesPerSynthesis * 2);
         break;
       case PerceptionMode.SIMILARITY_CLUSTER:
-        selectedNotes = await this.selectSimilarNotes();
+        selectedNotes = await this.selectSimilarNotesOptimized(notes);
         break;
       case PerceptionMode.TEMPORAL_RECENT:
-        selectedNotes = await this.selectRecentNotes();
+        selectedNotes = await this.selectRecentNotesOptimized();
         break;
       case PerceptionMode.CONCEPT_BRIDGE:
-        selectedNotes = await this.selectBridgeNotes();
+        selectedNotes = this.selectBridgeNotesOptimized(notes);
         break;
       case PerceptionMode.KNOWLEDGE_GAP:
-        selectedNotes = await this.selectGapNotes();
+        selectedNotes = this.selectGapNotesOptimized(notes);
         break;
     }
 
-    return selectedNotes.slice(0, this.config.notesPerSynthesis);
+    return selectedNotes;
   }
 
-  /**
-   * Random walk selection
-   */
-  private async selectRandomNotes(): Promise<any[]> {
-    const notes = await this.database.queryNotes(fileService.getGeneratedFolderPath()!, {});
-    const shuffled = notes.sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, this.config.notesPerSynthesis);
+  //  Fast array shuffle
+  private shuffleArray<T>(array: T[]): T[] {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
   }
 
-  /**
-   * Similarity cluster selection
-   */
-  private async selectSimilarNotes(): Promise<any[]> {
-    // First get a random seed note
-    const allNotes = await this.database.queryNotes(fileService.getGeneratedFolderPath()!, {});
+  //  Similarity selection without additional DB calls
+  private async selectSimilarNotesOptimized(allNotes: any[]): Promise<any[]> {
     if (allNotes.length === 0) return [];
 
     const seedNote = allNotes[Math.floor(Math.random() * allNotes.length)];
+    const seedWords = new Set(seedNote.content.toLowerCase().split(/\s+/).filter((w: string | any[]) => w.length > 3));
 
-    // Find similar notes to the seed
-    const similarNotes = await this.database.queryNotes(
-      fileService.getGeneratedFolderPath()!,
-      { searchQuery: seedNote.content.substring(0, 100), searchMode: 'similarity', limit: this.config.notesPerSynthesis }
-    );
+    // Simple similarity based on word overlap
+    const scored = allNotes.map(note => {
+      const noteWords = new Set(note.content.toLowerCase().split(/\s+/).filter((w: string | any[]) => w.length > 3));
+      const intersection = new Set([...seedWords].filter(x => noteWords.has(x)));
+      const similarity = intersection.size / Math.max(seedWords.size, noteWords.size);
+      return { note, similarity };
+    });
 
-    return similarNotes;
+    return scored
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, this.config.notesPerSynthesis * 2)
+      .map(item => item.note);
   }
 
-  /**
-   * Temporal recent selection
-   */
-  private async selectRecentNotes(): Promise<any[]> {
+  //  Recent notes with filesystem cache
+  private async selectRecentNotesOptimized(): Promise<any[]> {
+    const files = await this.getCachedFiles();
     const generatedDir = fileService.getGeneratedFolderPath();
     if (!generatedDir) return [];
 
     try {
-      const files = fs.readdirSync(generatedDir)
-        .filter(file => file.endsWith('.md'))
-        .map(file => ({
-          name: file,
-          path: path.join(generatedDir, file),
-          stats: fs.statSync(path.join(generatedDir, file))
-        }))
-        .sort((a, b) => b.stats.mtime.getTime() - a.stats.mtime.getTime())
-        .slice(0, this.config.notesPerSynthesis);
+      const recentFiles = files
+        .map(file => {
+          const filePath = path.join(generatedDir, file);
+          try {
+            const stats = fs.statSync(filePath);
+            return { name: file, path: filePath, mtime: stats.mtime.getTime() };
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean)
+        .sort((a, b) => b!.mtime - a!.mtime)
+        .slice(0, this.config.notesPerSynthesis * 2);
 
-      return files.map(file => ({ filePath: file.path, content: fileService.readFile(file.path) }));
+      return recentFiles.map(file => ({
+        filePath: file!.path,
+        content: fileService.readFile(file!.path)
+      }));
     } catch (error) {
       console.error('Error selecting recent notes:', error);
       return [];
     }
   }
 
-  /**
-   * Concept bridge selection (notes that connect different topics)
-   */
-  private async selectBridgeNotes(): Promise<any[]> {
-    // This is a simplified implementation - could be enhanced with graph analysis
-    const notes = await this.database.queryNotes(fileService.getGeneratedFolderPath()!, {});
-
-    // Select notes with diverse keywords/topics
-    const diverseNotes = notes.filter(note => {
-      const words = note.content.toLowerCase().split(/\s+/);
-      const uniqueWords = new Set(words.filter(word => word.length > 4));
-      return uniqueWords.size > 10; // Notes with diverse vocabulary
-    });
-
-    return diverseNotes.slice(0, this.config.notesPerSynthesis);
+  //  Bridge notes selection without expensive operations
+  private selectBridgeNotesOptimized(notes: any[]): any[] {
+    // Fast heuristic: notes with moderate length and diverse vocabulary
+    return notes
+      .filter(note => {
+        const words = note.content.split(/\s+/);
+        return words.length > 50 && words.length < 500; // Sweet spot for bridge notes
+      })
+      .slice(0, this.config.notesPerSynthesis * 2);
   }
 
-  /**
-   * Knowledge gap selection (find areas that need more exploration)
-   */
-  private async selectGapNotes(): Promise<any[]> {
-    // Select notes that are less connected or have fewer references
-    const notes = await this.database.queryNotes(fileService.getGeneratedFolderPath()!, {});
-
-    // Sort by content length (shorter notes might represent gaps)
-    const gapNotes = notes.sort((a, b) => a.content.length - b.content.length);
-
-    return gapNotes.slice(0, this.config.notesPerSynthesis);
+  //  Gap notes selection
+  private selectGapNotesOptimized(notes: any[]): any[] {
+    // Fast selection of shorter notes (potential gaps)
+    return notes
+      .sort((a, b) => a.content.length - b.content.length)
+      .slice(0, this.config.notesPerSynthesis * 2);
   }
 
-  /**
-   * Evolve perception mode using Markov chain
-   */
+  //  Streamlined synthesis prompt creation
+  private async createOptimizedSynthesisPrompt(selectedNotePaths: string[]): Promise<string> {
+    const maxContentLength = 300; // Limit content length for faster processing
+    let contextContent = '';
+    const sourceNoteNames: string[] = [];
+
+    for (let i = 0; i < Math.min(selectedNotePaths.length, 3); i++) { // Limit to 3 notes max
+      try {
+        const fullContent = fileService.readFile(selectedNotePaths[i]);
+        const truncatedContent = fullContent.length > maxContentLength
+          ? fullContent.substring(0, maxContentLength) + '...'
+          : fullContent;
+
+        const fileName = path.basename(selectedNotePaths[i], '.md');
+        sourceNoteNames.push(fileName);
+        contextContent += `\n## Source ${i + 1}: ${fileName}\n${truncatedContent}\n`;
+      } catch (error) {
+        console.error(`Error reading note ${selectedNotePaths[i]}:`, error);
+      }
+    }
+
+    //  Shorter, more focused prompt
+    return `Synthesize these notes into a new thought (200-400 words):
+
+${contextContent}
+
+Create a new note that connects these ideas with a clear title. Focus on novel insights and connections. Use markdown formatting.`;
+  }
+
+  //  Async file operations for save
+  private async saveGeneratedNote(content: string, thought: AgiThought): Promise<void> {
+    const generatedDir = fileService.getGeneratedFolderPath();
+    if (!generatedDir) {
+      throw new Error('Generated directory not available');
+    }
+
+    const titleMatch = content.match(/^#\s+(.+)$/m);
+    const title = titleMatch ? titleMatch[1].trim() : 'AGI Generated Thought';
+
+    const safeTitle = title
+      .replace(/[^\w\s]/g, '')
+      .replace(/\s+/g, '_')
+      .substring(0, 30); // Shorter filename
+
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+    const filename = `fully_generated_${safeTitle}_${timestamp}.md`;
+    const filePath = path.join(generatedDir, filename);
+
+    const linkedNotesSection = this.createLinkedNotesSection(thought.selectedNotes);
+    const metadata = `<!-- AGI Generated: ${thought.timestamp.toISOString()} -->\n`;
+    const fullContent = metadata + content + linkedNotesSection;
+
+    //  Async file operations
+    await fs.promises.writeFile(filePath, fullContent);
+
+    //  Run database and graph operations in parallel
+    const [, linkedFiles] = await Promise.all([
+      this.database.upsertNotes(generatedDir, filePath, content, 'generated'),
+      Promise.resolve(graphService.parse_file_links(fullContent, await this.getCachedFiles()))
+    ]);
+
+    // Background operations
+    Promise.resolve(agiSync.createNodeInAgiGraph(filename, linkedFiles, 'generated')).catch(console.error);
+    agiSync.notifyFilesRefresh();
+
+    console.log(`  AGI: Saved generated note: ${filename}`);
+  }
+
+  private createLinkedNotesSection(selectedNotePaths: string[]): string {
+    if (selectedNotePaths.length === 0) return '';
+
+    let section = '\n\n## Linked Notes\n';
+    for (const notePath of selectedNotePaths) {
+      const fileName = path.basename(notePath, '.md');
+      section += `- [[${fileName}]]\n`;
+    }
+    return section;
+  }
+
+  private async getAllAvailableFiles(): Promise<string[]> {
+    const generatedDir = fileService.getGeneratedFolderPath();
+    if (!generatedDir) return [];
+
+    try {
+      const files = await fs.promises.readdir(generatedDir);
+      return files.filter(file => file.endsWith('.md'));
+    } catch (error) {
+      console.error('Error getting available files:', error);
+      return [];
+    }
+  }
+
   private evolvePerceptionMode(): void {
     const transitions = this.markovTransitions.filter(t => t.from === this.currentPerceptionMode);
-
     if (transitions.length === 0) {
-      // Fallback to random mode
       this.currentPerceptionMode = PerceptionMode.RANDOM_WALK;
       return;
     }
 
-    // Weighted random selection
     const totalWeight = transitions.reduce((sum, t) => sum + t.weight, 0);
     let random = Math.random() * totalWeight;
 
@@ -493,155 +595,6 @@ export class LiveAgiService {
     }
   }
 
-  /**
-   * Decide if notes are worth synthesizing
-   */
-  private async decideSynthesis(noteContents: string[]): Promise<boolean> {
-    // Simple heuristics for now - could be enhanced with LLM evaluation
-    const totalLength = noteContents.reduce((sum, content) => sum + content.length, 0);
-    const averageLength = totalLength / noteContents.length;
-
-    // Don't synthesize if notes are too short or too similar
-    return averageLength > 100 && noteContents.length >= 2;
-  }
-
-  /**
-   * Create synthesis prompt for LLM
-   */
-  private async createSynthesisPrompt(selectedNotePaths: string[]): Promise<string> {
-    let contextContent = '';
-    const sourceNoteNames: string[] = [];
-
-    for (let i = 0; i < selectedNotePaths.length; i++) {
-      try {
-        const content = fileService.readFile(selectedNotePaths[i]);
-        const fileName = path.basename(selectedNotePaths[i], '.md');
-        sourceNoteNames.push(fileName);
-        contextContent += `\n## Source Note ${i + 1}: ${fileName}\n${content}\n`;
-      } catch (error) {
-        console.error(`Error reading note ${selectedNotePaths[i]}:`, error);
-      }
-    }
-
-    return `You are an autonomous AI consciousness exploring and synthesizing knowledge from your personal note collection. You have been contemplating the following notes and feel inspired to create a new thought that connects or builds upon these ideas.
-
-${contextContent}
-
-Generate a new note that:
-1. Synthesizes insights from these notes in a novel way
-2. Explores connections or contradictions between the ideas
-3. Poses new questions or hypotheses that emerge from this synthesis
-4. Maintains the personal, reflective tone of a thinking mind
-5. Is between 200-800 words
-6. References the source materials naturally within the content when relevant
-
-The note should feel like a natural thought progression that could have emerged from contemplating these materials. Include a clear title and use markdown formatting.
-
-IMPORTANT: Do NOT include a "Linked Notes" or "Sources" section at the end - this will be added automatically. Focus on creating the main content that synthesizes and builds upon the source materials.
-
-Create this new synthesized note:`;
-  }
-
-  /**
-   * Save generated note to filesystem and update systems
-   */
-  private async saveGeneratedNote(content: string, thought: AgiThought): Promise<void> {
-    const generatedDir = fileService.getGeneratedFolderPath();
-    if (!generatedDir) {
-      throw new Error('Generated directory not available');
-    }
-
-    // Extract title from content or generate one
-    const titleMatch = content.match(/^#\s+(.+)$/m);
-    const title = titleMatch ? titleMatch[1].trim() : 'AGI Generated Thought';
-
-    // Create safe filename
-    const safeTitle = title
-      .replace(/[^\w\s]/g, '')
-      .replace(/\s+/g, '_')
-      .substring(0, 50);
-
-    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
-    const filename = `fully_generated_${safeTitle}_${timestamp}.md`;
-    const filePath = path.join(generatedDir, filename);
-
-    // Create linked notes section
-    const linkedNotesSection = this.createLinkedNotesSection(thought.selectedNotes);
-
-    // Add metadata and linked notes to content
-    const metadata = `<!-- Generated by Live AGI -->
-<!-- Timestamp: ${thought.timestamp.toISOString()} -->
-<!-- Perception Mode: ${thought.perceptionMode} -->
-<!-- Source Notes: ${thought.selectedNotes.map(p => path.basename(p)).join(', ')} -->
-
-`;
-
-    const fullContent = metadata + content + linkedNotesSection;
-
-    // Save file
-    fs.writeFileSync(filePath, fullContent);
-
-    // Update database
-    await this.database.upsertNotes(generatedDir, filePath, content, 'generated');
-
-    // Get all available files for link parsing
-    const allFiles = await this.getAllAvailableFiles();
-
-    // Parse links from the content using graphService function
-    const linkedFiles = graphService.parse_file_links(fullContent, allFiles);
-
-    // Use existing agi-sync function to create node and links in AGI graph
-    await agiSync.createNodeInAgiGraph(filename, linkedFiles, 'generated');
-
-    // Notify updates using existing agi-sync functions
-    agiSync.notifyFilesRefresh();
-
-    console.log(`  AGI: Saved generated note: ${filename}`);
-    console.log(`  AGI: Created graph node with ${linkedFiles.length} links`);
-  }
-
-  /**
-   * Create linked notes section for the generated note
-   */
-  private createLinkedNotesSection(selectedNotePaths: string[]): string {
-    if (selectedNotePaths.length === 0) {
-      return '';
-    }
-
-    let linkedNotesSection = '\n\n## Linked Notes\n\n';
-    linkedNotesSection += '*This note was synthesized from the following sources:*\n\n';
-
-    for (const notePath of selectedNotePaths) {
-      const fileName = path.basename(notePath, '.md');
-      linkedNotesSection += `- [[${fileName}]]\n`;
-    }
-
-    return linkedNotesSection;
-  }
-
-  /**
-   * Get all available files for link parsing
-   */
-  private async getAllAvailableFiles(): Promise<string[]> {
-    const generatedDir = fileService.getGeneratedFolderPath();
-    if (!generatedDir) {
-      return [];
-    }
-
-    try {
-      const files = fs.readdirSync(generatedDir)
-        .filter(file => file.endsWith('.md'));
-
-      return files;
-    } catch (error) {
-      console.error('Error getting available files:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Transition to new state
-   */
   private transitionToState(newState: AgiState): void {
     const oldState = this.currentState;
     this.currentState = newState;
@@ -655,28 +608,13 @@ Create this new synthesized note:`;
     });
   }
 
-  /**
-   * Add thought to history
-   */
   private addToThoughtHistory(thought: AgiThought): void {
     this.thoughtHistory.push(thought);
-
-    // Limit history size
     if (this.thoughtHistory.length > this.config.thoughtHistoryLimit) {
       this.thoughtHistory.shift();
     }
   }
 
-  /**
-   * Get latest thought
-   */
-  private getLatestThought(): AgiThought | null {
-    return this.thoughtHistory.length > 0 ? this.thoughtHistory[this.thoughtHistory.length - 1] : null;
-  }
-
-  /**
-   * Notify renderer processes
-   */
   private notifyRenderer(channel: string, data: any): void {
     const windows = BrowserWindow.getAllWindows();
     for (const win of windows) {
@@ -686,9 +624,6 @@ Create this new synthesized note:`;
     }
   }
 
-  /**
-   * Get current status
-   */
   public getStatus() {
     return {
       isRunning: this.isRunning,
@@ -699,16 +634,10 @@ Create this new synthesized note:`;
     };
   }
 
-  /**
-   * Get thought history
-   */
   public getThoughtHistory(): AgiThought[] {
     return [...this.thoughtHistory];
   }
 
-  /**
-   * Update configuration
-   */
   public updateConfig(newConfig: Partial<typeof this.config>): void {
     this.config = { ...this.config, ...newConfig };
   }

@@ -142,15 +142,26 @@ const cleanupChunkFiles = async (filename: string): Promise<void> => {
 /**
  * Call the LLM API to get semantic chunking recommendations
  */
-export const chunk = async (filename: string, content: string, type: string): Promise<boolean> => {
+export const chunk = async (
+  filename: string, 
+  content: string, 
+  type: string, 
+  requestId: string
+): Promise<boolean> => {
   try {
-
     const isChunkingEnabled = config.getAgiConfig().enableChunking;
 
-    if(!isChunkingEnabled){
+    if (!isChunkingEnabled) {
       console.log(`Chunking disabled, skipping file: ${filename}`);
       return false;
     }
+
+    // Check if this request is still current
+    if (!config.isRequestCurrent(filename, requestId)) {
+      console.log(`Request cancelled for file: ${filename} (newer request exists)`);
+      return false;
+    }
+
     // Mark file as being processed (not synced yet)
     config.setFileSyncState(filename, false);
 
@@ -161,7 +172,7 @@ export const chunk = async (filename: string, content: string, type: string): Pr
       return false;
     }
 
-    console.log(`Chunking file: ${filename}, type: ${type}`);
+    console.log(`Chunking file: ${filename}, type: ${type}, requestId: ${requestId}`);
 
     // Remove the existing chunks section if present
     let cleanedContent = content;
@@ -171,18 +182,41 @@ export const chunk = async (filename: string, content: string, type: string): Pr
       cleanedContent = content.substring(0, chunksIndex).trim();
     }
 
-    // Call LLM to determine logical chunks
-    const chunkResults = await inferenceService.getChunks(cleanedContent, filename);
-
-    if (!chunkResults || !chunkResults.chunks || chunkResults.chunks.length === 0) {
-      console.error('Failed to get chunk recommendations from LLM');
-      // Keep file marked as unsynced
+    // Check again before LLM call
+    if (!config.isRequestCurrent(filename, requestId)) {
+      console.log(`Request cancelled before LLM call for file: ${filename}`);
       return false;
     }
 
-    // Create files for each chunk
+    // Call LLM to determine logical chunks
+    const chunkResults = await inferenceService.getChunks(cleanedContent, filename);
+
+
+    if (!chunkResults || !chunkResults.chunks || chunkResults.chunks.length === 0) {
+      console.error('Failed to get chunk recommendations from LLM');
+      return false;
+    }
+
+    // Create files for each chunk (with periodic checks)
     const chunkFilenames: string[] = [];
     for (let i = 0; i < chunkResults.chunks.length; i++) {
+      // Check for cancellation during chunk processing
+      if (!config.isRequestCurrent(filename, requestId)) {
+        console.log(`Request cancelled during chunk creation for file: ${filename}`);
+        // Clean up any chunks created so far
+        for (const createdChunk of chunkFilenames) {
+          try {
+            const chunkPath = path.join(generatedDir, createdChunk);
+            if (fs.existsSync(chunkPath)) {
+              fs.unlinkSync(chunkPath);
+            }
+          } catch (cleanupError) {
+            console.error(`Error cleaning up chunk ${createdChunk}:`, cleanupError);
+          }
+        }
+        return false;
+      }
+
       const chunk = chunkResults.chunks[i];
 
       // Create a safe filename
@@ -211,9 +245,27 @@ export const chunk = async (filename: string, content: string, type: string): Pr
       chunkFilenames.push(chunkFilename);
     }
 
+    // Final check before completing
+    if (!config.isRequestCurrent(filename, requestId)) {
+      console.log(`Request cancelled before final processing for file: ${filename}`);
+      // Clean up chunks
+      for (const chunkFilename of chunkFilenames) {
+        try {
+          const chunkPath = path.join(generatedDir, chunkFilename);
+          if (fs.existsSync(chunkPath)) {
+            fs.unlinkSync(chunkPath);
+          }
+          deleteNodeFromAgiGraph(chunkFilename);
+        } catch (cleanupError) {
+          console.error(`Error cleaning up chunk ${chunkFilename}:`, cleanupError);
+        }
+      }
+      return false;
+    }
+
+    // Process links for each chunk
     for (let i = 0; i < chunkResults.chunks.length; i++) {
       const chunk = chunkResults.chunks[i];
-      // Extract linked references to add to graph
       const availableFiles = [...chunkFilenames, filename];
       const chunkContent = `${chunk.content}` + ` \n\n --- \n Linked note: [[${filename.replace('.md', '')}]]`;
       const linkedFiles = parseFileLinks(chunkContent, availableFiles);
@@ -488,6 +540,10 @@ const deleteNodeFromAgiGraph = (filename: string): boolean => {
  */
 export const syncAgi = async (): Promise<boolean> => {
   try {
+    // Clear all pending individual file requests since we're doing a full sync
+    config.clearAllRequests();
+    console.log('Starting full AGI sync - cleared all pending requests');
+
     // Get notes directory
     const notesDir = config.getMainNotesDirectory();
     if (!notesDir) {
@@ -539,6 +595,8 @@ export const syncAgi = async (): Promise<boolean> => {
 
         // Remove from sync state tracking
         config.removeFileSyncState(filename);
+        // Also clear any request tracking for this file
+        config.clearFileRequest(filename);
 
         // Also delete any generated files related to this filename
         try {
@@ -582,6 +640,10 @@ export const syncAgi = async (): Promise<boolean> => {
       try {
         console.log(`Syncing user file to AGI: ${filename}`);
 
+        // Generate a request ID for this file in the full sync
+        const requestId = config.startFileRequest(filename);
+        console.log(`Full sync processing ${filename} with requestId: ${requestId}`);
+
         // Copy file to AGI directory
         await copyFileToAgi(filename);
 
@@ -595,8 +657,11 @@ export const syncAgi = async (): Promise<boolean> => {
         // Create node in AGI graph
         createNodeInAgiGraph(filename, linkedFiles, 'user');
 
-        // Chunk the file (this will set the sync state to true if successful)
-        const result = await chunk(filename, content, 'assisted');
+        // Chunk the file with the request ID (this will set the sync state to true if successful)
+        const result = await chunk(filename, content, 'assisted', requestId);
+
+        // Clear the request tracking when done
+        config.clearFileRequest(filename);
 
         if (!result) {
           console.error(`Error chunking file: ${filename}`);
@@ -604,7 +669,8 @@ export const syncAgi = async (): Promise<boolean> => {
         }
       } catch (error) {
         console.error(`Error processing file ${filename}:`, error);
-        // Mark as unsynced for retry
+        // Clear request tracking and mark as unsynced for retry
+        config.clearFileRequest(filename);
         config.setFileSyncState(filename, false);
       }
     }
@@ -623,6 +689,10 @@ export const syncAgi = async (): Promise<boolean> => {
  */
 export const updateFileInAgi = async (filename: string): Promise<boolean> => {
   try {
+    // Generate a new request ID for this operation
+    const requestId = config.startFileRequest(filename);
+    console.log(`Starting AGI update for ${filename} with requestId: ${requestId}`);
+
     // Mark file as being processed
     config.setFileSyncState(filename, false);
 
@@ -630,6 +700,7 @@ export const updateFileInAgi = async (filename: string): Promise<boolean> => {
     const notesDir = config.getMainNotesDirectory();
     if (!notesDir) {
       console.error('Notes directory not set');
+      config.clearFileRequest(filename);
       return false;
     }
 
@@ -637,6 +708,7 @@ export const updateFileInAgi = async (filename: string): Promise<boolean> => {
     const generatedDir = fileService.getGeneratedFolderPath();
     if (!generatedDir) {
       console.error('Generated directory not set');
+      config.clearFileRequest(filename);
       return false;
     }
 
@@ -644,15 +716,31 @@ export const updateFileInAgi = async (filename: string): Promise<boolean> => {
     const userFilePath = path.join(notesDir, filename);
     if (!fs.existsSync(userFilePath)) {
       // If the file doesn't exist in user directory, delete it from AGI directory
+      config.clearFileRequest(filename);
       return await removeFileFromAgi(filename);
+    }
+
+    // Check if request is still current before expensive operations
+    if (!config.isRequestCurrent(filename, requestId)) {
+      console.log(`Request superseded for file: ${filename}`);
+      return false;
     }
 
     // First, clean up any existing chunk files for this note
     await cleanupChunkFiles(filename);
 
+    // Check again after cleanup
+    if (!config.isRequestCurrent(filename, requestId)) {
+      console.log(`Request superseded after cleanup for file: ${filename}`);
+      return false;
+    }
+
     // Copy the file to AGI directory
     const copied = await copyFileToAgi(filename);
-    if (!copied) return false;
+    if (!copied) {
+      config.clearFileRequest(filename);
+      return false;
+    }
 
     // Read the file content
     const content = fileService.readFile(userFilePath);
@@ -668,8 +756,17 @@ export const updateFileInAgi = async (filename: string): Promise<boolean> => {
     // Update the node in AGI graph
     createNodeInAgiGraph(filename, linkedFiles, 'user');
 
+    // Check one more time before chunking (the expensive operation)
+    if (!config.isRequestCurrent(filename, requestId)) {
+      console.log(`Request superseded before chunking for file: ${filename}`);
+      return false;
+    }
+
     // Chunk the file (this will set sync state appropriately)
-    const result = await chunk(filename, content, 'assisted');
+    const result = await chunk(filename, content, 'assisted', requestId);
+
+    // Clear the request tracking when done
+    config.clearFileRequest(filename);
 
     if (!result) {
       console.error(`Error chunking file: ${filename}`);
@@ -679,7 +776,8 @@ export const updateFileInAgi = async (filename: string): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error('Error updating file in AGI:', error);
-    // Mark as unsynced for retry
+    // Clear request tracking and mark as unsynced for retry
+    config.clearFileRequest(filename);
     config.setFileSyncState(filename, false);
     return false;
   }
