@@ -106,9 +106,9 @@ export const App = () => {
 
 
   useEffect(() => {
-    if (window.electron?.on && viewMode === 'generated') {
+    if (window.electron?.on) {
       const removeListener = window.electron.on.generatedFilesRefresh(async () => {
-        const files = await window.electron.fs.getFiles(viewMode);
+        const files = await window.electron.fs.getFiles("generated");
         setFiles(files);
       });
 

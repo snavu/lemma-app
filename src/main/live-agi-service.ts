@@ -537,6 +537,7 @@ Create a new note that connects these ideas with a clear title. Focus on novel i
 
     //  Async file operations
     await fs.promises.writeFile(filePath, fullContent);
+    agiSync.notifyGraphRefresh();
 
     //  Run database and graph operations in parallel
     const [, linkedFiles] = await Promise.all([
