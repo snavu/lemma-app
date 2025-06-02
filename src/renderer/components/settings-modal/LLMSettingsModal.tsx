@@ -390,12 +390,6 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
     try {
       setIsSaving(true);
 
-      const llmResult = await window.electron.config.setLLMConfig({
-        endpoint,
-        apiKey,
-        model: model === 'custom' ? customModel : model,
-      });
-
       const agiResult = await window.electron.config.setAgiConfig({
         enableChunking: chunkingEnabled,
         enableLiveMode: chunkingEnabled ? liveModeEnabled : false
@@ -434,6 +428,12 @@ const LLMSettingsModal: React.FC<LLMSettingsModalProps> = ({ isOpen, onClose }) 
         enabled: localEnabled,
         port: localPort,
         model: localModel === 'custom' ? customLocalModel : localModel,
+      });
+
+      const llmResult = await window.electron.config.setLLMConfig({
+        endpoint,
+        apiKey,
+        model: model === 'custom' ? customModel : model,
       });
 
       if (llmResult && agiResult && localInferenceResult) {

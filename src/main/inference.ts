@@ -23,7 +23,7 @@ const chunkProcesses: Map<string, number> = new Map();
  * Inference service supporting both cloud provider calls and local inference with Ollama
  */
 export class InferenceService {
-  private client: OpenAI | null;
+  private cloudClient: OpenAI | null;
   private ollamaClient: Ollama | null;
   private localPort: number = 11434; // Default port for Ollama server
   private isLocalMode: boolean;
@@ -45,19 +45,43 @@ export class InferenceService {
 
     if (!this.isLocalMode) {
       // Cloud mode - initialize OpenAI client
-      this.client = new OpenAI({
-        baseURL: llmConfig.endpoint || 'https://api.deepseek.com',
-        apiKey: llmConfig.apiKey,
-      });
+      this.initializeCloudClient(llmConfig);
       this.ollamaClient = null;
     } else {
       // Local mode - initialize Ollama client
-      this.client = null;
+      this.cloudClient = null;
       this.initializeOllamaClient();
     }
 
     // Initialize database connection
     this.agiDatabase = new DbClient('agi-notes');
+  }
+
+  /**
+   * Initialize the cloud client
+   */
+  private async initializeCloudClient(newConfig?: llmConfig) {
+    try {
+      // Get cloud model configuration if available
+      const llmConfig: llmConfig = newConfig || {
+        endpoint: '',
+        apiKey: '',
+        model: ''
+      };
+      const endpoint = llmConfig.endpoint || 'https://api.deepseek.com';
+      
+      this.cloudClient = new OpenAI({
+        baseURL: endpoint,
+        apiKey: llmConfig.apiKey,
+      }); 
+
+      console.log(`Initialized cloud client with model: ${llmConfig.model} on endpoint: ${endpoint}`);
+
+    }
+    catch (error) {
+      console.error('Failed to initialize cloud client:', error);
+      this.ollamaClient = null;
+    }
   }
 
   /**
@@ -124,6 +148,7 @@ Return only the formatted markdown:`;
       ];
 
       if (this.isLocalMode) {
+        console.log('formatting on local');
         // Local inference using Ollama
         if (!this.ollamaClient) {
           this.initializeOllamaClient();
@@ -145,10 +170,11 @@ Return only the formatted markdown:`;
           formattedContent: response.message?.content || webContent
         };
       } else {
+        console.log('formatting on cloud');
         // Cloud inference using OpenAI SDK
         const modelName = options.model || config.getLLMConfig().model;
 
-        const response = await this.client!.chat.completions.create({
+        const response = await this.cloudClient!.chat.completions.create({
           model: modelName,
           messages: messages,
           temperature: options.temperature || 0.2, // Lower temperature for consistent formatting
@@ -234,7 +260,7 @@ Here is an example of the JSON structure:
 
       let fullResponse = '';
       if (this.isLocalMode) {
-        console.log('chunking on local');
+        console.log(`Chunking on local with PID ${chunkPid}`);
         // Local inference using Ollama
         if (!this.ollamaClient) {
           this.initializeOllamaClient();
@@ -248,7 +274,7 @@ Here is an example of the JSON structure:
         // Do not start stream if process id not equal to latest id
         if (chunkPid !== chunkProcesses.get(filePath)) {
           sem.release();
-          console.log(`chunking aborted on ${filePath} with PID ${chunkPid}`);
+          console.log(`Chunking aborted on ${filePath} with PID ${chunkPid}`);
           return { chunks: [{ title: '<chunk_aborted>', content: '<chunk_aborted>' }], canceled: true };
         }
 
@@ -270,7 +296,7 @@ Here is an example of the JSON structure:
             if (chunkPid !== chunkProcesses.get(filePath)) {
               stream.abort();
               sem.release();
-              console.log(`chunking aborted on ${filePath} with PID ${chunkPid}`);
+              console.log(`Chunking aborted on ${filePath} with PID ${chunkPid}`);
               return { chunks: [{ title: '<chunk_aborted>', content: '<chunk_aborted>' }], canceled: true };
             }
 
@@ -280,11 +306,11 @@ Here is an example of the JSON structure:
           sem.release();
         } catch (e) {
           sem.release();
-          console.log(`chunking aborted on ${filePath} with PID ${chunkPid}`);
+          console.log(`Chunking aborted on ${filePath} with PID ${chunkPid}`);
           return { chunks: [{ title: '<chunk_aborted>', content: '<chunk_aborted>' }], canceled: true };
         }
       } else {
-        console.log('chunking on cloud');
+        console.log(`Chunking on cloud with PID ${chunkPid}`);
         // Cloud inference using OpenAI SDK
         const modelName = config.getLLMConfig().model;
 
@@ -292,11 +318,11 @@ Here is an example of the JSON structure:
         // Do not start stream if process id not equal to latest id
         if (chunkPid !== chunkProcesses.get(filePath)) {
           sem.release();
-          console.log(`chunking aborted on ${filePath} with PID ${chunkPid}`);
+          console.log(`Chunking aborted on ${filePath} with PID ${chunkPid}`);
           return { chunks: [{ title: '<chunk_aborted>', content: '<chunk_aborted>' }], canceled: true };
         }
 
-        const stream = await this.client!.chat.completions.create({
+        const stream = await this.cloudClient!.chat.completions.create({
           model: modelName,
           messages: [
             { role: "system", content: "You are an AI assistant that specializes in semantic document chunking." },
@@ -313,7 +339,7 @@ Here is an example of the JSON structure:
             if (chunkPid !== chunkProcesses.get(filePath)) {
               stream.controller.abort();
               sem.release();
-              console.log(`chunking aborted on ${filePath} with PID ${chunkPid}`);
+              console.log(`Chunking aborted on ${filePath} with PID ${chunkPid}`);
               return { chunks: [{ title: '<chunk_aborted>', content: '<chunk_aborted>' }], canceled: true };
             }
 
@@ -323,7 +349,7 @@ Here is an example of the JSON structure:
           sem.release();
         } catch (e) {
           sem.release();
-          console.log(`chunking aborted on ${filePath} with PID ${chunkPid}`);
+          console.log(`Chunking aborted on ${filePath} with PID ${chunkPid}`);
           return { chunks: [{ title: '<chunk_aborted>', content: '<chunk_aborted>' }], canceled: true };
         }
       }
@@ -408,6 +434,7 @@ ${context.content}\n
       messages[messages.length - 2].content = aggregatedPrompt;
 
       if (this.isLocalMode) {
+        console.log('Inferencing on local');
         // Local inference using Ollama
         if (!this.ollamaClient) {
           this.initializeOllamaClient();
@@ -416,7 +443,6 @@ ${context.content}\n
             return { response: '' };
           }
         }
-        console.log('inferencing on local');
 
         // Handle streaming if requested
         if (options.stream) {
@@ -464,15 +490,15 @@ ${context.content}\n
           response: response.message?.content || ''
         };
       } else {
+        console.log('Inferencing on cloud');
         // Cloud inference using OpenAI SDK - simple pass-through
         const modelName = options.model || config.getLLMConfig().model;
-        console.log('inferencing on cloud');
 
         // Handle streaming if requested
         if (options.stream) {
           let fullResponse = '';
 
-          const stream = await this.client!.chat.completions.create({
+          const stream = await this.cloudClient!.chat.completions.create({
             model: modelName,
             messages: messages,
             stream: true,
@@ -501,7 +527,7 @@ ${context.content}\n
         }
 
         // Non-streaming response
-        const response = await this.client!.responses.create({
+        const response = await this.cloudClient!.responses.create({
           model: modelName,
           input: messages,
           temperature: options.temperature || 0.7,
@@ -576,7 +602,7 @@ ${context.content}\n
         const modelName = options.model || config.getLLMConfig().model;
         console.log('  AGI: Using cloud inference for synthesis');
 
-        const response = await this.client!.chat.completions.create({
+        const response = await this.cloudClient!.chat.completions.create({
           model: modelName,
           messages: messages,
           temperature: options.temperature || 0.8,
@@ -608,10 +634,7 @@ ${context.content}\n
 
     if (!this.isLocalMode) {
       // Cloud mode - initialize or update OpenAI client
-      this.client = new OpenAI({
-        baseURL: newConfig.endpoint || 'https://api.deepseek.com',
-        apiKey: newConfig.apiKey,
-      });
+      this.initializeCloudClient(newConfig);
 
       // If switching from local to cloud, clean up local client
       if (usingLocalBefore) {
@@ -619,7 +642,7 @@ ${context.content}\n
       }
     } else if (!usingLocalBefore) {
       // Switching from cloud to local - initialize Ollama client
-      this.client = null;
+      this.cloudClient = null;
       this.initializeOllamaClient();
     }
   }
@@ -636,6 +659,6 @@ ${context.content}\n
    */
   isReady() {
     return (this.isLocalMode && this.ollamaClient !== null) ||
-      (!this.isLocalMode && this.client !== null);
+      (!this.isLocalMode && this.cloudClient !== null);
   }
 }
