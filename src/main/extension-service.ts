@@ -4,6 +4,9 @@ import * as fileService from './file-service';
 import * as graphLoader from './graph-loader';
 import * as path from 'path';
 import { viewMode } from '../shared/types';
+import { database } from './main';
+import { FileType } from './database';
+import * as userAgiSync from './agi-sync';
 
 const apiApp = express();
 apiApp.use(express.json());
@@ -148,6 +151,11 @@ ${processedContent}
       // Update the graph with the new file
       const viewMode: viewMode = 'main';
       await graphLoader.updateFileInGraph(viewMode, fileName);
+      // Insert note to vector db
+      await database.upsertNotes(notesDirectory, filePath, noteContent, 'main' as FileType);
+
+      // Sync agi
+      await userAgiSync.syncAgi();
 
       res.json({
         success: true,

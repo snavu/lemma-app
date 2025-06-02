@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { ChildProcess, spawn, spawnSync } from 'child_process';
-import { DbClient } from './database';
+import { DbClient, FileType } from './database';
 import * as fileService from './file-service';
 import * as chromaService from './chroma-service';
 import * as graphLoader from './graph-loader';
@@ -19,7 +19,7 @@ if (require('electron-squirrel-startup')) {
 }
 
 let mainWindow: BrowserWindow | null = null;
-let database: DbClient;
+export let database: DbClient;
 export let config: Config;
 export let inferenceService: InferenceService;
 export let liveAgiService: LiveAgiService;
@@ -256,7 +256,10 @@ const setupIpcHandlers = (): void => {
     if (result.success) {
       // Add the new file to the graph
       await graphLoader.updateFileInGraph(viewMode, fileName);
-
+      // Insert note to vector db
+      const notesDirectory = fileService.mainNotesDirectory;
+      const filePath = path.join(notesDirectory, fileName);
+      await database.upsertNotes(notesDirectory, filePath, '', 'main' as FileType);
     }
     return result;
   });
@@ -444,8 +447,6 @@ app.on('ready', () => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
-  } else {
-    chromaService.endChromaDb();
   }
 });
 
