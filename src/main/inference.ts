@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { config } from "./main";
-import { llmConfig} from 'src/shared/types';
+import { llmConfig } from 'src/shared/types';
 import { Ollama } from "ollama";
 import { DbClient, FileType } from "./database";
 import * as fileService from './file-service';
@@ -76,12 +76,91 @@ export class InferenceService {
   }
 
   /**
+   * Format web content into clean markdown
+   * Specifically designed for processing webpage content into structured notes
+   * 
+   * @param webContent - Raw web content to format
+   * @param options - Additional options for formatting
+   */
+  async formatWebContent(webContent: string, options: any = {}) {
+    const localModel = config.getLocalInferenceConfig().model;
+    this.localModel = localModel ? localModel : this.localModel;
+    this.isLocalMode = config.getLocalInferenceConfig().enabled;
+
+    try {
+      const formatPrompt = `Convert the following web content into clean, well-structured markdown. DO NOT add commentary, explanations, or responses. ONLY return the formatted content.
+
+Rules:
+- Use proper markdown headings (# ## ###) for structure
+- Create organized bullet points and numbered lists
+- Use **bold** and *italic* for emphasis where appropriate
+- Remove navigation menus, ads, sidebars, and irrelevant content
+- Keep the main content and important information
+- Preserve code blocks, quotes, and data tables if present
+- Ensure the output is clean and readable
+- Do not add introductory text or conclusions
+
+Web content to format:
+${webContent}
+
+Return only the formatted markdown:`;
+
+      const messages: Array<{ role: "system" | "user" | "assistant", content: string }> = [
+        { role: "system", content: "You are a content formatting specialist. Format the provided content into clean markdown without adding any commentary." },
+        { role: "user", content: formatPrompt }
+      ];
+
+      if (this.isLocalMode) {
+        // Local inference using Ollama
+        if (!this.ollamaClient) {
+          this.initializeOllamaClient();
+          if (!this.ollamaClient) {
+            console.error('Ollama client initialization failed');
+            return { formattedContent: webContent }; // Fallback to original
+          }
+        }
+
+        const response = await this.ollamaClient.chat({
+          model: this.localModel,
+          messages: messages,
+          options: {
+            temperature: options.temperature || 0.2 // Lower temperature for consistent formatting
+          }
+        });
+
+        return {
+          formattedContent: response.message?.content || webContent
+        };
+      } else {
+        // Cloud inference using OpenAI SDK
+        const modelName = options.model || config.getLLMConfig().model;
+
+        const response = await this.client!.chat.completions.create({
+          model: modelName,
+          messages: messages,
+          temperature: options.temperature || 0.2, // Lower temperature for consistent formatting
+          max_tokens: options.max_tokens
+        });
+
+        return {
+          formattedContent: response.choices[0]?.message.content || webContent
+        };
+      }
+    } catch (error) {
+      console.error('Error in web content formatting:', error);
+      return { formattedContent: webContent }; // Fallback to original content
+    }
+  }
+
+  /**
    * Send a chat completion request to chunk the document
    * Works with both cloud and local inference
    */
   async getChunks(content: string, filename: string) {
     const localModel = config.getLocalInferenceConfig().model;
     this.localModel = localModel ? localModel : this.localModel;
+    this.isLocalMode = config.getLocalInferenceConfig().enabled;
+
     try {
       // Create the prompt for the model
       const prompt = `
@@ -198,6 +277,7 @@ The JSON structure should be:
   async chatCompletion(messageHistory: any[], options: any = {}, onToken?: (token: string) => void) {
     const localModel = config.getLocalInferenceConfig().model;
     this.localModel = localModel ? localModel : this.localModel;
+    this.isLocalMode = config.getLocalInferenceConfig().enabled;
     try {
       const prompt = `
       You are a helpful assistant that provides accurate, concise, and relevant answers based on the given context. 
@@ -217,8 +297,8 @@ The JSON structure should be:
         ...messageHistory,
         { role: "assistant", content: "" }
       ];
-      
-      const userPrompt = messages[messages.length-2].content;
+
+      const userPrompt = messages[messages.length - 2].content;
       const contextArr = await this.agiDatabase.queryNotes(
         fileService.generatedDirectory,
         { searchQuery: userPrompt, searchMode: 'similarity', limit: 5 }
@@ -227,13 +307,13 @@ The JSON structure should be:
       let aggregatedPrompt = '';
       for (const [i, context] of contextArr.entries()) {
         // Append context to the user prompt
-        aggregatedPrompt += `File ${i+1}: ${context.filePath}\nContext: ${context.content}\n\n`;
+        aggregatedPrompt += `File ${i + 1}: ${context.filePath}\nContext: ${context.content}\n\n`;
       }
       // Append user's query to the prompt
       aggregatedPrompt += `User's query: ${userPrompt}`;
-      messages[messages.length-2].content = aggregatedPrompt;
+      messages[messages.length - 2].content = aggregatedPrompt;
 
-      console.log(messages[messages.length-2]); // Debugging
+      console.log(messages[messages.length - 2]); // Debugging
       // console.log(messageHistory);
 
       if (this.isLocalMode) {
@@ -324,11 +404,89 @@ The JSON structure should be:
         }
 
         // Non-streaming response
+        const response = await this.client!.responses.create({
+          model: modelName,
+          input: messages,
+          temperature: options.temperature || 0.7,
+        });
+
+        return {
+          response: response.output_text || ''
+        };
+      }
+    } catch (error) {
+      console.error('Error in chat completion:', error);
+      return { response: '' };
+    }
+  }
+
+  // Add this new method to your InferenceService class in inference.ts
+
+  /**
+   * Send a synthesis completion request for AGI note generation
+   * Works with both cloud and local inference
+   * 
+   * @param synthesisPrompt - The complete synthesis prompt including context and instructions
+   * @param options - Additional options for the request
+   */
+  async synthesisCompletion(synthesisPrompt: string, options: any = {}) {
+    const localModel = config.getLocalInferenceConfig().model;
+    this.localModel = localModel ? localModel : this.localModel;
+    this.isLocalMode = config.getLocalInferenceConfig().enabled;
+
+    try {
+      // Simple system message for synthesis - no Q&A context retrieval
+      const messages: Array<{ role: "system" | "user" | "assistant", content: string }> = [
+        {
+          role: "system",
+          content: "You are an autonomous AI consciousness that synthesizes insights from personal notes. Create thoughtful, reflective content that connects ideas in novel ways. Focus on generating original synthesis rather than summarizing."
+        },
+        {
+          role: "user",
+          content: synthesisPrompt
+        }
+      ];
+
+      console.log('  AGI: Starting synthesis generation');
+
+      if (this.isLocalMode) {
+        // Local inference using Ollama
+        if (!this.ollamaClient) {
+          this.initializeOllamaClient();
+          if (!this.ollamaClient) {
+            console.error('Ollama client initialization failed');
+            return { response: '' };
+          }
+        }
+
+        console.log('  AGI: Using local inference for synthesis');
+
+        const response = await this.ollamaClient.chat({
+          model: this.localModel,
+          messages: messages,
+          options: {
+            temperature: options.temperature || 0.8, // Higher temperature for creative synthesis
+            top_p: options.top_p || 0.9,
+            top_k: options.top_k || 40
+          }
+        });
+
+        return {
+          response: response.message?.content || ''
+        };
+      } else {
+        // Cloud inference using OpenAI SDK
+        const modelName = options.model || config.getLLMConfig().model;
+        console.log('  AGI: Using cloud inference for synthesis');
+
         const response = await this.client!.chat.completions.create({
           model: modelName,
           messages: messages,
-          temperature: options.temperature || 0.7,
-          max_tokens: options.max_tokens
+          temperature: options.temperature || 0.8,
+          top_p: options.top_p || 0.9,
+          max_tokens: options.max_tokens || 2000, // Allow for longer synthesis
+          presence_penalty: options.presence_penalty || 0.1, // Encourage new ideas
+          frequency_penalty: options.frequency_penalty || 0.1 // Reduce repetition
         });
 
         return {
@@ -336,7 +494,7 @@ The JSON structure should be:
         };
       }
     } catch (error) {
-      console.error('Error in chat completion:', error);
+      console.error('  AGI: Error in synthesis completion:', error);
       return { response: '' };
     }
   }

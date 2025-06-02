@@ -207,41 +207,82 @@ const KnowledgeGraph = ({
   };
 
   // Function to focus camera on a node
-  const focusOnNode = (node: any) => {
-    if (!fgRef.current) return;
+// Animated focusOnNode that smoothly transitions both position and lookAt
+const focusOnNode = (node: any) => {
+  if (!fgRef.current) return;
 
-    // Disable navigation controls temporarily
-    if (fgRef.current.controls) {
-      fgRef.current.controls().enabled = false;
+  const camera = fgRef.current.camera();
+  const controls = fgRef.current.controls();
+  
+  if (!camera || !controls) return;
+
+  // Disable controls during animation
+  controls.enabled = false;
+
+  // Calculate target position and lookAt
+  const distance = 400;
+  const distRatio = 1 + distance / Math.hypot(node.x || 0, node.y || 0, node.z || 0);
+  
+  const targetPos = {
+    x: (node.x || 0) * distRatio,
+    y: (node.y || 0) * distRatio,
+    z: (node.z || 0) * distRatio
+  };
+
+  const lookAtPos = {
+    x: node.x || 0,
+    y: node.y || 0,
+    z: node.z || 0
+  };
+
+  // Store starting values
+  const startPos = { ...camera.position };
+  const startTarget = controls.target ? { ...controls.target } : { x: 0, y: 0, z: 0 };
+  const startTime = Date.now();
+  const duration = 2000;
+
+  // Smooth ease-out easing (starts fast, ends slow)
+  const easeOut = (t: number) => {
+    return 1 - Math.pow(1 - t, 3);
+  };
+
+  const animate = () => {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const easeProgress = easeOut(progress);
+
+    // Interpolate camera position
+    camera.position.x = startPos.x + (targetPos.x - startPos.x) * easeProgress;
+    camera.position.y = startPos.y + (targetPos.y - startPos.y) * easeProgress;
+    camera.position.z = startPos.z + (targetPos.z - startPos.z) * easeProgress;
+
+    // Interpolate lookAt target
+    const currentTarget = {
+      x: startTarget.x + (lookAtPos.x - startTarget.x) * easeProgress,
+      y: startTarget.y + (lookAtPos.y - startTarget.y) * easeProgress,
+      z: startTarget.z + (lookAtPos.z - startTarget.z) * easeProgress
+    };
+
+    // Apply lookAt
+    camera.lookAt(currentTarget.x, currentTarget.y, currentTarget.z);
+    
+    // Update controls target
+    if (controls.target) {
+      controls.target.set(currentTarget.x, currentTarget.y, currentTarget.z);
     }
 
-    // Calculate distance ratio for positioning
-    const distance = 400;
-    const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
-
-    // Calculate new position
-    const newPos = node.x || node.y || node.z
-      ? {
-        x: node.x * distRatio,
-        y: node.y * distRatio,
-        z: node.z * distRatio
-      }
-      : { x: 0, y: 0, z: distance }; // special case if node is in (0,0,0)
-
-    // Animate camera to focus on node
-    fgRef.current.cameraPosition(
-      newPos,           // new position
-      node,             // lookAt ({ x, y, z })
-      2000              // ms transition duration
-    );
-
-    // Re-enable navigation controls after animation completes
-    setTimeout(() => {
-      if (fgRef.current && fgRef.current.controls) {
-        fgRef.current.controls().enabled = true;
-      }
-    }, 2000);
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      // Animation complete - re-enable controls
+      controls.enabled = true;
+      controls.update();
+    }
   };
+
+  // Start the animation
+  requestAnimationFrame(animate);
+};
 
   const openFile = (nodeName: string) => {
     // If we have onFileSelect prop and node has a name property

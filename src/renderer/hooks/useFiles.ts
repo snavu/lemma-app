@@ -12,7 +12,7 @@ export const useFiles = () => {
   const [graphJsonPath, setGraphJsonPath] = useState<string | null>(null);
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [viewMode, setViewMode] = useState<'main' | 'generated'>('main');
-  const { syncAgi, updateFileInAgi } = useAgi();
+  const { syncAgi, updateFileInAgi, removeFileFromAgi } = useAgi();
   const mode = 'main';
 
   // Check for default directory and view mode on initial load
@@ -108,8 +108,8 @@ export const useFiles = () => {
 
       const result = await window.electron.config.getAgiConfig();
       if (result) {
-        if (result.enabled) {
-          updateFileInAgi(filename);
+        if (result.enableChunking) {
+          removeFileFromAgi(filename);
         }
       }
       return true;
@@ -169,6 +169,7 @@ export const useFiles = () => {
 
   return {
     files,
+    setFiles,
     notesDirectory,
     graphJsonPath,
     viewMode,

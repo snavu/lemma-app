@@ -10,7 +10,8 @@ import * as userAgiSync from './agi-sync';
 import { Config } from './config-service';
 import { InferenceService } from './inference';
 import { viewMode } from 'src/shared/types';
-import { useState } from 'react';
+import { startExtensionService } from './extension-service';
+import { LiveAgiService } from './live-agi-service';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -21,6 +22,7 @@ let mainWindow: BrowserWindow | null = null;
 let database: DbClient;
 export let config: Config;
 export let inferenceService: InferenceService;
+export let liveAgiService: LiveAgiService;
 
 // State for LLM generation
 let isStreaming: boolean = false;
@@ -191,11 +193,11 @@ const selectNotesDirectory = async (): Promise<string | null> => {
 const setupIpcHandlers = (): void => {
 
   ipcMain.handle('tag-search-query', async (_, searchQuery, notesDirectory) => {
-    return await database.queryNotes(notesDirectory, {searchQuery: searchQuery, searchMode: 'tag'});
+    return await database.queryNotes(notesDirectory, { searchQuery: searchQuery, searchMode: 'tag' });
   });
 
   ipcMain.handle('keyword-search-query', async (_, searchQuery, notesDirectory) => {
-    return await database.queryNotes(notesDirectory, {searchQuery: searchQuery, searchMode: 'full-text'});
+    return await database.queryNotes(notesDirectory, { searchQuery: searchQuery, searchMode: 'full-text' });
   });
 
   ipcMain.handle('open-external', async (_, url) => {
@@ -283,39 +285,61 @@ const setupIpcHandlers = (): void => {
     return result;
   });
 
-  ipcMain.handle('sync-agi', async () => {
-    // Sync user with AGI
-    const success = await userAgiSync.syncAgi();
-    if (success) {
-      console.log('User successfully synced all files with AGI');
-      return true;
-    } else {
-      console.error('Failed to sync user with AGI');
-      return false;
-    }
-  });
-
   ipcMain.handle('update-file-in-agi', async (_, filename) => {
-    const success = await userAgiSync.updateFileInAgi(filename);
-    if (success) {
-      console.log('User successfully synced file with AGI');
-      return true;
-    } else {
-      console.error('Failed to sync file with AGI');
+    try {
+      const success = await userAgiSync.updateFileInAgi(filename);
+      
+      if (success) {
+        console.log('User successfully synced file with AGI');
+        return true;
+      } else {
+        console.error('Failed to sync file with AGI');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error in updateFileInAgi:', error);
       return false;
     }
   });
-
+  
+  ipcMain.handle('sync-agi', async () => {
+    try {
+      // Clear all pending requests when doing a full sync
+      config.clearAllRequests();
+      
+      const success = await userAgiSync.syncAgi();
+      if (success) {
+        console.log('User successfully synced all files with AGI');
+        return true;
+      } else {
+        console.error('Failed to sync user with AGI');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error in syncAgi:', error);
+      return false;
+    }
+  });
+  
   ipcMain.handle('remove-file-from-agi', async (_, filename) => {
-    const success = await userAgiSync.removeFileFromAgi(filename);
-    if (success) {
-      console.log('User successfully removed file with AGI');
-      return true;
-    } else {
-      console.error('Failed to remvoe file from AGI');
+    try {
+      // Clear any pending requests for this file
+      config.clearFileRequest(filename);
+      
+      const success = await userAgiSync.removeFileFromAgi(filename);
+      if (success) {
+        console.log('User successfully removed file from AGI');
+        return true;
+      } else {
+        console.error('Failed to remove file from AGI');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error in removeFileFromAgi:', error);
       return false;
     }
   });
+  
 
   ipcMain.handle('send-chat-request', async (_, messageArray) => {
     startStreaming();
@@ -352,6 +376,31 @@ const setupIpcHandlers = (): void => {
     return config.setViewMode(mode);
   });
 
+   // Live AGI handlers
+   ipcMain.handle('start-live-agi', () => {
+    liveAgiService.start();
+    return liveAgiService.getStatus();
+  });
+
+  ipcMain.handle('stop-live-agi', () => {
+    liveAgiService.stop();
+    return liveAgiService.getStatus();
+  });
+
+  ipcMain.handle('get-live-agi-status', () => {
+    return liveAgiService.getStatus();
+  });
+
+  ipcMain.handle('get-agi-thought-history', () => {
+    return liveAgiService.getThoughtHistory();
+  });
+
+  ipcMain.handle('update-agi-config', (_, configUpdates) => {
+    liveAgiService.updateConfig(configUpdates);
+    return liveAgiService.getStatus();
+  });
+
+
   // Window control messages
   ipcMain.on('window-control', (_, command) => {
     if (!mainWindow) return;
@@ -381,9 +430,11 @@ app.on('ready', () => {
   createAppMenu();
   setupIpcHandlers();
   initializeFileSystem();
+  startExtensionService(3001);
   chromaService.startChromaDb();
   database = new DbClient();
   inferenceService = new InferenceService();
+  liveAgiService = new LiveAgiService(inferenceService);
 
 });
 

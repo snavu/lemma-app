@@ -51,6 +51,7 @@ export const App = () => {
   // Use custom hooks 
   const {
     files,
+    setFiles,
     notesDirectory,
     graphJsonPath,
     viewMode,
@@ -111,6 +112,20 @@ export const App = () => {
       };
     }
   }, [triggerGraphRefresh]);
+
+
+  useEffect(() => {
+    if (window.electron?.on) {
+      const removeListener = window.electron.on.generatedFilesRefresh(async () => {
+        const files = await window.electron.fs.getFiles("generated");
+        setFiles(files);
+      });
+
+      return () => {
+        removeListener();
+      };
+    }
+  }, []);
 
   // Set up new note listener from menu
   useEffect(() => {
