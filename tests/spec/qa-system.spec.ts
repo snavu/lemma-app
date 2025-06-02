@@ -48,7 +48,6 @@ describe('Set up files', () => {
     console.log(files);
 
     expect(success).toBe(true);
-    // console.log(await inference.getChunks('hello world!', 'test.md'));
   });
 });
 

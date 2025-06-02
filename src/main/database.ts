@@ -47,7 +47,6 @@ const getId = (filePath: string, type: string): string => {
 export class DbClient {
   private collection: Collection | null;
   private collectionName: string;
-  // private embedFunc: typeof DefaultEmbeddingFunction;
   private embedFunc: typeof OllamaEmbeddingFunction | null;
   private modelName: string;
   private client: ChromaClient | null;
@@ -60,8 +59,10 @@ export class DbClient {
     this.collectionName = collection;
   }
 
-  // Initializes connection to the collection. Will be done only once.
-  // Will retry 5 times for 5 seconds
+  /**
+   * Initializes connection to the collection. Will be done only once.
+   * Will retry 5 times for 5 seconds
+   */
   private async initCollection(): Promise<void> {
     let retries = 0;
     let error: ChromaConnectionError;
@@ -84,7 +85,9 @@ export class DbClient {
     }
   }
 
-  // Initializes embedding function, downloading embedding model if not already installed. Will be done only once.
+  /**
+   * Initializes embedding function, downloading embedding model if not already installed. Will be done only once.
+   */
   private async initEmbeddingFunc(): Promise<void> {
     const modelList = await ollama.list();
     // Model has not been installed yet
@@ -102,7 +105,9 @@ export class DbClient {
     }
   }
 
-  // Add/update embeddings for one notes or multiple notes
+  /**
+   * Add/update embeddings for one notes or multiple notes
+   */
   public async upsertNotes(
     notesDirectory: string, 
     filePath: string | string[], 
@@ -150,13 +155,13 @@ export class DbClient {
       metadatas: metadatas,
     });
 
-    // Get document from database for debugging
-    // const results = await this.queryNotes(notesDirectory, content);
     console.log('Document(s) successfully upserted:', filePath); // Output results
   }
 
-  // Deletes the document of the specified note(s) in the directory.
-  // If no specific document(s) is specified, deletes all documents of each note in the directory
+  /**
+   * Deletes the document of the specified note(s) in the directory.
+   * If no specific document(s) is specified, deletes all documents of each note in the directory
+   */
   public async deleteNotes(notesDirectory: string, filePath?: string | string[]): Promise<void> {
     await this.initEmbeddingFunc();
     await this.initCollection();

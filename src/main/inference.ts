@@ -406,9 +406,6 @@ ${context.content}\n
       aggregatedPrompt += `User's query: ${userPrompt}`;
       messages[messages.length - 2].content = aggregatedPrompt;
 
-      // console.log(messages[messages.length - 2]); // Debugging
-      // console.log(messageHistory);
-
       if (this.isLocalMode) {
         // Local inference using Ollama
         if (!this.ollamaClient) {

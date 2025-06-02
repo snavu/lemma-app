@@ -1,9 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { ChildProcess, spawn, spawnSync } from 'child_process';
-// const main = require('../../src/main/main');
-import { InferenceService } from '../../src/main/inference';
-import { rm } from 'fs/promises';
 
 let chromaProcess: null | ChildProcess;
 
