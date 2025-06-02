@@ -115,7 +115,7 @@ export const App = () => {
 
 
   useEffect(() => {
-    if (window.electron?.on) {
+    if (window.electron?.on && viewMode === 'generated') {
       const removeListener = window.electron.on.generatedFilesRefresh(async () => {
         const files = await window.electron.fs.getFiles("generated");
         setFiles(files);
@@ -125,7 +125,7 @@ export const App = () => {
         removeListener();
       };
     }
-  }, []);
+  }, [viewMode, setFiles]);
 
   // Set up new note listener from menu
   useEffect(() => {
@@ -198,7 +198,7 @@ export const App = () => {
           messages={messages}
           setMessages={setMessages}
         />
-        {isChatOpen && 
+        {isChatOpen &&
           <ChatUI
             isChatOpen={isChatOpen}
             setIsChatOpen={setIsChatOpen}
@@ -240,7 +240,7 @@ export const App = () => {
 
             {/* Knowledge graph section*/}
             {activeTab && (
-              <div 
+              <div
                 className="knowledge-graph"
                 style={{
                   width: `${100 - (editorWidth ?? 50)}%`
