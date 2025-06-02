@@ -1,9 +1,17 @@
 .search-container {
   background-color: var(--background-secondary);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  overflow-y: hidden;
+  overflow-x: hidden;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.search-body {
+  padding-left: 9px;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-left: 9px;
+  flex: 1;
 }
 
 .select-button {

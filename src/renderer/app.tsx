@@ -205,7 +205,7 @@ export const App = () => {
               className={activeTab ? "editor-section" : "full-width-section"}
               ref={editorRef}
               style={{
-                width: activeTab ? `${editorWidth}%` : '100%'
+                width: activeTab ? `${editorWidth ?? 50}%` : '100%'
               }}
             >
               {activeTab ? (
@@ -225,13 +225,20 @@ export const App = () => {
 
             {/* Knowledge graph section*/}
             {activeTab && (
-              <MemoizedKnowledgeGraph
-                graphRefreshTrigger={graphRefreshTrigger}
-                graphJsonPath={graphJsonPath}
-                files={files}
-                onFileSelect={handleFileSelect}
-                focusNodeName={activeFileName}
-              />
+              <div 
+                className="knowledge-graph"
+                style={{
+                  width: `${100 - (editorWidth ?? 50)}%`
+                }}
+              >
+                <MemoizedKnowledgeGraph
+                  graphRefreshTrigger={graphRefreshTrigger}
+                  graphJsonPath={graphJsonPath}
+                  files={files}
+                  onFileSelect={handleFileSelect}
+                  focusNodeName={activeFileName}
+                />
+              </div>
             )}
           </div>
         </div>

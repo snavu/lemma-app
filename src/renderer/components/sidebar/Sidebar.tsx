@@ -99,9 +99,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     panelRef: sidebarRef,
     defaultWidthPercent: 20,
     minPercent: 10,
-    maxPercent: 40,
+    maxPercent: 60,
   });
-
 
   // Handler for right-click on a file
   const handleContextMenu = useCallback(

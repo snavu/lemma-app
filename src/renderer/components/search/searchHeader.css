@@ -3,8 +3,7 @@
   align-items: center;
   justify-content: space-between;
   background-color: var(--background-secondary);
-  padding: 8px 12px;
-  margin: 15px 5px 5px 15px;
+  padding : 15px 7px 15px 9px;
   min-width: 0;
 }
 
@@ -19,8 +18,8 @@
   justify-content: center;
   transition: all 0.2s ease;
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 35px;
+  height: 35px;
   padding: 8px;
 }
 

@@ -2,8 +2,7 @@
   position: relative;
   height: 100%;
   width: 250px;
-  min-width: 250px;
-  max-width: 500px;
+  /* min-width: 250px; */
   background-color: var(--background-secondary);
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
@@ -13,8 +12,8 @@
 
 /* container width when main content collapse */
 .sidebar.collapsed {
-  width: 45.5px !important;
-  min-width: 45.5px !important;
+  width: 42px !important; /* padding + width of veritcal buttons */
+  min-width: 42px !important;
   transition: width 0.1s ease-in-out;
 }
 
@@ -23,7 +22,7 @@
   display: flex;
   flex-direction: column;
   border-right: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 6px 6px 6px 9.5px;
+  padding: 6px 6px 6px 6px;
   flex-shrink: 0;
   width: 30px;
   align-items: center;
@@ -156,6 +155,9 @@
   margin-right: 8px;
   font-size: 14px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  height: 1.5em;
 }
 
 .file-name {
@@ -164,6 +166,7 @@
   white-space: nowrap;
   min-width: 0;
   flex: 1;
+  line-height: 1.5em; 
 }
 
 .no-files {
