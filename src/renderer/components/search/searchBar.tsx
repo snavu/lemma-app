@@ -2,15 +2,19 @@ import React, { useState, useCallback } from 'react';
 import './searchBar.css';
 
 interface SearchProps {
-  setSearchresult: (check: boolean) => void;
+  setSearchresult: (setResult: boolean) => void;
   handleSearch: (searchQuery: string) => void;
   setSearchInput: (input: string) => void;
 }
 
-export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch, setSearchInput }) => {
+export const SearchBar: React.FC<SearchProps> = ({ 
+  setSearchresult, 
+  handleSearch, 
+  setSearchInput 
+}) => {
+
   const [inputValue, setInputValue] = useState('');
 
-  // pulled from app.tsx
   const debounce = (fn: (...args: any[]) => void, ms = 1000) => {
     let timeoutId: ReturnType<typeof setTimeout>;
     return function (this: any, ...args: any[]) {
@@ -19,6 +23,7 @@ export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch, s
     };
   };
   
+  /* query the database when the input changes */
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setInputValue(value);
@@ -27,6 +32,7 @@ export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch, s
     setSearchresult(true);
   };
 
+  /* debounce to limit the amount of queries */
   const debouncedHandleSearch = useCallback(
     debounce((searchTerm: string) => {
       handleSearch(searchTerm);
@@ -34,6 +40,7 @@ export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch, s
     [handleSearch]
   );
 
+   /* debounce to match timing of debounceHandleSearch */
   const debouncedSetSearchInput = useCallback(
     debounce((value: string) => {
       setSearchInput(value);
@@ -42,7 +49,7 @@ export const Search: React.FC<SearchProps> = ({ setSearchresult, handleSearch, s
   );
 
   return (
-    <div className="search-container">
+    <div className="search-input-container">
       <input 
         className="input-field"
         type="text"

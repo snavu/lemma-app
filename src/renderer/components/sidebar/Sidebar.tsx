@@ -1,9 +1,10 @@
-import React, { useState, useCallback, ReactNode } from 'react';
+import React, { useState, useCallback, ReactNode , useEffect, useRef, SetStateAction, Dispatch} from 'react';
 import { ContextMenu } from '../context-menu/ContextMenu';
-import './sidebar.css';
 import { SearchResults } from '../search/searchResult';
 import LLMSettingsModal from '../settings-modal/LLMSettingsModal';
+import { useResizePanel } from '../../hooks/useResizePanel';
 import { viewMode } from 'src/shared/types';
+import './sidebar.css';
 
 interface FileInfo {
   name: string;
@@ -34,7 +35,7 @@ interface SidebarProps {
   onSelectDirectory: () => void;
   onDeleteFile: (filePath: string) => Promise<boolean>;
   activeTab: string | null;
-  setSearchresult: (check: boolean) => void;
+  setSearchResult: (check: boolean) => void;
   results: SearchResult[];
   searchInput: string;
   handleFileSelect: (filePath: string) => void;
@@ -44,6 +45,10 @@ interface SidebarProps {
   setResults: (info: SearchResult[]) => void;
   viewMode: viewMode;
   toggleViewMode: () => void;
+  isChatOpen: boolean;
+  setIsChatOpen: (bool: boolean) => void;
+  messages: { role: 'user' | 'assistant'; content: string }[];
+  setMessages: Dispatch<SetStateAction<{ role: 'user' | 'assistant'; content: string }[]>>;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -54,7 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectDirectory,
   onDeleteFile,
   activeTab,
-  setSearchresult,
+  setSearchResult,
   results,
   searchInput,
   handleFileSelect,
@@ -63,7 +68,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   searchResult,
   setResults,
   viewMode,
-  toggleViewMode
+  toggleViewMode,
+  isChatOpen,
+  setIsChatOpen,
+  messages,
+  setMessages,
 }) => {
   // State for context menu
   const [contextMenu, setContextMenu] = useState<{
@@ -78,8 +87,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
     filePath: '',
   });
 
+  // State for collapsing sidebar
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   // State for LLM settings modal
   const [isLLMSettingsOpen, setIsLLMSettingsOpen] = useState(false);
+
+  // custom hook for resizePanel
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const { width: sidebarWidth, handleMouseDown: handleMouseDown } = useResizePanel({
+    panelRef: sidebarRef,
+    defaultWidthPercent: 20,
+    minPercent: 10,
+    maxPercent: 60,
+  });
 
   // Handler for right-click on a file
   const handleContextMenu = useCallback(
@@ -130,19 +151,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Icons for the sidebar
   const NewNoteIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 5v14M5 12h14"></path>
     </svg>
   );
 
   const FolderIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
     </svg>
   );
 
   const NoteIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
       <polyline points="14 2 14 8 20 8"></polyline>
       <line x1="16" y1="13" x2="8" y2="13"></line>
@@ -170,6 +191,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
       <line x1="3" y1="9" x2="21" y2="9"></line>
       <line x1="9" y1="21" x2="9" y2="9"></line>
+    </svg>
+  );
+
+  const ChatBubbleIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 11.5a8.38 8.38 0 0 1-1.9 5.4c.1 1.1.5 2.1 1.4 3.1-1.5-.2-2.8-.6-3.9-1.4a8.5 8.5 0 1 1 4.4-7.1z" />
+    </svg>
+  );
+
+  const CollapseIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+      <line x1="9" y1="21" x2="9" y2="3"></line>
     </svg>
   );
 
@@ -205,16 +239,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 
   return (
-    <div className="sidebar">
-      <div className="sidebar-header">
+    <div 
+      ref={sidebarRef}
+      className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}
+      style={{ width: isCollapsed ? 'auto' : `${sidebarWidth}%` }}
+    >
+      {/* Vertical buttons column */}
+      <div className="sidebar-actions-container">
         <div className="sidebar-actions">
+          <button 
+            className="collapse" 
+            title={isCollapsed ? "Expand" : "Collapse"}
+            onClick={() => setIsCollapsed(!isCollapsed)}
+          >
+            <CollapseIcon/>
+          </button>
           <button onClick={onNewNote} title="New Note">
             <NewNoteIcon />
           </button>
           <button onClick={onSelectDirectory} title="Select Notes Directory">
             <FolderIcon />
           </button>
-          <button onClick={() => setSearchresult(true)} title="Search">
+          <button
+            onClick={() => {
+              setSearchResult(true);
+              setIsCollapsed(false);
+            }}
+            title="Search"
+          >
             <SearchIcon />
           </button>
           <button onClick={openLLMSettings} title="AI Settings">
@@ -223,98 +275,127 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             onClick={toggleViewMode}
             className={viewMode === 'generated' ? 'active' : ''}
+            title="Toggle View Mode"
           >
             <ViewModeIcon />
           </button>
+          <button onClick={() => setIsChatOpen(true)} title="ChatBot">
+            <ChatBubbleIcon/>
+          </button>
         </div>
       </div>
-
-      {!searchResult && (
-        <>
-          <div className="notes-location">
-            {notesDirectory ? (
-              <span title={notesDirectory}>
-                <FolderIcon /> {notesDirectory.split(/[\\/]/).pop()}
-              </span>
-            ) : (
-              <span>No folder selected</span>
-            )}
-          </div>
-
-          <div className="files-list">
-            {files.length === 0 ? (
-              <div className="no-files">
-                {notesDirectory
-                  ? 'No notes yet. Create your first note!'
-                  : 'Select a notes folder to get started.'}
+  
+      {/* Main content area*/}
+      {!isCollapsed && (
+        <div className="sidebar-content">
+          {!searchResult && (
+            <>
+              <div className="notes-location">
+                {notesDirectory ? (
+                  <span title={notesDirectory}>
+                    <FolderIcon /> {notesDirectory.split(/[\\/]/).pop()}
+                  </span>
+                ) : (
+                  <span>No folder selected</span>
+                )}
               </div>
-            ) : (
-              <ul>
-                {files.map((file) => (
-                  <li
-                    key={file.path}
-                    onClick={() => onFileSelect(file.path)}
-                    onContextMenu={(e) => handleContextMenu(e, file.path)}
-                  >
-                    <span className="file-icon"><NoteIcon /></span>
-                    <span className="file-name">{file.name}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {contextMenu.show && (
-            <ContextMenu
-              x={contextMenu.x}
-              y={contextMenu.y}
-              onClose={closeContextMenu}
-              options={[
-                {
-                  label: 'Open',
-                  onClick: () => onFileSelect(contextMenu.filePath),
-                  icon: <OpenIcon />
-                },
-                {
-                  label: 'Rename',
-                  onClick: () => {
-                    alert('Rename functionality will be implemented soon');
-                  },
-                  icon: <RenameIcon />
-                },
-                {
-                  label: 'Duplicate',
-                  onClick: () => {
-                    alert('Duplicate functionality will be implemented soon');
-                  },
-                  icon: <DuplicateIcon />
-                },
-                {
-                  isSeparator: true
-                },
-                {
-                  label: 'Delete',
-                  onClick: handleDeleteFile,
-                  className: 'danger',
-                  icon: <DeleteIcon />
-                },
-              ]}
+  
+              <div className="files-list">
+                {files.length === 0 ? (
+                  <div className="no-files">
+                    {notesDirectory
+                      ? 'No notes yet. Create your first note!'
+                      : 'Select a notes folder to get started.'}
+                  </div>
+                ) : (
+                  <ul>
+                    {files.map((file) => (
+                      <li
+                        key={file.path}
+                        onClick={() => onFileSelect(file.path)}
+                        onContextMenu={(e) => handleContextMenu(e, file.path)}
+                      >
+                        <span className="file-icon"><NoteIcon /></span>
+                        <span className="file-name">{file.name}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </>
+          )}
+  
+          {searchResult && (
+            <SearchResults
+              handleFileSelect={handleFileSelect}
+              setSearchResult={setSearchResult}
+              results={results}
+              searchInput={searchInput}
+              handleSearch={handleSearch}
+              setSearchInput={setSearchInput}
+              setResults={setResults}
             />
           )}
-        </>
+        </div>
       )}
 
-      {searchResult &&
-        <SearchResults
-          handleFileSelect={handleFileSelect}
-          setSearchresult={setSearchresult}
-          results={results}
-          searchInput={searchInput}
-          handleSearch={handleSearch}
-          setSearchInput={setSearchInput}
-          setResults={setResults}
-        />}
-
+      {/* Resize handle */}
+      {!isCollapsed && (
+        <div 
+          className="resize-handle"
+          onMouseDown={handleMouseDown}
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '4px',
+            height: '100%',
+            cursor: 'ew-resize',
+            backgroundColor: 'transparent',
+            zIndex: 1000,
+          }}
+        />
+      )}
+  
+      {/* Context Menu */}
+      {contextMenu.show && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={closeContextMenu}
+          options={[
+            {
+              label: 'Open',
+              onClick: () => onFileSelect(contextMenu.filePath),
+              icon: <OpenIcon />
+            },
+            {
+              label: 'Rename',
+              onClick: () => {
+                alert('Rename functionality will be implemented soon');
+              },
+              icon: <RenameIcon />
+            },
+            {
+              label: 'Duplicate',
+              onClick: () => {
+                alert('Duplicate functionality will be implemented soon');
+              },
+              icon: <DuplicateIcon />
+            },
+            {
+              isSeparator: true
+            },
+            {
+              label: 'Delete',
+              onClick: handleDeleteFile,
+              className: 'danger',
+              icon: <DeleteIcon />
+            },
+          ]}
+        />
+      )}
+  
       {/* LLM Settings Modal */}
       <LLMSettingsModal
         isOpen={isLLMSettingsOpen}
@@ -322,4 +403,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       />
     </div>
   );
+
+    
 };

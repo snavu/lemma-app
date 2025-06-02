@@ -4,6 +4,7 @@ import ForceGraph3D from 'react-force-graph-3d';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
 import * as THREE from 'three';
 import { FileInfo } from 'src/renderer/hooks/useFiles';
+import elementResizeDetectorMaker from 'element-resize-detector';
 
 interface KnowledgeGraphProps {
   graphJsonPath: string;
@@ -31,6 +32,10 @@ const KnowledgeGraph = ({
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [highlightedNode, setHighlightedNode] = useState<string | null>(null);
+  const [dimensions, setDimensions] = useState({
+    width: containerRef.current?.clientWidth || window.innerWidth,
+    height: containerRef.current?.clientHeight || window.innerHeight,
+  });
 
   const loadGraphData = async () => {
     try {
@@ -307,14 +312,34 @@ const focusOnNode = (node: any) => {
     }
   }, [focusNodeName]);
 
+  useEffect(() => {
+    if (!containerRef.current) return;
+  
+    const erd = elementResizeDetectorMaker();
+    const element = containerRef.current;
+  
+    erd.listenTo(element, (el) => {
+      setDimensions({
+        width: el.clientWidth,
+        height: el.clientHeight,
+      });
+    });
+  
+    return () => {
+      erd.removeAllListeners(element);
+    };
+  }, []);
+  
+
   return (
     <div className="knowledge-graph" ref={containerRef}>
       {graphData && (
         <ForceGraph3D
+        
           ref={fgRef}
           graphData={graphData}
-          width={containerRef.current?.clientWidth || window.innerWidth}
-          height={containerRef.current?.clientHeight || window.innerHeight}
+          width={dimensions.width || window.innerWidth}
+          height={dimensions.height || window.innerHeight}
           backgroundColor="#020305"
           linkColor={(link) => {
             // Define colors for edges based on source node type

@@ -1,4 +1,4 @@
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, memo, useCallback, useRef } from 'react';
 import { Header } from './components/header/page';
 import { Sidebar } from './components/sidebar/Sidebar';
 import './layout.css';
@@ -31,6 +31,7 @@ import { useFiles } from './hooks/useFiles';
 import { useTabs } from './hooks/useTabs';
 import { useGraphState } from './hooks/useGraphState';
 import { useNotesSync } from './hooks/useNotesSync';
+import { useResizePanel } from './hooks/useResizePanel';
 import KnowledgeGraph from './components/tabs/markdown/graph/KnowledgeGraph';
 import ToastProvider from './components/toast/ToastProvider';
 
@@ -83,6 +84,14 @@ export const App = () => {
     hasGraphChanged,
     triggerGraphRefresh
   );
+
+  const editorRef = useRef<HTMLDivElement>(null);
+  const { width: editorWidth, handleMouseDown: handleMouseDown } = useResizePanel({
+    panelRef: editorRef,
+    defaultWidthPercent: 50,
+    minPercent: 10,
+    maxPercent: 90,
+  });
 
   // Get current file path for the active tab
   const getCurrentFilePath = () => {
@@ -160,12 +169,6 @@ export const App = () => {
     return newFilePath;
   };
 
-  const ChatBubbleIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="gray" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 11.5a8.38 8.38 0 0 1-1.9 5.4c.1 1.1.5 2.1 1.4 3.1-1.5-.2-2.8-.6-3.9-1.4a8.5 8.5 0 1 1 4.4-7.1z" />
-    </svg>
-  );
-
   return (
     <div className="app">
       <div className="header">
@@ -180,7 +183,7 @@ export const App = () => {
           notesDirectory={notesDirectory}
           onDeleteFile={handleDeleteFileSync}
           activeTab={activeTab}
-          setSearchresult={setSearchResult}
+          setSearchResult={setSearchResult}
           handleFileSelect={handleFileSelect}
           results={results}
           searchInput={searchInput}
@@ -190,11 +193,12 @@ export const App = () => {
           setResults={setResults}
           viewMode={viewMode}
           toggleViewMode={toggleViewMode}
+          isChatOpen={isChatOpen}
+          setIsChatOpen={setIsChatOpen}
+          messages={messages}
+          setMessages={setMessages}
         />
-        <div className="chat-bubble" onClick={() => setIsChatOpen(true)}>
-          <ChatBubbleIcon />
-        </div>
-        {isChatOpen &&
+        {isChatOpen && 
           <ChatUI
             isChatOpen={isChatOpen}
             setIsChatOpen={setIsChatOpen}
@@ -212,7 +216,13 @@ export const App = () => {
           {/* Split content area to separate editor and graph */}
           <div className="split-content-area">
             {/* Editor section */}
-            <div className={activeTab ? "editor-section" : "full-width-section"}>
+            <div
+              className={activeTab ? "editor-section" : "full-width-section"}
+              ref={editorRef}
+              style={{
+                width: activeTab ? `${editorWidth ?? 50}%` : '100%'
+              }}
+            >
               {activeTab ? (
                 <InlineMarkdownTab
                   files={files}
@@ -221,6 +231,7 @@ export const App = () => {
                   onFileSelect={handleFileSelect}
                   currentFilePath={getCurrentFilePath()}
                   onChange={(content, hashtags) => handleNoteChange(activeTab, content, hashtags)}
+                  handleMouseDown={handleMouseDown}
                 />
               ) : (
                 <EmptyState onCreateNote={handleNewNote} />
@@ -229,13 +240,20 @@ export const App = () => {
 
             {/* Knowledge graph section*/}
             {activeTab && (
-              <MemoizedKnowledgeGraph
-                graphRefreshTrigger={graphRefreshTrigger}
-                graphJsonPath={graphJsonPath}
-                files={files}
-                onFileSelect={handleFileSelect}
-                focusNodeName={activeFileName}
-              />
+              <div 
+                className="knowledge-graph"
+                style={{
+                  width: `${100 - (editorWidth ?? 50)}%`
+                }}
+              >
+                <MemoizedKnowledgeGraph
+                  graphRefreshTrigger={graphRefreshTrigger}
+                  graphJsonPath={graphJsonPath}
+                  files={files}
+                  onFileSelect={handleFileSelect}
+                  focusNodeName={activeFileName}
+                />
+              </div>
             )}
           </div>
         </div>

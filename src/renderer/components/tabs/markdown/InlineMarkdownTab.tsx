@@ -14,6 +14,7 @@ interface MarkdownTabProps {
   initialDoc: string;
   onChange?: (content: string, hashtags: string[], klinks: string[]) => void;
   currentFilePath?: string;
+  handleMouseDown: (e: React.MouseEvent) => void;
 }
 
 export const InlineMarkdownTab = ({ 
@@ -21,7 +22,8 @@ export const InlineMarkdownTab = ({
   onChange, 
   files, 
   onFileSelect, 
-  currentFilePath
+  currentFilePath,
+  handleMouseDown,
 }: MarkdownTabProps) => {
   const [doc, setDoc] = useState(initialDoc);
 
@@ -56,6 +58,7 @@ export const InlineMarkdownTab = ({
         initialData={doc}
         onChange={handleDocChange}
         currentFilePath={currentFilePath}
+        handleMouseDown={handleMouseDown}
       />
     </div>
   );
