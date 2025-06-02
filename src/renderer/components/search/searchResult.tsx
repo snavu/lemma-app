@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { SearchHeader } from './searchHeader';
-import { marked } from 'marked';
 import markdownToTxt from 'markdown-to-txt';
 import './searchResult.css';
 
@@ -57,7 +56,6 @@ export const SearchResults: React.FC<SearchResultProps> = ({
     const searchTerm = searchInput.toLowerCase().trim();
     
     results.forEach(file => {
-      console.log(marked(file.content))
       const plainText = markdownToTxt(file.content);
       const words = plainText.split(/\s+/);
       let matchCount = 0;
