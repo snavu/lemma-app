@@ -222,7 +222,16 @@ const setupIpcHandlers = (): void => {
   // File system operations
   ipcMain.handle('select-notes-directory', () => selectNotesDirectory());
   ipcMain.handle('get-current-notes-directory', (_, mode) => fileService.getCurrentNotesDirectory(mode));
-  ipcMain.handle('get-files', (_, mode) => fileService.getFilesFromDirectory(mode));
+  ipcMain.handle('get-files', (_, mode) => {
+    graphLoader.syncGraphWithFiles(mode).then(success => {
+      if (success) {
+        console.log('Graph successfully synced with files in new directory');
+      } else {
+        console.error('Failed to sync graph with files in new directory');
+      }
+    });
+    return fileService.getFilesFromDirectory(mode);
+  });
   ipcMain.handle('read-file', (_, filePath) => fileService.readFile(filePath));
 
   // Modified save-file handler to update the graph
@@ -301,41 +310,41 @@ const setupIpcHandlers = (): void => {
   });
 
   ipcMain.handle('update-file-in-agi', async (_, filename) => {
-      const success = await userAgiSync.updateFileInAgi(filename);
-      
-      if (success) {
-        console.log('User successfully synced file with AGI');
-        return true;
-      } else {
-        console.error('Failed to sync file with AGI');
-        return false;
-      }
+    const success = await userAgiSync.updateFileInAgi(filename);
+
+    if (success) {
+      console.log('User successfully synced file with AGI');
+      return true;
+    } else {
+      console.error('Failed to sync file with AGI');
+      return false;
+    }
   });
-  
+
   ipcMain.handle('sync-agi', async () => {
- 
-      const success = await userAgiSync.syncAgi();
-      if (success) {
-        console.log('User successfully synced all files with AGI');
-        return true;
-      } else {
-        console.error('Failed to sync user with AGI');
-        return false;
-      }
+
+    const success = await userAgiSync.syncAgi();
+    if (success) {
+      console.log('User successfully synced all files with AGI');
+      return true;
+    } else {
+      console.error('Failed to sync user with AGI');
+      return false;
+    }
   });
-  
+
   ipcMain.handle('remove-file-from-agi', async (_, filename) => {
 
-      const success = await userAgiSync.removeFileFromAgi(filename);
-      if (success) {
-        console.log('User successfully removed file from AGI');
-        return true;
-      } else {
-        console.error('Failed to remove file from AGI');
-        return false;
-      }
+    const success = await userAgiSync.removeFileFromAgi(filename);
+    if (success) {
+      console.log('User successfully removed file from AGI');
+      return true;
+    } else {
+      console.error('Failed to remove file from AGI');
+      return false;
+    }
   });
-  
+
 
   ipcMain.handle('send-chat-request', async (_, messageArray) => {
     const response = await inferenceService.chatCompletion(messageArray, { stream: true }, (token) => {
@@ -370,8 +379,8 @@ const setupIpcHandlers = (): void => {
     return config.setViewMode(mode);
   });
 
-   // Live AGI handlers
-   ipcMain.handle('start-live-agi', () => {
+  // Live AGI handlers
+  ipcMain.handle('start-live-agi', () => {
     liveAgiService.start();
     return liveAgiService.getStatus();
   });
