@@ -200,7 +200,7 @@ export const chunk = async (filename: string, content: string, type: string): Pr
       const chunkPath = path.join(generatedDir, chunkFilename);
 
       // Create chunk content with metadata
-      const chunkContent = `${chunk.content}` + ` \n\n --- \n Linked note: [[${filename.replace('.md', '')}]]`;
+      const chunkContent = `${chunk.content}` + ` \n\n## Linked Notes\n[[${filename.replace('.md', '')}]]`;
 
       // Write the chunk file
       fs.writeFileSync(chunkPath, chunkContent);
@@ -219,7 +219,7 @@ export const chunk = async (filename: string, content: string, type: string): Pr
       const chunk = chunkResults.chunks[i];
       // Extract linked references to add to graph
       const availableFiles = [...chunkFilenames, filename];
-      const chunkContent = `${chunk.content}` + ` \n\n --- \n Linked note: [[${filename.replace('.md', '')}]]`;
+      const chunkContent = `${chunk.content}` + ` \n\n## Linked Notes\n[[${filename.replace('.md', '')}]]`;
       const linkedFiles = parseFileLinks(chunkContent, availableFiles);
 
       // Add to graph
