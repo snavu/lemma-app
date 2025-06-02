@@ -8,7 +8,7 @@ import * as chromaService from './chroma-service';
 import * as graphLoader from './graph-loader';
 import * as userAgiSync from './agi-sync';
 import { Config } from './config-service';
-import { InferenceService } from './inference';
+import { InferenceService, stopStreaming } from './inference';
 import { viewMode } from 'src/shared/types';
 import { startExtensionService } from './extension-service';
 import { LiveAgiService } from './live-agi-service';
@@ -23,12 +23,6 @@ let database: DbClient;
 export let config: Config;
 export let inferenceService: InferenceService;
 export let liveAgiService: LiveAgiService;
-
-// State for LLM generation
-let isStreaming: boolean = false;
-export const startStreaming = (): void => { isStreaming = true };
-export const stopStreaming = (): void => { isStreaming = false };
-export const streamingState = (): boolean => { return isStreaming };
 
 const createWindow = (): void => {
   // Create the browser window
@@ -191,6 +185,27 @@ const selectNotesDirectory = async (): Promise<string | null> => {
 
 // Set up IPC handlers for main process communication with renderer
 const setupIpcHandlers = (): void => {
+  ipcMain.handle('sync-db', async (_, notesDirectory) => {
+    try {
+      // Query all documents belonging to current directory from vector db,
+      // and get file paths of each document
+      const documents = await database.queryNotes(notesDirectory);
+      const docFilePaths = documents.map(doc => doc.filePath);
+      // Get all file paths of all files of current directory
+      const currentFiles = await fileService.getFilesFromDirectory('main' as viewMode);
+      const currentFilePaths = currentFiles.map(file => file.path);
+      // Filter out any documents not in the files of current directory and delete them
+      const nonExistentFiles = docFilePaths.filter(filePath => !currentFilePaths.includes(filePath));
+      if (nonExistentFiles.length > 0) await database.deleteNotes(notesDirectory, nonExistentFiles);
+      // Finally, update all files of current directory
+      const currentFileContent = currentFilePaths.map(filePath => fs.readFileSync(filePath, 'utf-8'));
+      await database.upsertNotes(notesDirectory, currentFilePaths, currentFileContent, new Array(currentFilePaths.length).fill('user'));
+
+      console.log('Successfully synced user notes database');
+    } catch (error) {
+      console.error('Failed to sync user notes database:', error);
+    }
+  });
 
   ipcMain.handle('tag-search-query', async (_, searchQuery, notesDirectory) => {
     return await database.queryNotes(notesDirectory, { searchQuery: searchQuery, searchMode: 'tag' });
@@ -342,13 +357,11 @@ const setupIpcHandlers = (): void => {
   
 
   ipcMain.handle('send-chat-request', async (_, messageArray) => {
-    startStreaming();
     const response = await inferenceService.chatCompletion(messageArray, { stream: true }, (token) => {
       // Send each new token back to frontend
       mainWindow.webContents.send('llm-token-received', token);
     });
 
-    stopStreaming();
     mainWindow.webContents.send('llm-response-done');
     return response;
   });

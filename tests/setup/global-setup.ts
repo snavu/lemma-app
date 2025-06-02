@@ -1,12 +1,11 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { ChildProcess, spawn, spawnSync } from 'child_process';
-import { rm } from 'fs/promises';
 
 let chromaProcess: null | ChildProcess;
 
 const tempFile = path.join(__dirname, 'child-process.json');
-const fixtureDir = 'tests/fixtures';
+const fixtureDir = path.join(process.cwd(), 'tests', 'fixtures');
 const dbPath = path.join(process.cwd(), 'lemma-test-db');
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -50,8 +49,8 @@ const endChromaDb = async (): Promise<void> => {
   }
 };
 
-const initFixtures = (): void => {
-  const child = spawn('npm', ['run', 'seed', '--', fixtureDir], { stdio: 'inherit', shell: true });
+const initSeed = (seed: string, path: string): void => {
+  const child = spawn('npm', ['run', seed, '--', path], { stdio: 'inherit', shell: true });
   child.on('exit', () => console.log('Initialized fixtures'));
 }
 
@@ -65,7 +64,8 @@ const delFixtures = async (): Promise<void> => {
 
 module.exports = async () => {
   startChromaDb();
-  initFixtures();
+  initSeed('seed', path.join(fixtureDir, 'db-test'));
+  initSeed('seed-small', path.join(fixtureDir, 'qa-system'));
   // Terminate ChromaDB server if Ctrl+C
   process.once('SIGINT', async () => {
     await endChromaDb();

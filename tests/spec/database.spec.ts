@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { DbClient, FileType } from '../../src/main/database';
 
-const fixturePath = 'tests/fixtures';
+const fixturePath = path.join(process.cwd(), 'tests', 'fixtures', 'db-test');
 const testFilePaths = fs.readdirSync(fixturePath).filter(file => file.endsWith('.md')).map(file => path.join(fixturePath, file));
 const testFiles = testFilePaths.map((filePath: string) => ({
   filePath: filePath,
@@ -15,10 +15,8 @@ const searchMatch = [
   { file: path.join(fixturePath, 'Propositional Calculus.md'), similarityQuery: 'what is propositional calculus', fullTextQuery: 'The principle of compositionality'},
 ]
 
-const notesDir = 'tests/fixtures';
+const notesDir = fixturePath;
 const database = new DbClient();
-
-jest.setTimeout(20000);
 
 describe('upsertNotes()', () => {
   it('insert note 1', async () => {
@@ -225,34 +223,6 @@ describe('queryNotes()', () => {
     await database.deleteNotes(notesDir);
 
   });
-
-  // it('tag search 1', async () => {
-  //   // Insert test notes into database
-  //   await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }), Array(testFiles.length).fill('user'));
-
-  //   // Query the note by tag
-  //   const data = await database.queryNotes(notesDir, 'motherboard', 'tag');
-  //   expect(data.length).toBeGreaterThanOrEqual(1);
-  //   expect(data[0].filePath).toBe('tests/fixtures/computer.md');
-
-  //   await database.deleteNotes(notesDir);
-  // });
-
-  // it('tag search 2', async () => {
-  //   // Insert test notes into database
-  //   await database.upsertNotes(notesDir, testFilePaths, testFiles.map(value => { return value.content }), Array(testFiles.length).fill('user'));
-
-  //   // Query the note by tag
-  //   const searchQueries = ['ohms-law', 'kirchhoff']
-
-  //   await Promise.all(searchQueries.map(async value => {
-  //     const data = await database.queryNotes(notesDir, value, 'tag');
-  //     expect(data.length).toBeGreaterThanOrEqual(1);
-  //     expect(data[0].filePath).toBe('tests/fixtures/circuits.md');
-  //   }));
-
-  //   await database.deleteNotes(notesDir);
-  // });
 });
 
 describe('deleteNotes()', () => {

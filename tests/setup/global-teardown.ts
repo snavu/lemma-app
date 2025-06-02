@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import { rm } from 'fs/promises';
 
 const tempFile = path.join(__dirname, 'child-process.json');
-const fixtureDir = 'tests/fixtures';
+const fixtureDir = path.join(process.cwd(), 'tests', 'fixtures');
 const dbPath = path.join(process.cwd(), 'lemma-test-db');
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));

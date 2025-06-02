@@ -4,6 +4,7 @@ import * as fileService from './file-service';
 import * as graphService from './graph-service';
 import { inferenceService } from './main';
 import { config } from './main';
+// import { c } from 'vite/dist/node/moduleRunnerTransport.d-CXw_Ws6P';
 import { viewMode } from 'src/shared/types';
 import { throttle } from 'lodash'; 
 
@@ -186,6 +187,9 @@ export const chunk = async (
     if (!config.isRequestCurrent(filename, requestId)) {
       console.log(`Request cancelled before LLM call for file: ${filename}`);
       return false;
+    }
+    else if (chunkResults.canceled) {
+      return true;
     }
 
     // Call LLM to determine logical chunks
@@ -601,13 +605,15 @@ export const syncAgi = async (): Promise<boolean> => {
         // Also delete any generated files related to this filename
         try {
           const generatedFiles = fs.readdirSync(generatedDir);
-          generatedFiles.forEach(file => {
-            if (file.startsWith(`generated_${filename.split('.')[0]} `) && file.endsWith('.md')) {
+          for (const file of generatedFiles) {
+            if (file.startsWith(`generated_${filename.split('.')[0]}_`) && file.endsWith('.md')) {
               const generatedFilePath = path.join(generatedDir, file);
               fs.unlinkSync(generatedFilePath);
               console.log(`Deleted related generated file: ${file}`);
+
+              await agiDatabase.deleteNotes(generatedDir, generatedFilePath);
             }
-          });
+          }
         } catch (error) {
           console.error(`Error deleting related generated files for ${filename}: `, error);
         }

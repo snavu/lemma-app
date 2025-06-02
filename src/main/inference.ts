@@ -3,8 +3,21 @@ import { config } from "./main";
 import { llmConfig } from 'src/shared/types';
 import { Ollama } from "ollama";
 import { DbClient, FileType } from "./database";
+import { Sema } from 'async-sema';
+import { jsonrepair } from 'jsonrepair';
 import * as fileService from './file-service';
-import { streamingState } from "./main";
+import * as path from 'path';
+
+// State for LLM generation
+let isStreaming: boolean = false;
+export const startStreaming = (): void => { isStreaming = true };
+export const stopStreaming = (): void => { isStreaming = false };
+export const streamingState = (): boolean => { return isStreaming };
+
+// Semaphore to limit number of requests called for chunking
+const sem = new Sema(2);
+
+const chunkProcesses: Map<string, number> = new Map();
 
 /**
  * Inference service supporting both cloud provider calls and local inference with Ollama
@@ -156,10 +169,22 @@ Return only the formatted markdown:`;
    * Send a chat completion request to chunk the document
    * Works with both cloud and local inference
    */
-  async getChunks(content: string, filename: string) {
+  async getChunks(content: string, filename: string): Promise<{ chunks: { title: string, content: string }[], canceled?: boolean }> {
     const localModel = config.getLocalInferenceConfig().model;
     this.localModel = localModel ? localModel : this.localModel;
     this.isLocalMode = config.getLocalInferenceConfig().enabled;
+    
+    const currentDirectory = fileService.getCurrentNotesDirectory('main');
+    const filePath = path.join(currentDirectory, filename);
+    let chunkPid = chunkProcesses.get(filePath);
+    // Check if another process is already chunking this file
+    // If so, update pid
+    if (chunkPid) {
+      chunkProcesses.set(filePath, ++chunkPid);
+    } else {
+      chunkProcesses.set(filePath, 1);
+      chunkPid = 1;
+    }
 
     try {
       // Create the prompt for the model
@@ -186,7 +211,7 @@ Return a JSON object with an array of chunks, where each chunk has:
 1. A 'title' field with a descriptive title
 2. A 'content' field with the complete content for that chunk, including any necessary markdown formatting and context headers
 
-The JSON structure should be:
+Here is an example of the JSON structure:
 {
   "chunks": [
     {
@@ -206,7 +231,9 @@ The JSON structure should be:
         { role: "user", content: prompt }
       ];
 
+      let fullResponse = '';
       if (this.isLocalMode) {
+        console.log('chunking on local');
         // Local inference using Ollama
         if (!this.ollamaClient) {
           this.initializeOllamaClient();
@@ -216,49 +243,110 @@ The JSON structure should be:
           }
         }
 
+        await sem.acquire();
+        // Do not start stream if process id not equal to latest id
+        if (chunkPid !== chunkProcesses.get(filePath)) {
+          sem.release();
+          console.log(`chunking aborted on ${filePath} with PID ${chunkPid}`);
+          return { chunks: [{ title: '<chunk_aborted>', content: '<chunk_aborted>' }], canceled: true };
+        }
+
         // Request JSON format output from Ollama
-        const response = await this.ollamaClient.chat({
+        const stream = await this.ollamaClient.chat({
           model: this.localModel,
           messages: messages,
           format: "json",
           options: {
             temperature: 0.2
-          }
+          },
+          stream: true,
+          keep_alive: 30,
         });
-
-        const responseContent = response.message?.content || '';
-
+        
         try {
-          return JSON.parse(responseContent);
-        } catch (error) {
-          console.error('Failed to parse LLM response as JSON', error);
-          console.log('Raw response:', responseContent);
-          return { chunks: [] };
+          for await (const chunk of stream) {
+            // If id of this process not equal to latest id, abort stream
+            if (chunkPid !== chunkProcesses.get(filePath)) {
+              stream.abort();
+              sem.release();
+              console.log(`chunking aborted on ${filePath} with PID ${chunkPid}`);
+              return { chunks: [{ title: '<chunk_aborted>', content: '<chunk_aborted>' }], canceled: true };
+            }
+
+            const token = chunk?.message?.content;
+            if (token) fullResponse += token;
+          }
+          sem.release();
+        } catch (e) {
+          sem.release();
+          console.log(`chunking aborted on ${filePath} with PID ${chunkPid}`);
+          return { chunks: [{ title: '<chunk_aborted>', content: '<chunk_aborted>' }], canceled: true };
         }
       } else {
+        console.log('chunking on cloud');
         // Cloud inference using OpenAI SDK
         const modelName = config.getLLMConfig().model;
 
-        const response = await this.client!.chat.completions.create({
+        await sem.acquire();
+        // Do not start stream if process id not equal to latest id
+        if (chunkPid !== chunkProcesses.get(filePath)) {
+          sem.release();
+          console.log(`chunking aborted on ${filePath} with PID ${chunkPid}`);
+          return { chunks: [{ title: '<chunk_aborted>', content: '<chunk_aborted>' }], canceled: true };
+        }
+
+        const stream = await this.client!.chat.completions.create({
           model: modelName,
           messages: [
             { role: "system", content: "You are an AI assistant that specializes in semantic document chunking." },
             { role: "user", content: prompt }
           ],
           temperature: 0.2,
-          response_format: { type: "json_object" }
+          response_format: { type: "json_object" },
+          stream: true
         });
 
-        // Parse the response content
-        const responseContent = response.choices[0]?.message.content || "";
-
         try {
-          return JSON.parse(responseContent);
-        } catch (error) {
-          console.error('Failed to parse LLM response as JSON', error);
-          console.log('Raw response:', responseContent);
-          return { chunks: [] };
+          for await (const chunk of stream) {
+            // If id of this process not equal to lastest id, abort connection
+            if (chunkPid !== chunkProcesses.get(filePath)) {
+              stream.controller.abort();
+              sem.release();
+              console.log(`chunking aborted on ${filePath} with PID ${chunkPid}`);
+              return { chunks: [{ title: '<chunk_aborted>', content: '<chunk_aborted>' }], canceled: true };
+            }
+
+            const token = chunk.choices[0]?.delta?.content;
+            if (token) fullResponse += token;
+          }
+          sem.release();
+        } catch (e) {
+          sem.release();
+          console.log(`chunking aborted on ${filePath} with PID ${chunkPid}`);
+          return { chunks: [{ title: '<chunk_aborted>', content: '<chunk_aborted>' }], canceled: true };
         }
+      }
+
+      // Delete entry of file if this is the latest process
+      if (chunkProcesses.get(filePath) === chunkPid) {
+        chunkProcesses.delete(filePath);
+      }
+
+      const responseContent = jsonrepair(fullResponse);
+      try {
+        const chunkJson: { chunks: { title: string, content: string }[], canceled?: boolean } = JSON.parse(responseContent);
+        // Check if there is a 'chunks' field
+        if (!chunkJson.chunks) throw SyntaxError('No defined property of \'chunks\'');
+        // Check if there is a 'title' and 'content' field for each chunk
+        chunkJson.chunks.map((chunk) => {
+          chunk.title = (!chunk.title) ? '' : chunk.title;
+          chunk.content = (!chunk.content) ? '' : chunk.content;
+        });
+        return chunkJson;
+      } catch (error) {
+        console.error('Failed to parse LLM response as JSON', error);
+        console.log('Raw response:', responseContent);
+        return { chunks: [] };
       }
     } catch (error) {
       console.error('Error in document chunking:', error);
@@ -273,8 +361,9 @@ The JSON structure should be:
    * 
    * @param messageHistory - Array of message objects with 'role' and 'content'. The user should be the last role.
    * @param options - Additional options for the request
+   * @param onToken - Callback function for handling each generated token if streaming is enabled
    */
-  async chatCompletion(messageHistory: any[], options: any = {}, onToken?: (token: string) => void) {
+  async chatCompletion(messageHistory: any[], options: any = {}, onToken: (token: string) => void = () => {}) {
     const localModel = config.getLocalInferenceConfig().model;
     this.localModel = localModel ? localModel : this.localModel;
     this.isLocalMode = config.getLocalInferenceConfig().enabled;
@@ -307,14 +396,15 @@ The JSON structure should be:
       let aggregatedPrompt = '';
       for (const [i, context] of contextArr.entries()) {
         // Append context to the user prompt
-        aggregatedPrompt += `File ${i + 1}: ${context.filePath}\nContext: ${context.content}\n\n`;
+        aggregatedPrompt += `Document title ${i + 1}: ${path.basename(context.filePath)}
+Context:
+${context.content}\n
+----------------------
+`;
       }
       // Append user's query to the prompt
       aggregatedPrompt += `User's query: ${userPrompt}`;
       messages[messages.length - 2].content = aggregatedPrompt;
-
-      console.log(messages[messages.length - 2]); // Debugging
-      // console.log(messageHistory);
 
       if (this.isLocalMode) {
         // Local inference using Ollama
@@ -341,10 +431,12 @@ The JSON structure should be:
           });
 
           // Stream token by token
+          startStreaming();
           for await (const chunk of stream) {
             // If streaming interrupted, break
             if (!streamingState()) {
-              console.log('generating canceled');
+              stream.abort();
+              console.log('generating aborted');
               break;
             }
             const token = chunk?.message?.content;
@@ -354,6 +446,7 @@ The JSON structure should be:
             }
           }
 
+          stopStreaming();
           return { response: fullResponse };
         }
 
@@ -387,10 +480,12 @@ The JSON structure should be:
           });
 
           // Stream token by token
+          startStreaming();
           for await (const chunk of stream) {
             // If streaming interrupted, break
             if (!streamingState()) {
-              console.log('generating canceled');
+              stream.controller.abort();
+              console.log('generating aborted');
               break;
             }
             const token = chunk.choices[0]?.delta?.content;
@@ -400,6 +495,7 @@ The JSON structure should be:
             }
           }
 
+          stopStreaming();
           return { response: fullResponse };
         }
 

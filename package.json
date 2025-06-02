@@ -12,8 +12,9 @@
     "lint": "eslint --ext .ts,.tsx .",
     "python-setup": "node python-setup.js",
     "postinstall": "npm run python-setup",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "seed": "node src/lib/seed.js"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+    "seed": "node src/lib/seed.js",
+    "seed-small": "node src/lib/seed-small.js"
   },
   "keywords": [],
   "author": {
@@ -78,6 +79,7 @@
     "@tiptap/suggestion": "^2.11.9",
     "@types/element-resize-detector": "^1.1.6",
     "3d-force-graph": "^1.77.0",
+    "async-sema": "^3.1.1",
     "chromadb": "^2.4.3",
     "chromadb-default-embed": "^2.14.0",
     "electron-squirrel-startup": "^1.0.1",
@@ -87,6 +89,7 @@
     "github-markdown-css": "^5.8.1",
     "highlight.js": "^11.11.1",
     "i": "^0.3.7",
+    "jsonrepair": "^3.12.0",
     "lodash": "^4.17.21",
     "lowlight": "^3.3.0",
     "markdown-to-txt": "^2.0.1",

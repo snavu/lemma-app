@@ -54,6 +54,7 @@ interface Window {
       agiStatusChanged: (callback: (status: AgiStatus) => void) => () => void; // Add this
     };
     db: {
+      syncDb: (notesDirectory: string) => Promise<void>;
       queryDBTags: (searchQuery: string, notesDirectory: string) => Promise<Note[]>;
       queryDBKeyWords: (searchQuery: string, notesDirectory: string) => Promise<Note[]>;
     };

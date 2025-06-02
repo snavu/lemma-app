@@ -60,6 +60,8 @@ export const useFiles = () => {
               syncAgi();
             }
           }
+
+          await window.electron.db.syncDb(notesDirectory);
         } catch (error) {
           console.error('Failed to load files:', error);
         }
@@ -67,7 +69,7 @@ export const useFiles = () => {
     };
 
     if (notesDirectory) {
-      console.log('Loading files from directory:', notesDirectory);
+      // console.log('Loading files from directory:', notesDirectory);
       loadFiles();
     }
   }, [notesDirectory]);
