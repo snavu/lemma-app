@@ -188,9 +188,6 @@ export const chunk = async (
       console.log(`Request cancelled before LLM call for file: ${filename}`);
       return false;
     }
-    else if (chunkResults.canceled) {
-      return true;
-    }
 
     // Call LLM to determine logical chunks
     const chunkResults = await inferenceService.getChunks(cleanedContent, filename);
@@ -199,6 +196,9 @@ export const chunk = async (
     if (!chunkResults || !chunkResults.chunks || chunkResults.chunks.length === 0) {
       console.error('Failed to get chunk recommendations from LLM');
       return false;
+    }
+    else if (chunkResults.canceled) {
+      return true;
     }
 
     // Create files for each chunk (with periodic checks)
