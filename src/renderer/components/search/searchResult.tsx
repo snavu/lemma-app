@@ -155,7 +155,6 @@ export const SearchResults: React.FC<SearchResultProps> = ({
             new RegExp(lowerCaseSearchInput.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
           ) || []).length;
         
-          // console.log("index,", index);
           for (let i = 0; i < tempCount; i++) {
             if (occurrenceCount === targetIndex) {
               resultIndex = index;
@@ -164,10 +163,6 @@ export const SearchResults: React.FC<SearchResultProps> = ({
             occurrenceCount++;
           }
         }        
-        // console.log(targetIndex);
-        // console.log(keywordResults);
-        // console.log(nearbyResults);
-        // console.log(resultIndex);
         setCurrentIndex(resultIndex);
         setRes(keywordResults);
       }
