@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { SearchHeader } from './searchHeader';
 import markdownToTxt from 'markdown-to-txt';
 import './searchResult.css';
+import { viewMode } from 'src/shared/types';
 
 interface SearchResult {
   id: string,
@@ -25,6 +26,8 @@ interface SearchResultProps {
   handleSearch: (searchQuery: string) => void;
   setSearchInput: (input: string) => void;
   setResults: (results: SearchResult[]) => void;
+  viewMode: viewMode;
+  toggleViewMode: () => void;
 }
 
 export const SearchResults: React.FC<SearchResultProps> = ({ 
@@ -35,6 +38,8 @@ export const SearchResults: React.FC<SearchResultProps> = ({
   handleSearch,
   setSearchInput, 
   setResults,
+  viewMode,
+  toggleViewMode
 }) => {
 
   // Tracks the currently highlighted search result for arrow key navigation
@@ -129,7 +134,13 @@ export const SearchResults: React.FC<SearchResultProps> = ({
     const lowerCaseSearchInput = searchInput.toLowerCase();
     let occurrenceCount = 0;
     let resultIndex = 0;
-    handleFileSelect(filePath);
+
+    // If view mode currently in generated, go back to main
+    if (viewMode === 'generated') {
+      toggleViewMode();
+    }
+    // Wait for viewMode state to be updated then handle the selected file
+    setTimeout(() => handleFileSelect(filePath), 10);
 
     // Increased timeout to allow for file loading and DOM stabilization
     setTimeout(() => {

@@ -334,6 +334,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               handleSearch={handleSearch}
               setSearchInput={setSearchInput}
               setResults={setResults}
+              viewMode={viewMode}
+              toggleViewMode={toggleViewMode}
             />
           )}
         </div>
