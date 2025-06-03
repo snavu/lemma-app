@@ -42,7 +42,7 @@ export const ChatHeader = forwardRef<ChatMessageHandle, ChatHeaderProps>(
           <TrashIcon/>
         </button>
         <button onClick={() => {
-          setMessages(ChatMessageHandle.current?.getLatestMessages); 
+          setMessages(ChatMessageHandle.current?.displayMessageArray); 
           setIsChatOpen(false); 
           window.electron.agi.stopChatResponse();
         }} onMouseDown={(e) => e.stopPropagation()}><CloseIcon/></button>

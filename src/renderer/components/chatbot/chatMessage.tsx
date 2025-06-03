@@ -18,7 +18,7 @@ interface ChatMessageProps {
 export type ChatMessageHandle = {
   handleSendChatRequest: (messages: { role: 'user' | 'assistant'; content: string }[]) => void;
   setDisplayMessageArray: Dispatch<SetStateAction<{ role: 'user' | 'assistant'; content: string }[]>>;
-  getLatestMessages: () => { role: 'user' | 'assistant'; content: string }[];
+  displayMessageArray: { role: 'user' | 'assistant'; content: string }[];
 };
 
 export const ChatMessage = forwardRef<ChatMessageHandle, ChatMessageProps>(
@@ -28,9 +28,6 @@ export const ChatMessage = forwardRef<ChatMessageHandle, ChatMessageProps>(
   const bottomRef = useRef<HTMLDivElement>(null);
   // displays the current messages; doesn't story the history
   const [displayMessageArray, setDisplayMessageArray] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
-  // gets the most up to date messages from the array
-  const displayMessageRef = useRef(displayMessageArray);
-
 
   /**
    * Sends a chat request to the assistant and streams the response tokens in real time.
@@ -71,15 +68,11 @@ export const ChatMessage = forwardRef<ChatMessageHandle, ChatMessageProps>(
   useImperativeHandle(ref, () => ({
     handleSendChatRequest,
     setDisplayMessageArray,
-    getLatestMessages: () => displayMessageRef.current,
+    displayMessageArray,
   }));
 
-  /*  
-  * makes sure displayMessageRef gets the latest array 
-  * keeps scrolling down when streaming tokens
-  */
+  // keeps scrolling down when streaming tokens
   useEffect(() => {
-    displayMessageRef.current = displayMessageArray;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [displayMessageArray]);
 

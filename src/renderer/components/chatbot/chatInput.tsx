@@ -38,7 +38,7 @@ export const ChatInput = forwardRef<ChatMessageHandle, ChatInputProps>(
       content: inputValue.trim(),
     };
     
-    const newMessageArray = [...ChatMessageHandle.current?.getLatestMessages(), newMessage];
+    const newMessageArray = [...ChatMessageHandle.current?.displayMessageArray, newMessage];
     ChatMessageHandle.current?.setDisplayMessageArray(newMessageArray);
     setInputValue('');
     setIsAwaitingResponse(true);
@@ -56,9 +56,7 @@ export const ChatInput = forwardRef<ChatMessageHandle, ChatInputProps>(
     
     // send the message without the thinking message to the AI
     try {
-      const latestMessages = ChatMessageHandle.current?.getLatestMessages();
-      console.log(latestMessages);
-      await ChatMessageHandle.current?.handleSendChatRequest([...latestMessages, newMessage]);
+      await ChatMessageHandle.current?.handleSendChatRequest([...ChatMessageHandle.current?.displayMessageArray, newMessage]);
     } finally {
       setIsAwaitingResponse(false);
     }
