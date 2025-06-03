@@ -12,7 +12,7 @@ const apiApp = express();
 apiApp.use(express.json({ limit: '100mb' }));
 
 const limit = 7500;
-// Truncate web page content long than 20000 characters
+// Truncate web page content longer than 15000 characters
 const truncateLongString = (str: string): string => {
   if (str.length > 2 * limit) {
     const head = str.slice(0, limit);
