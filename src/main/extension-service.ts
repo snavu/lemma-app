@@ -14,7 +14,8 @@ apiApp.use(express.json({ limit: '100mb' }));
 // 1. Respond to queries about web content
 apiApp.post('/api/chat', async (req, res) => {
   const { webContent, query, prevMessages, url } = req.body;
-  console.log('Received query from extension:', { webContent, query, prevMessages, url });
+  // console.log('Received query from extension:', { webContent, query, prevMessages, url });
+  console.log('Received query from extension:', { query, url });
 
   try {
     // Prepare the message history for the LLM
@@ -50,7 +51,7 @@ Please provide a helpful response based on the web content and the user's questi
     });
 
     // Call the inference service
-    const response = await inferenceService.chatCompletion(messageHistory, { 
+    const response = await inferenceService.chatCompletionWebpage(messageHistory, { 
       stream: false,
       temperature: 0.7 
     });

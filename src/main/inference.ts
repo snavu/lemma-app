@@ -190,6 +190,8 @@ Return only the formatted markdown:`;
       return { formattedContent: webContent }; // Fallback to original content
     }
   }
+  
+
 
   /**
    * Send a chat completion request to chunk the document
@@ -381,6 +383,70 @@ Here is an example of the JSON structure:
     }
   }
 
+  /**
+   * Send a chat completion for Q&A for a given webpage content
+   * Works with both cloud and local inference
+   * 
+   * @param messageHistory - Array of message objects with 'role' and 'content'. The user should be the last role.
+   * @param options - Additional options for the request
+   */
+  async chatCompletionWebpage(messageHistory: any[], options: any = {}) {
+    const localModel = config.getLocalInferenceConfig().model;
+    this.localModel = localModel ? localModel : this.localModel;
+    this.isLocalMode = config.getLocalInferenceConfig().enabled;
+
+    const messages = [
+      { role: "system", content: "You are an AI assistant that specializes in question answering." },
+      ...messageHistory,
+      { role: "assistant", content: "" }
+    ]
+    
+    try {
+      if (this.isLocalMode) {
+        console.log('Inferencing on local');
+        // Local inference using Ollama
+        if (!this.ollamaClient) {
+          this.initializeOllamaClient();
+          if (!this.ollamaClient) {
+            console.error('Ollama client initialization failed');
+            return { response: '' };
+          }
+        }
+
+        // Non-streaming response
+        const response = await this.ollamaClient.chat({
+          model: this.localModel,
+          messages: messages,
+          options: {
+            temperature: options.temperature || 0.7
+          }
+        });
+
+        return {
+          response: response.message?.content || ''
+        };
+      } else {
+        console.log('Inferencing on cloud');
+        // Cloud inference using OpenAI SDK - simple pass-through
+        const modelName = options.model || config.getLLMConfig().model;
+
+        // Non-streaming response
+        const response = await this.cloudClient!.chat.completions.create({
+          model: modelName,
+          messages: messages,
+          temperature: options.temperature || 0.7,
+          stream: options.stream
+        });
+
+        return {
+          response: response.choices[0].message.content || ''
+        };
+      }
+    } catch (error) {
+      console.error('Error in chat completion:', error);
+      return { response: '' };
+    }
+  }
   /**
    * Send a chat completion for Q&A
    * Works with both cloud and local inference
