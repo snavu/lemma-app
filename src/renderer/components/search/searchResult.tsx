@@ -160,7 +160,7 @@ export const SearchResults: React.FC<SearchResultProps> = ({
       toggleViewMode();
     }
     // Wait for viewMode state to be updated then handle the selected file
-    setTimeout(() => handleFileSelect(filePath), 10);
+    setTimeout(() => handleFileSelect(filePath), 20);
 
     // timeout to allow the dom to fully load
     setTimeout(() => {
@@ -310,7 +310,7 @@ export const SearchResults: React.FC<SearchResultProps> = ({
                   onClick={() => handleClick(nr.filePath, searchInput, nr.domIndex)} 
                   className="select-button"
                 >
-                  {highlightText(nr.context, searchInput.replace(/^#/, ''))}
+                  {highlightText(nr.context, searchInput)}
                 </button>
               ))}
             </div>
