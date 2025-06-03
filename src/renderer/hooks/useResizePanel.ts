@@ -25,10 +25,13 @@ export const useResizePanel = ({
       const container = panelRef.current.parentElement;
       if (!container) return;
 
+      // Get the horizontal position of the mouse relative to the container
       const containerRect = container.getBoundingClientRect();
       const offsetX = e.clientX - containerRect.left;
+       // Convert the position into a percentage of the container's width
       const newWidthPercent = (offsetX / containerRect.width) * 100;
-
+      
+      // Clamp the width within allowed min and max percentages
       const clampedWidth = Math.min(
         Math.max(newWidthPercent, minPercent),
         maxPercent

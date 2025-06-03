@@ -15,7 +15,6 @@ interface NearbyResult {
   filePath: string;
   domIndex: number;
   context: string;
-  altered: boolean;
 }
 
 interface SearchResultProps {
@@ -42,14 +41,27 @@ export const SearchResults: React.FC<SearchResultProps> = ({
   toggleViewMode
 }) => {
 
-  // Tracks the currently highlighted search result for arrow key navigation
+  // Tracks the currently highlighted search result
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   // Results to display
   const [res, setRes] = useState<HTMLElement[] | Element[]>([]);
+  // Stores all the occurences of the phrase or word
   const [nearbyResults, setNearbyResults] = useState<NearbyResult[]>([]);
   // Add state to control when to scroll
   const [shouldScroll, setShouldScroll] = useState<boolean>(false);
 
+  /**
+   * Extracts nearby text from a list of files where the search term appears.
+   * 
+   * For each occurrence of the search term (either a single word or a phrase),
+   * this function collects a window of words surrounding the match and stores it
+   * along with the file path and match index. These results are stored in state
+   * via `setNearbyResults`
+   * 
+   * - Uses a sliding window of 4 words around each match.
+   * - Converts Markdown content to plain text before processing.
+   * - Handles both single-word and multi-word (phrase) search terms.
+   */
   const extractNearbyInputs = () => {
     setNearbyResults([]);
     if (!searchInput || results.length === 0) {
@@ -77,7 +89,6 @@ export const SearchResults: React.FC<SearchResultProps> = ({
               context: nearbyWords.join(' '),
               filePath: file.filePath,
               domIndex: matchCount,
-              altered: false,
             });
             
             matchCount++;
@@ -103,7 +114,6 @@ export const SearchResults: React.FC<SearchResultProps> = ({
               context: nearbyWords.join(' '),
               filePath: file.filePath,
               domIndex: matchCount,
-              altered: false,
             });
             
             matchCount++;
@@ -124,11 +134,21 @@ export const SearchResults: React.FC<SearchResultProps> = ({
   }, [results]);
 
   /**
-   * Opens the given file and searches its content for a keyword or hashtag.
+   * Handles clicking on a search result and navigates to the corresponding match in the document.
+   * 
+   * - If currently in 'generated' view mode, switches back to the main view.
+   * - Loads the specified file, waits for the DOM to update, then searches for the selected word or phrase.
+   * - Supports both hashtag-based searches (e.g. "#tag") and regular keyword or phrase searches.
+   * - Locates the targetIndex-th occurrence of the search term and sets scroll state accordingly.
+   * 
+   * Uses multiple timeouts to ensure state transitions and DOM loading occur in sequence:
+   * - First timeout switches files.
+   * - Second timeout performs DOM search and updates result references.
+   * - Third timeout triggers scroll behavior.
    */
   const handleClick = (filePath: string, word: string, targetIndex: number) => {
     setCurrentIndex(0);
-    setShouldScroll(false); // Reset scroll flag
+    setShouldScroll(false);
     const keywordResults: any[] = [];
     const hashtagResults: Element[] = [];
     const lowerCaseSearchInput = searchInput.toLowerCase();
@@ -142,8 +162,9 @@ export const SearchResults: React.FC<SearchResultProps> = ({
     // Wait for viewMode state to be updated then handle the selected file
     setTimeout(() => handleFileSelect(filePath), 10);
 
-    // Increased timeout to allow for file loading and DOM stabilization
+    // timeout to allow the dom to fully load
     setTimeout(() => {
+      // search for hashtags
       if (searchInput.startsWith('#', 0)) {
         document.querySelectorAll(`span.tag-widget.ProseMirror-widget[contenteditable="false"][data-tag-name="${word.slice(1)}"]`)
         .forEach(elem => {
@@ -154,18 +175,20 @@ export const SearchResults: React.FC<SearchResultProps> = ({
         setCurrentIndex(targetIndex);
         setRes(hashtagResults);
       } else {
+        // search for phrases
         document.querySelectorAll("p, h1, h2, h3, code").forEach(elem => {
           if (elem.textContent.toLowerCase().includes(lowerCaseSearchInput)) {
               keywordResults.push(elem);
           }
         });
+        // this loop is mainly to find the nth occurence of the phrase
         outer:
         for (let index = 0; index < keywordResults.length; index++) {
           const text = keywordResults[index];
           const tempCount = (text.innerText.toLowerCase().match(
             new RegExp(lowerCaseSearchInput.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
           ) || []).length;
-        
+          // increment occurenceCount until it is the nth occurence
           for (let i = 0; i < tempCount; i++) {
             if (occurrenceCount === targetIndex) {
               resultIndex = index;
@@ -178,7 +201,6 @@ export const SearchResults: React.FC<SearchResultProps> = ({
         setRes(keywordResults);
       }
       
-     
       setTimeout(() => {
         setShouldScroll(true);
       }, 50);
@@ -186,7 +208,8 @@ export const SearchResults: React.FC<SearchResultProps> = ({
     }, 100);
   };
 
-  
+
+  // scrolls to the specific phrase
   const scrollToCurrentResult = useCallback(() => {
     if (!shouldScroll || res.length === 0) return;
 
@@ -242,6 +265,7 @@ export const SearchResults: React.FC<SearchResultProps> = ({
     }
   }, [scrollToCurrentResult]);
 
+  // highlights the phrases in the search result body
   const highlightText = (text: string, searchTerm: string) => {
     if (!searchTerm) return text;
     
@@ -265,6 +289,10 @@ export const SearchResults: React.FC<SearchResultProps> = ({
         setResults={setResults}
         setSearchInput={setSearchInput}
       />
+      {/* Render a list of files with search matches.
+          For each file in `results`, find all nearby matched contexts from `nearbyResults`.
+          Only display files that have at least one match.
+          For each match, render a button that shows the surrounding context  */}
       <div className="search-body">
         {results
           .map((result: SearchResult, index) => ({
