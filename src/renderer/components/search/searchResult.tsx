@@ -165,7 +165,7 @@ export const SearchResults: React.FC<SearchResultProps> = ({
     // timeout to allow the dom to fully load
     setTimeout(() => {
       // search for hashtags
-      if (searchInput.startsWith('#', 0)) {
+      if (searchInput.startsWith('#', 0) && searchInput.length > 1) {
         document.querySelectorAll(`span.tag-widget.ProseMirror-widget[contenteditable="false"][data-tag-name="${word.slice(1)}"]`)
         .forEach(elem => {
           if (elem.textContent.toLowerCase().includes(lowerCaseSearchInput)) {
