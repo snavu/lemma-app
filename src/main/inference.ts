@@ -529,7 +529,7 @@ ${context.content}\n
             // If streaming interrupted, break
             if (!streamingState()) {
               stream.abort();
-              console.log('generating aborted');
+              console.log('Generating aborted');
               break;
             }
             const token = chunk?.message?.content;
@@ -578,7 +578,7 @@ ${context.content}\n
             // If streaming interrupted, break
             if (!streamingState()) {
               stream.controller.abort();
-              console.log('generating aborted');
+              console.log('Generating aborted');
               break;
             }
             const token = chunk.choices[0]?.delta?.content;
@@ -608,8 +608,6 @@ ${context.content}\n
       return { response: '' };
     }
   }
-
-  // Add this new method to your InferenceService class in inference.ts
 
   /**
    * Send a synthesis completion request for AGI note generation

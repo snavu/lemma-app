@@ -26,7 +26,6 @@ const truncateLongString = (str: string): string => {
 // 1. Respond to queries about web content
 apiApp.post('/api/chat', async (req, res) => {
   const { webContent, query, prevMessages, url } = req.body;
-  console.log('Received query from extension:', { webContent, query, prevMessages, url });
   console.log('Received query from extension:', { query, url });
 
   try {
@@ -89,7 +88,6 @@ User Question: ${query}`;
 apiApp.post('/api/save-note', async (req, res) => {
   const { webContent, title, url } = req.body;
   console.log('Processing and saving note to Lemma:', { title, url, contentLength: webContent?.length });
-  // console.log('Web content preview:', webContent?.substring(0, 200) + '...');
 
   try {
     // Validate input
