@@ -383,6 +383,118 @@ Here is an example of the JSON structure:
     }
   }
 
+  private async beginCompletion(
+    messageHistory: any[], 
+    options: any = {}, 
+    onToken: (token: string) => void = () => {}, 
+    trackStreamingState: boolean = false
+  ) {
+    if (this.isLocalMode) {
+      console.log('Inferencing on local');
+      // Local inference using Ollama
+      if (!this.ollamaClient) {
+        this.initializeOllamaClient();
+        if (!this.ollamaClient) {
+          console.error('Ollama client initialization failed');
+          return { response: '' };
+        }
+      }
+
+      // Handle streaming if requested
+      if (options.stream) {
+        let fullResponse = '';
+
+        const stream = await this.ollamaClient.chat({
+          model: this.localModel,
+          messages: messageHistory,
+          stream: true,
+          options: {
+            temperature: options.temperature || 0.7
+          }
+        });
+
+        // Stream token by token
+        if (trackStreamingState) startStreaming();
+        for await (const chunk of stream) {
+          // If streaming interrupted, break
+          if (trackStreamingState && !streamingState()) {
+            stream.abort();
+            console.log('Generating aborted');
+            break;
+          }
+          const token = chunk?.message?.content;
+          if (token) {
+            fullResponse += token; // Append token to response
+            onToken(token); // Invoke callback function
+          }
+        }
+
+        if (trackStreamingState) stopStreaming();
+        return { response: fullResponse };
+      }
+
+      // Non-streaming response
+      const response = await this.ollamaClient.chat({
+        model: this.localModel,
+        messages: messageHistory,
+        options: {
+          temperature: options.temperature || 0.7
+        }
+      });
+
+      return {
+        response: response.message?.content || ''
+      };
+    } else {
+      console.log('Inferencing on cloud');
+      // Cloud inference using OpenAI SDK - simple pass-through
+      const modelName = options.model || config.getLLMConfig().model;
+
+      // Handle streaming if requested
+      if (options.stream) {
+        let fullResponse = '';
+
+        const stream = await this.cloudClient!.chat.completions.create({
+          model: modelName,
+          messages: messageHistory,
+          stream: true,
+          temperature: options.temperature || 0.7,
+          max_tokens: options.max_tokens
+        });
+
+        // Stream token by token
+        startStreaming();
+        for await (const chunk of stream) {
+          // If streaming interrupted, break
+          if (!streamingState()) {
+            stream.controller.abort();
+            console.log('Generating aborted');
+            break;
+          }
+          const token = chunk.choices[0]?.delta?.content;
+          if (token) {
+            fullResponse += token; // Append token to response
+            onToken(token); // Invoke callback function
+          }
+        }
+
+        stopStreaming();
+        return { response: fullResponse };
+      }
+
+      // Non-streaming response
+      const response = await this.cloudClient!.chat.completions.create({
+        model: modelName,
+        messages: messageHistory,
+        temperature: options.temperature || 0.7,
+      });
+
+      return {
+        response: response.choices[0].message.content || ''
+      };
+    }
+  }
+
   /**
    * Send a chat completion for Q&A for a given webpage content
    * Works with both cloud and local inference
@@ -402,110 +514,8 @@ Here is an example of the JSON structure:
     ]
     
     try {
-      if (this.isLocalMode) {
-        console.log('Inferencing on local');
-        // Local inference using Ollama
-        if (!this.ollamaClient) {
-          this.initializeOllamaClient();
-          if (!this.ollamaClient) {
-            console.error('Ollama client initialization failed');
-            return { response: '' };
-          }
-        }
-
-        // Handle streaming if requested
-        if (options.stream) {
-          let fullResponse = '';
-
-          const stream = await this.ollamaClient.chat({
-            model: this.localModel,
-            messages: messages,
-            stream: true,
-            options: {
-              temperature: options.temperature || 0.7
-            }
-          });
-
-          // Stream token by token
-          startStreaming();
-          for await (const chunk of stream) {
-            // If streaming interrupted, break
-            if (!streamingState()) {
-              stream.abort();
-              console.log('Generating aborted');
-              break;
-            }
-            const token = chunk?.message?.content;
-            if (token) {
-              fullResponse += token; // Append token to response
-              onToken(token); // Invoke callback function
-            }
-          }
-
-          stopStreaming();
-          return { response: fullResponse };
-        }
-
-        // Non-streaming response
-        const response = await this.ollamaClient.chat({
-          model: this.localModel,
-          messages: messages,
-          options: {
-            temperature: options.temperature || 0.7
-          }
-        });
-
-        return {
-          response: response.message?.content || ''
-        };
-      } else {
-        console.log('Inferencing on cloud');
-        // Cloud inference using OpenAI SDK - simple pass-through
-        const modelName = options.model || config.getLLMConfig().model;
-
-        if (options.stream) {
-          let fullResponse = '';
-
-          const stream = await this.cloudClient!.chat.completions.create({
-            model: modelName,
-            messages: messages,
-            stream: true,
-            temperature: options.temperature || 0.7,
-            max_tokens: options.max_tokens
-          });
-
-          // Stream token by token
-          startStreaming();
-          for await (const chunk of stream) {
-            // If streaming interrupted, break
-            if (!streamingState()) {
-              stream.controller.abort();
-              console.log('Generating aborted');
-              break;
-            }
-            const token = chunk.choices[0]?.delta?.content;
-            if (token) {
-              fullResponse += token; // Append token to response
-              onToken(token); // Invoke callback function
-            }
-          }
-
-          stopStreaming();
-          return { response: fullResponse };
-        }
-
-        // Non-streaming response
-        const response = await this.cloudClient!.chat.completions.create({
-          model: modelName,
-          messages: messages,
-          temperature: options.temperature || 0.7,
-          stream: options.stream
-        });
-
-        return {
-          response: response.choices[0].message.content || ''
-        };
-      }
+      const response = await this.beginCompletion(messages, options, onToken, false);
+      return response;
     } catch (error) {
       console.error('Error in chat completion:', error);
       return { response: '' };
@@ -563,110 +573,8 @@ ${context.content}\n
       aggregatedPrompt += `User's query: ${userPrompt}`;
       messages[messages.length - 2].content = aggregatedPrompt;
 
-      if (this.isLocalMode) {
-        console.log('Inferencing on local');
-        // Local inference using Ollama
-        if (!this.ollamaClient) {
-          this.initializeOllamaClient();
-          if (!this.ollamaClient) {
-            console.error('Ollama client initialization failed');
-            return { response: '' };
-          }
-        }
-
-        // Handle streaming if requested
-        if (options.stream) {
-          let fullResponse = '';
-
-          const stream = await this.ollamaClient.chat({
-            model: this.localModel,
-            messages: messages,
-            stream: true,
-            options: {
-              temperature: options.temperature || 0.7
-            }
-          });
-
-          // Stream token by token
-          startStreaming();
-          for await (const chunk of stream) {
-            // If streaming interrupted, break
-            if (!streamingState()) {
-              stream.abort();
-              console.log('Generating aborted');
-              break;
-            }
-            const token = chunk?.message?.content;
-            if (token) {
-              fullResponse += token; // Append token to response
-              onToken(token); // Invoke callback function
-            }
-          }
-
-          stopStreaming();
-          return { response: fullResponse };
-        }
-
-        // Non-streaming response
-        const response = await this.ollamaClient.chat({
-          model: this.localModel,
-          messages: messages,
-          options: {
-            temperature: options.temperature || 0.7
-          }
-        });
-
-        return {
-          response: response.message?.content || ''
-        };
-      } else {
-        console.log('Inferencing on cloud');
-        // Cloud inference using OpenAI SDK - simple pass-through
-        const modelName = options.model || config.getLLMConfig().model;
-
-        // Handle streaming if requested
-        if (options.stream) {
-          let fullResponse = '';
-
-          const stream = await this.cloudClient!.chat.completions.create({
-            model: modelName,
-            messages: messages,
-            stream: true,
-            temperature: options.temperature || 0.7,
-            max_tokens: options.max_tokens
-          });
-
-          // Stream token by token
-          startStreaming();
-          for await (const chunk of stream) {
-            // If streaming interrupted, break
-            if (!streamingState()) {
-              stream.controller.abort();
-              console.log('Generating aborted');
-              break;
-            }
-            const token = chunk.choices[0]?.delta?.content;
-            if (token) {
-              fullResponse += token; // Append token to response
-              onToken(token); // Invoke callback function
-            }
-          }
-
-          stopStreaming();
-          return { response: fullResponse };
-        }
-
-        // Non-streaming response
-        const response = await this.cloudClient!.responses.create({
-          model: modelName,
-          input: messages,
-          temperature: options.temperature || 0.7,
-        });
-
-        return {
-          response: response.output_text || ''
-        };
-      }
+      const response = await this.beginCompletion(messages, options, onToken, true);
+      return response;
     } catch (error) {
       console.error('Error in chat completion:', error);
       return { response: '' };

@@ -69,12 +69,6 @@ User Question: ${query}`;
       res.write(token);
     });
 
-    // Return the AI response
-    // res.json({
-    //   answer: response.response || 'Sorry, I could not generate a response.',
-    //   url: url,
-    //   success: true
-    // });
     if (!response.response) {
       res.write('Sorry, I could not generate a response.');
     }
