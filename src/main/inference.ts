@@ -390,7 +390,7 @@ Here is an example of the JSON structure:
    * @param messageHistory - Array of message objects with 'role' and 'content'. The user should be the last role.
    * @param options - Additional options for the request
    */
-  async chatCompletionWebpage(messageHistory: any[], options: any = {}) {
+  async chatCompletionWebpage(messageHistory: any[], options: any = {}, onToken: (token: string) => void = () => {}) {
     const localModel = config.getLocalInferenceConfig().model;
     this.localModel = localModel ? localModel : this.localModel;
     this.isLocalMode = config.getLocalInferenceConfig().enabled;
@@ -413,6 +413,39 @@ Here is an example of the JSON structure:
           }
         }
 
+        // Handle streaming if requested
+        if (options.stream) {
+          let fullResponse = '';
+
+          const stream = await this.ollamaClient.chat({
+            model: this.localModel,
+            messages: messages,
+            stream: true,
+            options: {
+              temperature: options.temperature || 0.7
+            }
+          });
+
+          // Stream token by token
+          startStreaming();
+          for await (const chunk of stream) {
+            // If streaming interrupted, break
+            if (!streamingState()) {
+              stream.abort();
+              console.log('Generating aborted');
+              break;
+            }
+            const token = chunk?.message?.content;
+            if (token) {
+              fullResponse += token; // Append token to response
+              onToken(token); // Invoke callback function
+            }
+          }
+
+          stopStreaming();
+          return { response: fullResponse };
+        }
+
         // Non-streaming response
         const response = await this.ollamaClient.chat({
           model: this.localModel,
@@ -429,6 +462,37 @@ Here is an example of the JSON structure:
         console.log('Inferencing on cloud');
         // Cloud inference using OpenAI SDK - simple pass-through
         const modelName = options.model || config.getLLMConfig().model;
+
+        if (options.stream) {
+          let fullResponse = '';
+
+          const stream = await this.cloudClient!.chat.completions.create({
+            model: modelName,
+            messages: messages,
+            stream: true,
+            temperature: options.temperature || 0.7,
+            max_tokens: options.max_tokens
+          });
+
+          // Stream token by token
+          startStreaming();
+          for await (const chunk of stream) {
+            // If streaming interrupted, break
+            if (!streamingState()) {
+              stream.controller.abort();
+              console.log('Generating aborted');
+              break;
+            }
+            const token = chunk.choices[0]?.delta?.content;
+            if (token) {
+              fullResponse += token; // Append token to response
+              onToken(token); // Invoke callback function
+            }
+          }
+
+          stopStreaming();
+          return { response: fullResponse };
+        }
 
         // Non-streaming response
         const response = await this.cloudClient!.chat.completions.create({

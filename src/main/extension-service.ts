@@ -63,17 +63,23 @@ User Question: ${query}`;
 
     // Call the inference service
     const response = await inferenceService.chatCompletionWebpage(messageHistory, { 
-      stream: false,
-      temperature: 0.7 
+      stream: true,
+      temperature: 0.7, 
+    }, (token) => {
+      res.write(token);
     });
 
     // Return the AI response
-    res.json({
-      answer: response.response || 'Sorry, I could not generate a response.',
-      url: url,
-      success: true
-    });
+    // res.json({
+    //   answer: response.response || 'Sorry, I could not generate a response.',
+    //   url: url,
+    //   success: true
+    // });
+    if (!response.response) {
+      res.write('Sorry, I could not generate a response.');
+    }
 
+    res.end();
   } catch (error) {
     console.error('Error processing chat request:', error);
     res.status(500).json({
