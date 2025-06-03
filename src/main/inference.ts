@@ -383,6 +383,14 @@ Here is an example of the JSON structure:
     }
   }
 
+  /**
+   * Subroutine for calling the inference server
+   * 
+   * @param messageHistory - Array of message objects with 'role' and 'content'. The assistant should be the last role.
+   * @param options - Additional options for the request
+   * @param onToken - Callback function for handling each generated token if streaming is enabled
+   * @param trackStreamingState - Allow tracking of streaming state. Only enable this if sending from the app's chat UI.
+   */
   private async beginCompletion(
     messageHistory: any[], 
     options: any = {}, 
@@ -463,10 +471,10 @@ Here is an example of the JSON structure:
         });
 
         // Stream token by token
-        startStreaming();
+        if (trackStreamingState) startStreaming();
         for await (const chunk of stream) {
           // If streaming interrupted, break
-          if (!streamingState()) {
+          if (trackStreamingState && !streamingState()) {
             stream.controller.abort();
             console.log('Generating aborted');
             break;
@@ -478,7 +486,7 @@ Here is an example of the JSON structure:
           }
         }
 
-        stopStreaming();
+        if (trackStreamingState) stopStreaming();
         return { response: fullResponse };
       }
 
