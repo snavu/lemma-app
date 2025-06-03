@@ -42,7 +42,7 @@ export const syncGraphWithFiles = async (mode: viewMode): Promise<boolean> => {
         else if (filename.startsWith('fully_generated_')) {
           type = 'generated';
         }
-        graphService.create_node(mode, filename, [], type);
+        graphService.createNode(mode, filename, [], type);
       }
     }
 
@@ -50,14 +50,14 @@ export const syncGraphWithFiles = async (mode: viewMode): Promise<boolean> => {
     for (const node of nodes) {
       if (!filenames.includes(node.name)) {
         console.log(`Removing node for deleted file: ${node.name}`);
-        graphService.delete_node(mode, node.id);
+        graphService.deleteNode(mode, node.id);
       }
     }
 
     // Step 3: Update links for existing files
     for (const filename of filenames) {
       // Get corresponding node
-      const node = graphService.get_node(mode, filename);
+      const node = graphService.getNode(mode, filename);
       if (!node) continue;
 
       // Read file content
@@ -65,10 +65,10 @@ export const syncGraphWithFiles = async (mode: viewMode): Promise<boolean> => {
       const content = fileService.readFile(filePath);
 
       // Parse file to extract new links
-      const linkedFiles = graphService.parse_file_links(content, filenames);
+      const linkedFiles = graphService.parseFileLinks(content, filenames);
 
       // Get all current links where this node is the source
-      const links = graphService.get_links(mode) || [];
+      const links = graphService.getLinks(mode) || [];
       const currentTargets = links
         .filter(link => link.source === node.id)
         .map(link => {
@@ -88,7 +88,7 @@ export const syncGraphWithFiles = async (mode: viewMode): Promise<boolean> => {
           else if (linkedFile.startsWith('fully_generated_')) {
             type = 'generated';
           }
-          graphService.create_link(mode, node.id, linkedFile, type);
+          graphService.createLink(mode, node.id, linkedFile, type);
         }
       }
 
@@ -96,7 +96,7 @@ export const syncGraphWithFiles = async (mode: viewMode): Promise<boolean> => {
       for (const currentTarget of currentTargets) {
         if (!linkedFiles.includes(currentTarget)) {
           console.log(`Removing link from ${filename} to ${currentTarget}`);
-          graphService.delete_link(mode, node.id, currentTarget);
+          graphService.deleteLink(mode, node.id, currentTarget);
         }
       }
     }
@@ -125,14 +125,14 @@ export const updateFileInGraph = async (mode: viewMode, filename: string): Promi
     const filenames = files.map(file => file.name);
 
     // Find the file node
-    let node = graphService.get_node(mode, filename);
+    let node = graphService.getNode(mode, filename);
 
     // Read the file content
     const filePath = path.join(notesDir, filename);
     if (!fs.existsSync(filePath)) {
       // File doesn't exist, delete node if it exists
       if (node) {
-        graphService.delete_node(mode, node.id);
+        graphService.deleteNode(mode, node.id);
       }
       return true;
     }
@@ -140,18 +140,18 @@ export const updateFileInGraph = async (mode: viewMode, filename: string): Promi
     const content = fileService.readFile(filePath);
 
     // Parse file to find linked files
-    const linkedFiles = graphService.parse_file_links(content, filenames);
+    const linkedFiles = graphService.parseFileLinks(content, filenames);
 
   
 
     if (!node) {
       // Create new node if it doesn't exist
-      graphService.create_node(mode, filename, linkedFiles, 'user');
+      graphService.createNode(mode, filename, linkedFiles, 'user');
       return true;
     }
 
     // Update links for existing node
-    const links = graphService.get_links(mode) || [];
+    const links = graphService.getLinks(mode) || [];
     const currentTargets = links
       .filter(link => link.source === node.id)
       .map(link => {
@@ -165,14 +165,14 @@ export const updateFileInGraph = async (mode: viewMode, filename: string): Promi
     // Add new links
     for (const linkedFile of linkedFiles) {
       if (!currentTargets.includes(linkedFile)) {
-        graphService.create_link(mode, node.id, linkedFile, 'user');
+        graphService.createLink(mode, node.id, linkedFile, 'user');
       }
     }
 
     // Remove deleted links
     for (const currentTarget of currentTargets) {
       if (!linkedFiles.includes(currentTarget)) {
-        graphService.delete_link(mode, node.id, currentTarget);
+        graphService.deleteLink(mode, node.id, currentTarget);
       }
     }
 
@@ -187,9 +187,9 @@ export const updateFileInGraph = async (mode: viewMode, filename: string): Promi
  * Updates the graph when a file is deleted
  */
 export const removeFileFromGraph = (mode: viewMode, filename: string): boolean => {
-  const node = graphService.get_node(mode, filename);
+  const node = graphService.getNode(mode, filename);
   if (node) {
-    return graphService.delete_node(mode, node.id);
+    return graphService.deleteNode(mode, node.id);
   }
   return true;
 };

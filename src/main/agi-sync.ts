@@ -80,7 +80,7 @@ const updateParentWithChunkLinks = async (parentFilename: string, chunkFilenames
     fs.writeFileSync(parentPath, content);
 
     // Update the node in the graph to include links to all chunks
-    const linkedFiles = graphService.parse_file_links(content, [...chunkFilenames, parentFilename]);
+    const linkedFiles = graphService.parseFileLinks(content, [...chunkFilenames, parentFilename]);
     createNodeInAgiGraph(parentFilename, linkedFiles, 'assisted');
 
     return true;
@@ -94,7 +94,7 @@ const updateParentWithChunkLinks = async (parentFilename: string, chunkFilenames
  * Process the content of a file to extract linked files
  */
 const parseFileLinks = (content: string, availableFiles: string[]): string[] => {
-  return graphService.parse_file_links(content, availableFiles);
+  return graphService.parseFileLinks(content, availableFiles);
 };
 
 /**

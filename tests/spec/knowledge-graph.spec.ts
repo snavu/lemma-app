@@ -23,7 +23,7 @@ const parseFileLinksData = {
 };
 
 const verifyCreatedNode = (newNode: {id: number, name: string, type: string}) => {
-  const createdNode = graphService.get_node(testMode, newNode.name);
+  const createdNode = graphService.getNode(testMode, newNode.name);
   expect(createdNode).not.toBeNull();
   // Check node properties
   expect(createdNode.id).toBe(newNode.id);
@@ -32,19 +32,19 @@ const verifyCreatedNode = (newNode: {id: number, name: string, type: string}) =>
 };
 
 const verifyDeletedNode = (deletedNode: {id: number, name: string, type: string}) => {
-  const node = graphService.get_node(testMode, deletedNode.name);
+  const node = graphService.getNode(testMode, deletedNode.name);
   expect(node).toBeNull();
 };
 
 const verifyCreatedLink = (sourceId: number, targetId: number) => {
-  const links = graphService.get_links(testMode);
+  const links = graphService.getLinks(testMode);
   expect(links).not.toBeNull();
   const link = links.find(link => (link.source === sourceId && link.target === targetId));
   expect(link).not.toBeNull();
 };
 
 const verifyDeletedLink = (sourceId: number, targetId: number) => {
-  const links = graphService.get_links(testMode);
+  const links = graphService.getLinks(testMode);
   const deletedLink = links.find(link => (link.source === sourceId && link.target === targetId));
   // Confirm link is deleted
   expect(deletedLink).toBeUndefined();
@@ -53,7 +53,7 @@ const verifyDeletedLink = (sourceId: number, targetId: number) => {
 const deleteAllNodes = () => {
   const graphNodes = graphService.get_nodes(testMode);
   for (const node of graphNodes) {
-    graphService.delete_node(testMode, node.id);
+    graphService.deleteNode(testMode, node.id);
   }
 };
 
@@ -75,7 +75,7 @@ describe('graph-service', () => {
     it('create node 1', () => {
       const newNode = fileNodes[0];
       // Create node
-      const createdNode = graphService.create_node(testMode, newNode.name, [], newNode.type);
+      const createdNode = graphService.createNode(testMode, newNode.name, [], newNode.type);
 
       expect(createdNode).not.toBeNull();
       // Check node in graph
@@ -84,7 +84,7 @@ describe('graph-service', () => {
 
     it('create node 2', () => {
       const newNode = fileNodes[1];
-      const createdNode = graphService.create_node(testMode, newNode.name, [], newNode.type);
+      const createdNode = graphService.createNode(testMode, newNode.name, [], newNode.type);
 
       expect(createdNode).not.toBeNull();
       // Check node in graph
@@ -96,9 +96,9 @@ describe('graph-service', () => {
     it('create node with links', () => {
       const sourceNode = fileNodes[1];
       const targetNode = fileNodes[0];
-      graphService.create_node(testMode, targetNode.name, [], testType);
+      graphService.createNode(testMode, targetNode.name, [], testType);
       // Create node with link
-      const createdNode = graphService.create_node(testMode, sourceNode.name, [targetNode.name], testType);
+      const createdNode = graphService.createNode(testMode, sourceNode.name, [targetNode.name], testType);
       expect(createdNode).not.toBeNull();
 
       // Check node in graph
@@ -115,13 +115,13 @@ describe('graph-service', () => {
       const newNode1 = fileNodes[0];
       const newNode2 = fileNodes[1];
       // Insert every node into graph
-      fileNodes.forEach(node => graphService.create_node(testMode, node.name, [], testType));
+      fileNodes.forEach(node => graphService.createNode(testMode, node.name, [], testType));
 
       const sourceId = newNode1.id;
       const targetId = newNode2.id;
 
       // Create link
-      const success = graphService.create_link(testMode, sourceId, targetId, testType);
+      const success = graphService.createLink(testMode, sourceId, targetId, testType);
       expect(success).toBe(true);
 
       // Check link in graph
@@ -134,13 +134,13 @@ describe('graph-service', () => {
       const newNode1 = fileNodes[0];
       const newNode2 = fileNodes[1];
       // Insert every node into graph
-      fileNodes.forEach(node => graphService.create_node(testMode, node.name, [], testType));
+      fileNodes.forEach(node => graphService.createNode(testMode, node.name, [], testType));
 
       const sourceId = newNode2.id;
       const targetId = newNode1.id;
 
       // Create link
-      const success = graphService.create_link(testMode, sourceId, targetId, testType);
+      const success = graphService.createLink(testMode, sourceId, targetId, testType);
       expect(success).toBe(true);
 
       // Check link in graph
@@ -154,10 +154,10 @@ describe('graph-service', () => {
     it('delete node 1', () => {
       const testNode = fileNodes[0];
       // Insert every node into graph
-      fileNodes.forEach(node => graphService.create_node(testMode, node.name, [], testType));
+      fileNodes.forEach(node => graphService.createNode(testMode, node.name, [], testType));
 
       // Delete node
-      const success = graphService.delete_node(testMode, testNode.id);
+      const success = graphService.deleteNode(testMode, testNode.id);
       expect(success).toBe(true);
 
       // Confirm node is deleted
@@ -169,10 +169,10 @@ describe('graph-service', () => {
     it('delete node 2', () => {
       const testNode = fileNodes[1];
       // Insert every node into graph
-      fileNodes.forEach(node => graphService.create_node(testMode, node.name, [], testType));
+      fileNodes.forEach(node => graphService.createNode(testMode, node.name, [], testType));
 
       // Delete node
-      const success = graphService.delete_node(testMode, testNode.id);
+      const success = graphService.deleteNode(testMode, testNode.id);
       expect(success).toBe(true);
 
       // Confirm node is deleted
@@ -185,12 +185,12 @@ describe('graph-service', () => {
       const sourceNode = fileNodes[0];
       const targetNode = fileNodes[1];
       // Insert every node into graph
-      fileNodes.forEach(node => graphService.create_node(testMode, node.name, [], testType));
+      fileNodes.forEach(node => graphService.createNode(testMode, node.name, [], testType));
       // Create link
-      graphService.create_link(testMode, sourceNode.id, targetNode.id, testType);
+      graphService.createLink(testMode, sourceNode.id, targetNode.id, testType);
 
       // Delete node with link
-      graphService.delete_node(testMode, sourceNode.id);
+      graphService.deleteNode(testMode, sourceNode.id);
 
       // Confirm node and link are deleted
       verifyDeletedNode(sourceNode);
@@ -208,13 +208,13 @@ describe('graph-service', () => {
       const targetId = newNode2.id;
 
       // Insert every node into graph
-      fileNodes.forEach(node => graphService.create_node(testMode, node.name, [], testType));
+      fileNodes.forEach(node => graphService.createNode(testMode, node.name, [], testType));
       // Create link
-      graphService.create_link(testMode, sourceId, targetId, testType);
-      graphService.create_link(testMode, newNode2.id, newNode3.id, testType);
+      graphService.createLink(testMode, sourceId, targetId, testType);
+      graphService.createLink(testMode, newNode2.id, newNode3.id, testType);
 
       // Delete link
-      const success = graphService.delete_link(testMode, sourceId, targetId);
+      const success = graphService.deleteLink(testMode, sourceId, targetId);
       expect(success).toBe(true);
 
       // Confirm link is deleted
@@ -232,13 +232,13 @@ describe('graph-service', () => {
       const targetId = newNode3.id;
 
       // Insert every node into graph
-      fileNodes.forEach(node => graphService.create_node(testMode, node.name, [], testType));
+      fileNodes.forEach(node => graphService.createNode(testMode, node.name, [], testType));
       // Create link
-      graphService.create_link(testMode, sourceId, targetId, testType);
-      graphService.create_link(testMode, newNode1.id, newNode2.id, testType);
+      graphService.createLink(testMode, sourceId, targetId, testType);
+      graphService.createLink(testMode, newNode1.id, newNode2.id, testType);
 
       // Delete link
-      const success = graphService.delete_link(testMode, sourceId, targetId);
+      const success = graphService.deleteLink(testMode, sourceId, targetId);
       expect(success).toBe(true);
 
       // Confirm link is deleted
@@ -250,7 +250,7 @@ describe('graph-service', () => {
 
   describe('parseFileLinks()', () => {
     it('all available files', () => {
-      const links = graphService.parse_file_links(parseFileLinksData.content, parseFileLinksData.links);
+      const links = graphService.parseFileLinks(parseFileLinksData.content, parseFileLinksData.links);
       expect(links.length).toBe(parseFileLinksData.links.length);
 
       expect(new Set(links)).toEqual(new Set(parseFileLinksData.links));
@@ -258,7 +258,7 @@ describe('graph-service', () => {
 
     it('partially available files', () => {
       const partiallyAvailableFiles = parseFileLinksData.links.slice(0,2);
-      const links = graphService.parse_file_links(parseFileLinksData.content, partiallyAvailableFiles);
+      const links = graphService.parseFileLinks(parseFileLinksData.content, partiallyAvailableFiles);
       expect(links.length).toBe(partiallyAvailableFiles.length);
 
       expect(new Set(links)).toEqual(new Set(partiallyAvailableFiles));

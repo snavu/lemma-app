@@ -542,7 +542,7 @@ Create a new note that connects these ideas with a clear title. Focus on novel i
     //  Run database and graph operations in parallel
     const [, linkedFiles] = await Promise.all([
       this.database.upsertNotes(generatedDir, filePath, content, 'generated'),
-      Promise.resolve(graphService.parse_file_links(fullContent, await this.getCachedFiles()))
+      Promise.resolve(graphService.parseFileLinks(fullContent, await this.getCachedFiles()))
     ]);
 
     // Background operations
