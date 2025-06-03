@@ -11,10 +11,22 @@ import * as userAgiSync from './agi-sync';
 const apiApp = express();
 apiApp.use(express.json({ limit: '100mb' }));
 
+const limit = 7500;
+// Truncate web page content long than 20000 characters
+const truncateLongString = (str: string): string => {
+  if (str.length > 2 * limit) {
+    const head = str.slice(0, limit);
+    const tail = str.slice(-limit);
+    return `${head}\n\n... [truncated ${str.length - 2 * limit} characters] ...\n\n${tail}`;
+  } else {
+    return str;
+  }
+}
+
 // 1. Respond to queries about web content
 apiApp.post('/api/chat', async (req, res) => {
   const { webContent, query, prevMessages, url } = req.body;
-  // console.log('Received query from extension:', { webContent, query, prevMessages, url });
+  console.log('Received query from extension:', { webContent, query, prevMessages, url });
   console.log('Received query from extension:', { query, url });
 
   try {
@@ -23,9 +35,9 @@ apiApp.post('/api/chat', async (req, res) => {
     
     // Add previous messages if they exist
     if (prevMessages && Array.isArray(prevMessages)) {
-      for (const msg of prevMessages) {
+      for (const msg of prevMessages.slice(0, prevMessages.length - 1)) {
         messageHistory.push({
-          role: msg.role || 'user',
+          role: msg.role,
           content: msg.content || msg
         });
       }
@@ -38,11 +50,11 @@ Context: I'm browsing a webpage with the following content:
 URL: ${url}
 
 Web Content:
-${webContent}
+${truncateLongString(webContent)}
 
-User Question: ${query}
+Please provide a helpful response based on the web content and the user's question.
 
-Please provide a helpful response based on the web content and the user's question.`;
+User Question: ${query}`;
 
     // Add the current query with context
     messageHistory.push({
