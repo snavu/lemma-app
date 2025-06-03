@@ -166,9 +166,9 @@ export const SearchResults: React.FC<SearchResultProps> = ({
     setTimeout(() => {
       // search for hashtags
       if (searchInput.startsWith('#', 0) && searchInput.length > 1) {
-        document.querySelectorAll(`span.tag-widget.ProseMirror-widget[contenteditable="false"][data-tag-name="${word.slice(1)}"]`)
+        document.querySelectorAll(`span.tag-widget.ProseMirror-widget[contenteditable="false"]`)
         .forEach(elem => {
-          if (elem.textContent.toLowerCase().includes(lowerCaseSearchInput)) {
+          if (elem.textContent.toLowerCase().includes(lowerCaseSearchInput.slice(1))) {
               hashtagResults.push(elem.closest('p') || elem);
           }
         });
