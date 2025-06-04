@@ -273,7 +273,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <AISettingsIcon />
           </button>
           <button
-            onClick={toggleViewMode}
+            onClick={() => {
+              toggleViewMode();
+              setTimeout(() => (setIsCollapsed(false), setSearchResult(false), setResults([])), 10);
+            }}
             className={viewMode === 'generated' ? 'active' : ''}
             title="Toggle View Mode"
           >
