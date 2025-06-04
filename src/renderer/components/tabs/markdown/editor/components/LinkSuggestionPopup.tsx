@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Editor } from '@tiptap/core';
 import './LinkSuggestionPopup.css';
 
 // Match the FileInfo interface from the LinkExtension

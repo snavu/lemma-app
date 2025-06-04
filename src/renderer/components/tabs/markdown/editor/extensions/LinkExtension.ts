@@ -4,7 +4,7 @@ import Suggestion, {
   SuggestionProps,
   SuggestionKeyDownProps
 } from '@tiptap/suggestion'
-import { Extension, Editor, Mark } from '@tiptap/core'
+import { Extension, Editor } from '@tiptap/core'
 import Fuse from 'fuse.js'
 import { Plugin, PluginKey } from 'prosemirror-state'
 import { EditorView } from 'prosemirror-view'
