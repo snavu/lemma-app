@@ -13,9 +13,9 @@ import { startExtensionService } from './extension-service';
 import { LiveAgiService } from './live-agi-service';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
-if (require('electron-squirrel-startup')) {
-  app.quit();
-}
+// if (require('electron-squirrel-startup')) {
+//   app.quit();
+// }
 
 let mainWindow: BrowserWindow | null = null;
 export let database: DbClient;

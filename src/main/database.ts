@@ -1,5 +1,13 @@
-const { OllamaEmbeddingFunction } = require('chromadb');
-import { ChromaClient, Collection, GetResponse, Metadata, GetParams, QueryRecordsParams, QueryResponse, ChromaConnectionError } from 'chromadb';
+import { 
+  ChromaClient,
+  OllamaEmbeddingFunction, 
+  Collection, 
+  GetResponse, 
+  Metadata, 
+  GetParams, 
+  QueryRecordsParams, 
+  QueryResponse, 
+  ChromaConnectionError } from 'chromadb';
 import os from 'os';
 import ollama from 'ollama';
 
@@ -47,7 +55,7 @@ const getId = (filePath: string, type: string): string => {
 export class DbClient {
   private collection: Collection | null;
   private collectionName: string;
-  private embedFunc: typeof OllamaEmbeddingFunction | null;
+  private embedFunc: OllamaEmbeddingFunction | null;
   private modelName: string;
   private client: ChromaClient | null;
 
