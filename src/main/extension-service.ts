@@ -61,7 +61,7 @@ User Question: ${query}`;
       content: contextPrompt
     });
 
-    // Call the inference service
+    // Call the inference service, writing each token back to the client
     const response = await inferenceService.chatCompletionWebpage(messageHistory, { 
       stream: true,
       temperature: 0.7, 
@@ -73,6 +73,7 @@ User Question: ${query}`;
       res.write('Sorry, I could not generate a response.');
     }
 
+    // Terminate the response
     res.end();
   } catch (error) {
     console.error('Error processing chat request:', error);
@@ -81,6 +82,7 @@ User Question: ${query}`;
       error: error.message,
       success: false
     });
+    res.end();
   }
 });
 
