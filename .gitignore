@@ -100,3 +100,6 @@ typings/
 
 # Electron-Forge
 out/
+
+# dist
+dist/
