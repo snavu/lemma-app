@@ -12,8 +12,8 @@
 
 LEMMA is a thinking assistant and note-taking app that serves as an extension of your mind. This tool will help you capture ideas, make connections, and generate insights by building a personal knowledge graph that evolves with your thinking.
 
-LEMMA is a privacy-first desktop note-taking application that organizes and synthesizes knowledge. Built with local-only data storage and AI processing, LEMMA creates intelligent connections between your notes via markov chain vector retrieval methods while ensuring complete privacy by keeping all data on your machine.
-Unlike traditional note-taking apps, LEMMA utilizes knowledge graph visualization as core navigation and local AI models to help you discover hidden relationships between ideas and generate new insights from your personal knowledge base.
+LEMMA is a privacy-first desktop note-taking application that organizes and synthesizes knowledge. Built with local-only data storage and AI processing, LEMMA creates intelligent connections between your notes via markov chain and vector retrieval methods while ensuring complete privacy by keeping all data on your machine.
+Unlike traditional note-taking apps, LEMMA utilizes knowledge graph visualization as core navigation and LLMs to help you discover hidden relationships between ideas and generate new insights from your personal knowledge base.
 
 ## Features:
 - **Markdown Note Editor**: Flexible text editing with support for rich formatting and code blocks
@@ -66,7 +66,9 @@ npm run start
 - **Backend**: Express.js
 - **Database**: ChromaDB 
 - **AI/ML**: Ollama
-
+  
+ <br>
+  <br>
 
 
 ---
