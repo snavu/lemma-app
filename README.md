@@ -69,4 +69,5 @@ npm run start
 
 
 
+---
 <p align="center" > <em>/ˈlemə/ - a subsidiary or intermediate theorem in an argument or proof</em><p/>
