@@ -169,7 +169,7 @@ ${processedContent}
       await database.upsertNotes(notesDirectory, filePath, noteContent, 'main' as FileType);
 
       // Sync agi
-      const syncSuccess = await userAgiSync.syncAgi();
+      const syncSuccess = await userAgiSync.updateFileInAgi(fileName);
       if (syncSuccess) {
         console.log('User successfully synced all files with AGI');
       } else {
