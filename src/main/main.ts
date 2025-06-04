@@ -1,7 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
-import { ChildProcess, spawn, spawnSync } from 'child_process';
 import { DbClient, FileType } from './database';
 import * as fileService from './file-service';
 import * as chromaService from './chroma-service';
@@ -36,6 +35,7 @@ const createWindow = (): void => {
       nodeIntegration: false,
       devTools: false
     },
+    icon: path.join(__dirname, '../images/icon.png'),
   });
 
   // Load the index.html file

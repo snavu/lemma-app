@@ -2,7 +2,7 @@
   "name": "lemma",
   "productName": "lemma",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "lemma",
   "main": ".vite/build/main.js",
   "scripts": {
     "start": "electron-forge start",
@@ -78,7 +78,6 @@
     "express": "^5.1.0",
     "fuse.js": "^7.1.0",
     "github-markdown-css": "^5.8.1",
-    "highlight.js": "^11.11.1",
     "i": "^0.3.7",
     "jsonrepair": "^3.12.0",
     "lodash": "^4.17.21",
