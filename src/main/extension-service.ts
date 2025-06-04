@@ -11,9 +11,10 @@ import * as userAgiSync from './agi-sync';
 const apiApp = express();
 apiApp.use(express.json({ limit: '100mb' }));
 
-const limit = 7500;
-// Truncate web page content longer than 15000 characters
+const limit = 5000;
+// Truncate web page content longer than 10000 characters
 const truncateLongString = (str: string): string => {
+  // Get first 5000 words and last 5000 words
   if (str.length > 2 * limit) {
     const head = str.slice(0, limit);
     const tail = str.slice(-limit);
