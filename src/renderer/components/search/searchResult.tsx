@@ -168,10 +168,12 @@ export const SearchResults: React.FC<SearchResultProps> = ({
       if (searchInput.startsWith('#', 0) && searchInput.length > 1) {
         document.querySelectorAll(`span.tag-widget.ProseMirror-widget[contenteditable="false"]`)
         .forEach(elem => {
-          if (elem.textContent.toLowerCase().includes(lowerCaseSearchInput.slice(1))) {
+          if (elem.textContent.slice(1).toLowerCase().startsWith(lowerCaseSearchInput.slice(1))) {
               hashtagResults.push(elem.closest('p') || elem);
+              
           }
         });
+        console.log(targetIndex);
         setCurrentIndex(targetIndex);
         setRes(hashtagResults);
       } else {
