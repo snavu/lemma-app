@@ -1,5 +1,5 @@
 <p align="center">
-<img style="align:center;" src="https://github.com/user-attachments/assets/bdecf1bc-de64-4642-bb8d-459aad2797ed" alt="Notesnook Logo" width="200" />
+<img style="align:center;" src="https://github.com/user-attachments/assets/ef92fbfe-ede5-414b-9234-44a35b342b6e" alt="lemma logo" width="200" />
 </p>
 
 <h1 align="center">LEMMA</h1>
@@ -12,7 +12,7 @@
 
 LEMMA is a thinking assistant and note-taking app that serves as an extension of your mind. This tool will help you capture ideas, make connections, and generate insights by building a personal knowledge graph that evolves with your thinking.
 
-LEMMA is a privacy-first desktop note-taking application that organizes and synthesizes knowledge. Built with local-only data storage and AI processing, LEMMA creates intelligent connections between your notes via markov chain and vector retrieval methods while ensuring complete privacy by keeping all data on your machine.
+LEMMA is a privacy-first application built with local-only data storage and AI processing. LEMMA creates intelligent connections between your notes via markov chain and vector retrieval methods while ensuring complete privacy by keeping all data on your machine.
 Unlike traditional note-taking apps, LEMMA utilizes knowledge graph visualization as core navigation and LLMs to help you discover hidden relationships between ideas and generate new insights from your personal knowledge base.
 
 ## Features:
@@ -67,8 +67,16 @@ npm run start
 - **Database**: ChromaDB 
 - **AI/ML**: Ollama
   
- <br>
-  <br>
+## Contributing
+
+We welcome contributions! Please read our contributing guidelines and submit pull requests for any improvements.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+<br>
+<br>
 
 
 ---
