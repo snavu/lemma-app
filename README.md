@@ -30,7 +30,7 @@ LEMMA utilizes knowledge graph visualizations as the core navigation and LLMs to
 ### Prerequisites
 - Node.js
 - npm
-- [Ollama](https://github.com/ollama/ollama) (for local LLM)
+- [Ollama](https://github.com/ollama/ollama)
 1. Pull a model
 ```
 ollama pull llama3.2
