@@ -17,10 +17,11 @@ LEMMA utilizes knowledge graph visualizations as the core navigation and LLMs to
 
 ## Features:
 - **Markdown Note Editor**: Flexible text editing with support for rich formatting and code blocks
-- **Knowledge Graph Visualizer**: 3D interface of knowledge graph 
-- **Chrome extension companion app**: Access viewed web page and expand the app's scope context
-- **Natural Language Q&A**: Research Assistant for conversing with your knowledge base
-- **Agentic Note Generation**: Fully autonomous generation for new ideas based on your existing knowledge
+- **Knowledge Graph**: 3D interface and visualization of knowledge graph 
+- **[Chrome extension companion app](https://github.com/snavu/lemma-extension)**: Expand app's scope with web page context
+- **Natural Language Q&A**: Research assistant for conversing with your knowledge base
+- **Agentic Note Generation**: Fully autonomous note generation based on your existing knowledge
+- **RAG**: Local vector database store and context retrieval
 - **Complete Privacy**: All data stays on your machine
 - **Multi-API Support**: Support for OpenAI compatible endpoints for custom inference providers    
 - **Offline Capability**: Core features are functional offline
