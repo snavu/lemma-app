@@ -20,7 +20,7 @@ LEMMA utilizes knowledge graph visualizations as the core navigation and LLMs to
 - **Knowledge Graph Visualizer**: 3D interface of knowledge graph 
 - **Chrome extension companion app**: Access viewed web page and expand the app's scope context
 - **Natural Language Q&A**: Research Assistant for conversing with your knowledge base
-- **Idea Synthesis**: Uncover patterns and generate new ideas based on your existing knowledge
+- **Agentic Note Generation**: Fully autonomous generation for new ideas based on your existing knowledge
 - **Complete Privacy**: All data stays on your machine
 - **Multi-API Support**: Support for OpenAI compatible endpoints for custom inference providers    
 - **Offline Capability**: Core features are functional offline
